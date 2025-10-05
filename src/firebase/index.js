@@ -1,0 +1,2 @@
+// src/firebase/index.js
+export * from './config';
