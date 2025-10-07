@@ -1,8 +1,8 @@
-// src/components/battles/BattleTracker.js
+// src/components/battles/BattleTracker.js (Fixed Version)
 import React, { useState, useEffect } from 'react';
 import { Card, Alert, Badge, Button } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp, collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import BattlePhases from '../../enums/BattlePhases';
@@ -22,6 +22,9 @@ const BattleTracker = ({ battleId }) => {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [confirmEndBattle, setConfirmEndBattle] = useState(false);
+  const [selectedUnit, setSelectedUnit] = useState(null);
+  const [abilities, setAbilities] = useState([]);
+  const [upgrades, setUpgrades] = useState([]);
   
   // Load battle data
   useEffect(() => {
@@ -29,10 +32,7 @@ const BattleTracker = ({ battleId }) => {
       try {
         setLoading(true);
         
-        // Get reference to the battle document
         const battleRef = doc(db, 'users', currentUser.uid, 'battles', battleId);
-        
-        // Get the battle data
         const battleDoc = await getDoc(battleRef);
         
         if (battleDoc.exists()) {
@@ -60,15 +60,40 @@ const BattleTracker = ({ battleId }) => {
     }
   }, [currentUser, battleId]);
   
+  // Fetch abilities and upgrades
+  useEffect(() => {
+    const fetchAbilitiesAndUpgrades = async () => {
+      if (!currentUser) return;
+      
+      try {
+        // Fetch abilities
+        const abilitiesRef = collection(db, 'users', currentUser.uid, 'abilities');
+        const abilitiesSnapshot = await getDocs(abilitiesRef);
+        setAbilities(abilitiesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })));
+        
+        // Fetch upgrades
+        const upgradesRef = collection(db, 'users', currentUser.uid, 'upgradeCards');
+        const upgradesSnapshot = await getDocs(upgradesRef);
+        setUpgrades(upgradesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })));
+      } catch (err) {
+        console.error('Error fetching abilities/upgrades:', err);
+      }
+    };
+    
+    fetchAbilitiesAndUpgrades();
+  }, [currentUser]);
+  
   // Save battle state to Firestore
   const saveBattle = async (updatedBattle = battle) => {
     try {
       setSaving(true);
-      
-      // Get reference to the battle document
       const battleRef = doc(db, 'users', currentUser.uid, 'battles', battleId);
-      
-      // Update the battle
       await updateDoc(battleRef, {
         ...updatedBattle,
         lastUpdated: serverTimestamp()
@@ -81,109 +106,82 @@ const BattleTracker = ({ battleId }) => {
     }
   };
 
-    const collectReminders = () => {
-        const reminders = [];
+  const collectReminders = () => {
+    if (!battle) return [];
+    
+    const reminders = [];
 
-        // From blue unit abilities
-        battle.blueUnits.forEach(unit => {
-            // Add unit ID to reminders
-            unit.abilities?.forEach(abilityId => {
-                const ability = abilities.find(a => a.id === abilityId);
-                ability?.reminders?.forEach(reminder => {
-                    reminders.push({
-                        ...reminder,
-                        source: `${unit.name} - ${ability.name}`,
-                        unitId: unit.id
-                    });
-                });
-            });
-
-            // From equipped upgrades
-            unit.upgradeSlots?.forEach(slot => {
-                slot.equippedUpgrades?.forEach(upgradeId => {
-                    const upgrade = upgrades.find(u => u.id === upgradeId);
-                    upgrade?.reminders?.forEach(reminder => {
-                        reminders.push({
-                            ...reminder,
-                            source: `${unit.name} - ${upgrade.name}`,
-                            unitId: unit.id
-                        });
-                    });
-                });
-            });
+    // Helper function to process unit reminders
+    const processUnitReminders = (unit) => {
+      // From unit abilities
+      unit.abilities?.forEach(abilityId => {
+        const ability = abilities.find(a => a.id === abilityId);
+        ability?.reminders?.forEach(reminder => {
+          reminders.push({
+            ...reminder,
+            source: `${unit.name} - ${ability.name}`,
+            unitId: unit.id
+          });
         });
+      });
 
-        // Do the same for red units
-        battle.redUnits.forEach(unit => {
-            // Same logic as blue units
-            unit.abilities?.forEach(abilityId => {
-                const ability = abilities.find(a => a.id === abilityId);
-                ability?.reminders?.forEach(reminder => {
-                    reminders.push({
-                        ...reminder,
-                        source: `${unit.name} - ${ability.name}`,
-                        unitId: unit.id
-                    });
-                });
+      // From equipped upgrades
+      unit.upgradeSlots?.forEach(slot => {
+        slot.equippedUpgrades?.forEach(upgradeId => {
+          const upgrade = upgrades.find(u => u.id === upgradeId);
+          upgrade?.reminders?.forEach(reminder => {
+            reminders.push({
+              ...reminder,
+              source: `${unit.name} - ${upgrade.name}`,
+              unitId: unit.id
             });
-
-            unit.upgradeSlots?.forEach(slot => {
-                slot.equippedUpgrades?.forEach(upgradeId => {
-                    const upgrade = upgrades.find(u => u.id === upgradeId);
-                    upgrade?.reminders?.forEach(reminder => {
-                        reminders.push({
-                            ...reminder,
-                            source: `${unit.name} - ${upgrade.name}`,
-                            unitId: unit.id
-                        });
-                    });
-                });
-            });
+          });
         });
-
-        return reminders;
+      });
     };
+
+    // Process blue units
+    battle.blueUnits?.forEach(processUnitReminders);
+    
+    // Process red units
+    battle.redUnits?.forEach(processUnitReminders);
+
+    return reminders;
+  };
   
   // Handle advancing phase
   const handleAdvancePhase = async () => {
     const nextPhase = BattlePhases.getNextPhase(battle.currentPhase);
     
-    // If moving from END to COMMAND, increment round
     let nextRound = battle.currentRound;
     if (battle.currentPhase === BattlePhases.END && nextPhase === BattlePhases.COMMAND) {
       nextRound += 1;
     }
     
-    // Create updated battle state
     const updatedBattle = {
       ...battle,
       currentPhase: nextPhase,
       currentRound: nextRound
     };
     
-    // If moving to a new round, reset unit activation and order states
     if (battle.currentPhase === BattlePhases.END && nextPhase === BattlePhases.COMMAND) {
-      // Reset blue units
       updatedBattle.blueUnits = battle.blueUnits.map(unit => ({
         ...unit,
         hasOrder: false,
         hasActivated: false
       }));
       
-      // Reset red units
       updatedBattle.redUnits = battle.redUnits.map(unit => ({
         ...unit,
         hasOrder: false,
         hasActivated: false
       }));
       
-      // Toggle active player
       updatedBattle.activePlayer = battle.activePlayer === PlayerSides.BLUE
         ? PlayerSides.RED
         : PlayerSides.BLUE;
     }
     
-    // Update state and save
     setBattle(updatedBattle);
     await saveBattle(updatedBattle);
   };
@@ -202,7 +200,6 @@ const BattleTracker = ({ battleId }) => {
       );
     }
     
-    // Update state and save
     setBattle(updatedBattle);
     saveBattle(updatedBattle);
   };
@@ -216,7 +213,6 @@ const BattleTracker = ({ battleId }) => {
         : PlayerSides.BLUE
     };
     
-    // Update state and save
     setBattle(updatedBattle);
     saveBattle(updatedBattle);
   };
@@ -234,11 +230,8 @@ const BattleTracker = ({ battleId }) => {
       winner
     };
     
-    // Update state and save
     setBattle(updatedBattle);
     await saveBattle(updatedBattle);
-    
-    // Navigate back to battles list
     navigate('/battles');
   };
   
@@ -352,103 +345,74 @@ const BattleTracker = ({ battleId }) => {
           </div>
         </Alert>
       )}
-      
-      <Card className="mb-4">
-        <Card.Header>
-          <div className="d-flex justify-content-between align-items-center">
-            <h4>{battle.name}</h4>
-            <Badge bg="primary" className="p-2">
-              Round {battle.currentRound} - {BattlePhases.getDisplayName(battle.currentPhase)}
-            </Badge>
-          </div>
-        </Card.Header>
-        <Card.Body>
-          <BattleControls 
-            battle={battle}
-            onAdvancePhase={handleAdvancePhase}
-            onChangeActivePlayer={handleChangeActivePlayer}
-            onEndBattle={() => setConfirmEndBattle(true)}
-          />
-          
-          {battle.currentPhase === BattlePhases.COMMAND && (
-            <CommandPhase 
-              battle={battle}
-              onUnitUpdate={handleUnitUpdate}
-              onSave={saveBattle}
-            />
-          )}
 
-            {battle.currentPhase === BattlePhases.ACTIVATION && (
+      <div className="d-flex">
+        <div className="battle-content flex-grow-1">
+          <Card className="mb-4">
+            <Card.Header>
+              <div className="d-flex justify-content-between align-items-center">
+                <h4>{battle.name}</h4>
+                <Badge bg="primary" className="p-2">
+                  Round {battle.currentRound} - {BattlePhases.getDisplayName(battle.currentPhase)}
+                </Badge>
+              </div>
+            </Card.Header>
+            <Card.Body>
+              <BattleControls 
+                battle={battle}
+                onAdvancePhase={handleAdvancePhase}
+                onChangeActivePlayer={handleChangeActivePlayer}
+                onEndBattle={() => setConfirmEndBattle(true)}
+              />
+              
+              {battle.currentPhase === BattlePhases.COMMAND && (
+                <CommandPhase 
+                  battle={battle}
+                  onUnitUpdate={handleUnitUpdate}
+                  onSave={saveBattle}
+                />
+              )}
+
+              {battle.currentPhase === BattlePhases.ACTIVATION && (
                 <ActivationPhase
-                    battle={battle}
-                    onUnitUpdate={handleUnitUpdate}
-                    onSetSelectedUnit={setSelectedUnit}
-                    onSave={saveBattle}
+                  battle={battle}
+                  onUnitUpdate={handleUnitUpdate}
+                  onSetSelectedUnit={setSelectedUnit}
+                  onSave={saveBattle}
                 />
-            )}
-          
-          {battle.currentPhase === BattlePhases.END && (
-            <EndPhase 
-              battle={battle}
-              onUnitUpdate={handleUnitUpdate}
-              onSave={saveBattle}
-            />
-          )}
-        </Card.Body>
-      </Card>
-        <div className="d-flex">
-            <div className="battle-content flex-grow-1">
-                <Card className="mb-4">
-                    {/* Card.Header, BattleControls, etc. */}
-
-                    <Card.Body>
-                        {battle.currentPhase === BattlePhases.COMMAND && (
-                            <CommandPhase
-                                battle={battle}
-                                onUnitUpdate={handleUnitUpdate}
-                                onSave={saveBattle}
-                            />
-                        )}
-
-                        {battle.currentPhase === BattlePhases.ACTIVATION && (
-                            <ActivationPhase
-                                battle={battle}
-                                onUnitUpdate={handleUnitUpdate}
-                                onSave={saveBattle}
-                            />
-                        )}
-
-                        {battle.currentPhase === BattlePhases.END && (
-                            <EndPhase
-                                battle={battle}
-                                onUnitUpdate={handleUnitUpdate}
-                                onSave={saveBattle}
-                            />
-                        )}
-                    </Card.Body>
-                </Card>
-            </div>
-
-            {/* ReminderPanel - Desktop version */}
-            <div className="d-none d-lg-block ms-3" style={{ width: '300px' }}>
-                <ReminderPanel
-                    reminders={collectReminders()}
-                    currentPhase={battle.currentPhase}
-                    activeUnit={selectedUnit}
-                    position="sidebar"
+              )}
+              
+              {battle.currentPhase === BattlePhases.END && (
+                <EndPhase 
+                  battle={battle}
+                  onUnitUpdate={handleUnitUpdate}
+                  onSave={saveBattle}
                 />
-            </div>
+              )}
+            </Card.Body>
+          </Card>
         </div>
 
-        {/* ReminderPanel - Mobile version */}
-        <div className="d-block d-lg-none mb-4">
-            <ReminderPanel
-                reminders={collectReminders()}
-                currentPhase={battle.currentPhase}
-                activeUnit={selectedUnit}
-                position="banner"
-            />
+        {/* ReminderPanel - Desktop version */}
+        <div className="d-none d-lg-block ms-3" style={{ width: '300px' }}>
+          <ReminderPanel
+            reminders={collectReminders()}
+            currentPhase={battle.currentPhase}
+            activeUnit={selectedUnit}
+            position="sidebar"
+          />
         </div>
+      </div>
+
+      {/* ReminderPanel - Mobile version */}
+      <div className="d-block d-lg-none mb-4">
+        <ReminderPanel
+          reminders={collectReminders()}
+          currentPhase={battle.currentPhase}
+          activeUnit={selectedUnit}
+          position="banner"
+        />
+      </div>
     </>
   );
 };

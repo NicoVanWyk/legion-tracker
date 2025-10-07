@@ -48,7 +48,7 @@ import './index.css'; // Custom styles
 
 function App() {
     return (
-        <Router>
+        <Router basename="/legion-tracker">
             <AuthProvider>
                 <div className="d-flex flex-column min-vh-100">
                     <Header />

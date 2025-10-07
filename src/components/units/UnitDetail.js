@@ -264,8 +264,8 @@ const UnitDetail = ({ unitId }) => {
                                         )}
                                         {modifiedStats.speed === unit.speed && (unit.speed || 2)}S /{' '}
                                         <span className={DefenseDice.getColorClass(unit.defense)}>
-                      {unit.defense === 'white' ? 'W' : 'R'}
-                    </span> Defense
+                                        {unit.defense === 'white' ? 'W' : 'R'}
+                                        </span> Defense
                                     </p>
                                 </Col>
                             </Row>
