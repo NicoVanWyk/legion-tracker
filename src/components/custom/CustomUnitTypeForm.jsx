@@ -87,6 +87,13 @@ const CustomUnitTypeForm = () => {
                     doc(db, 'users', currentUser.uid, 'customUnitTypes', typeId),
                     typeData
                 );
+                setSuccess('Unit type updated successfully!');
+            } else {
+                typeData.createdAt = serverTimestamp();
+                await addDoc(
+                    collection(db, 'users', currentUser.uid, 'customUnitTypes'),
+                    typeData
+                );
                 setSuccess('Unit type created successfully!');
 
                 // Reset form
@@ -220,11 +227,4 @@ const CustomUnitTypeForm = () => {
     );
 };
 
-export default CustomUnitTypeForm; type updated successfully!');
-} else {
-    typeData.createdAt = serverTimestamp();
-    await addDoc(
-        collection(db, 'users', currentUser.uid, 'customUnitTypes'),
-        typeData
-    );
-    setSuccess('Unit
+export default CustomUnitTypeForm;

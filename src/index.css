@@ -155,3 +155,39 @@ h1, h2, h3 {
 .unit-type-auxiliary {
   border-color: #20c997;
 }
+
+/* Reminder Panel Styles */
+.reminder-panel {
+    border: 2px solid #dee2e6;
+}
+
+.reminder-panel.sidebar-reminder {
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    position: sticky;
+    top: 20px;
+}
+
+.reminder-panel.banner-reminder {
+    border-left: 4px solid #0dcaf0;
+}
+
+.reminder-panel .list-group-item {
+    border-left: none;
+    border-right: none;
+}
+
+.reminder-panel .list-group-item:first-child {
+    border-top: none;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .reminder-panel.sidebar-reminder {
+        position: relative !important;
+        top: 0 !important;
+        max-height: none !important;
+    }
+}

@@ -4,7 +4,7 @@ import { Row, Col, Card, ListGroup, Button, Badge, Form } from 'react-bootstrap'
 import PlayerSides from '../../enums/PlayerSides';
 import UnitTracker from './UnitTracker';
 
-const ActivationPhase = ({ battle, onUnitUpdate }) => {
+const ActivationPhase = ({ battle, onUnitUpdate, onSetSelectedUnit }) => {
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [selectedSide, setSelectedSide] = useState(null);
   
@@ -30,6 +30,16 @@ const ActivationPhase = ({ battle, onUnitUpdate }) => {
       
       // Update the selected unit locally to reflect changes in the tracker
       setSelectedUnit(prev => prev ? { ...prev, ...updates } : null);
+    }
+  };
+
+  const handleSelectUnit = (unit, side) => {
+    setSelectedUnit(unit);
+    setSelectedSide(side);
+
+    // Notify parent component about selected unit for reminders
+    if (onSetSelectedUnit) {
+        onSetSelectedUnit(unit);
     }
   };
   
@@ -87,18 +97,15 @@ const ActivationPhase = ({ battle, onUnitUpdate }) => {
                   </div>
                   
                   <div>
-                    <Button
-                      variant="outline-primary"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedUnit(unit);
-                        setSelectedSide(side);
-                      }}
-                      className="me-2"
-                      disabled={!isActivePlayer}
-                    >
-                      View
-                    </Button>
+                      <Button
+                          variant="outline-primary"
+                          size="sm"
+                          onClick={() => handleSelectUnit(unit, side)}
+                          className="me-2"
+                          disabled={!isActivePlayer}
+                      >
+                          View
+                      </Button>
                     
                     <Button
                       variant={hasActivated ? "secondary" : "success"}

@@ -12,6 +12,7 @@ import ActivationPhase from './ActivationPhase';
 import EndPhase from './EndPhase';
 import BattleControls from './BattleControls';
 import LoadingSpinner from '../layout/LoadingSpinner';
+import ReminderPanel from '../reminders/ReminderPanel';
 
 const BattleTracker = ({ battleId }) => {
   const navigate = useNavigate();
@@ -79,6 +80,69 @@ const BattleTracker = ({ battleId }) => {
       setSaving(false);
     }
   };
+
+    const collectReminders = () => {
+        const reminders = [];
+
+        // From blue unit abilities
+        battle.blueUnits.forEach(unit => {
+            // Add unit ID to reminders
+            unit.abilities?.forEach(abilityId => {
+                const ability = abilities.find(a => a.id === abilityId);
+                ability?.reminders?.forEach(reminder => {
+                    reminders.push({
+                        ...reminder,
+                        source: `${unit.name} - ${ability.name}`,
+                        unitId: unit.id
+                    });
+                });
+            });
+
+            // From equipped upgrades
+            unit.upgradeSlots?.forEach(slot => {
+                slot.equippedUpgrades?.forEach(upgradeId => {
+                    const upgrade = upgrades.find(u => u.id === upgradeId);
+                    upgrade?.reminders?.forEach(reminder => {
+                        reminders.push({
+                            ...reminder,
+                            source: `${unit.name} - ${upgrade.name}`,
+                            unitId: unit.id
+                        });
+                    });
+                });
+            });
+        });
+
+        // Do the same for red units
+        battle.redUnits.forEach(unit => {
+            // Same logic as blue units
+            unit.abilities?.forEach(abilityId => {
+                const ability = abilities.find(a => a.id === abilityId);
+                ability?.reminders?.forEach(reminder => {
+                    reminders.push({
+                        ...reminder,
+                        source: `${unit.name} - ${ability.name}`,
+                        unitId: unit.id
+                    });
+                });
+            });
+
+            unit.upgradeSlots?.forEach(slot => {
+                slot.equippedUpgrades?.forEach(upgradeId => {
+                    const upgrade = upgrades.find(u => u.id === upgradeId);
+                    upgrade?.reminders?.forEach(reminder => {
+                        reminders.push({
+                            ...reminder,
+                            source: `${unit.name} - ${upgrade.name}`,
+                            unitId: unit.id
+                        });
+                    });
+                });
+            });
+        });
+
+        return reminders;
+    };
   
   // Handle advancing phase
   const handleAdvancePhase = async () => {
@@ -313,14 +377,15 @@ const BattleTracker = ({ battleId }) => {
               onSave={saveBattle}
             />
           )}
-          
-          {battle.currentPhase === BattlePhases.ACTIVATION && (
-            <ActivationPhase 
-              battle={battle}
-              onUnitUpdate={handleUnitUpdate}
-              onSave={saveBattle}
-            />
-          )}
+
+            {battle.currentPhase === BattlePhases.ACTIVATION && (
+                <ActivationPhase
+                    battle={battle}
+                    onUnitUpdate={handleUnitUpdate}
+                    onSetSelectedUnit={setSelectedUnit}
+                    onSave={saveBattle}
+                />
+            )}
           
           {battle.currentPhase === BattlePhases.END && (
             <EndPhase 
@@ -331,6 +396,59 @@ const BattleTracker = ({ battleId }) => {
           )}
         </Card.Body>
       </Card>
+        <div className="d-flex">
+            <div className="battle-content flex-grow-1">
+                <Card className="mb-4">
+                    {/* Card.Header, BattleControls, etc. */}
+
+                    <Card.Body>
+                        {battle.currentPhase === BattlePhases.COMMAND && (
+                            <CommandPhase
+                                battle={battle}
+                                onUnitUpdate={handleUnitUpdate}
+                                onSave={saveBattle}
+                            />
+                        )}
+
+                        {battle.currentPhase === BattlePhases.ACTIVATION && (
+                            <ActivationPhase
+                                battle={battle}
+                                onUnitUpdate={handleUnitUpdate}
+                                onSave={saveBattle}
+                            />
+                        )}
+
+                        {battle.currentPhase === BattlePhases.END && (
+                            <EndPhase
+                                battle={battle}
+                                onUnitUpdate={handleUnitUpdate}
+                                onSave={saveBattle}
+                            />
+                        )}
+                    </Card.Body>
+                </Card>
+            </div>
+
+            {/* ReminderPanel - Desktop version */}
+            <div className="d-none d-lg-block ms-3" style={{ width: '300px' }}>
+                <ReminderPanel
+                    reminders={collectReminders()}
+                    currentPhase={battle.currentPhase}
+                    activeUnit={selectedUnit}
+                    position="sidebar"
+                />
+            </div>
+        </div>
+
+        {/* ReminderPanel - Mobile version */}
+        <div className="d-block d-lg-none mb-4">
+            <ReminderPanel
+                reminders={collectReminders()}
+                currentPhase={battle.currentPhase}
+                activeUnit={selectedUnit}
+                position="banner"
+            />
+        </div>
     </>
   );
 };
