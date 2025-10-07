@@ -1,546 +1,429 @@
 ﻿// src/components/upgrades/UpgradeCardForm.jsx
-import React, { useState, useEffect } from 'react';
-import { Form, Button, Card, Alert, Row, Col, ListGroup, Badge, Accordion } from 'react-bootstrap';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Form, Button, Card, Alert, Row, Col, ListGroup, Badge, Accordion, Modal } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
-import { collection, doc, addDoc, updateDoc, getDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, getDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import UpgradeCardTypes from '../../enums/UpgradeCardTypes';
 import ReminderTypes from '../../enums/ReminderTypes';
+import WeaponRanges from '../../enums/WeaponRanges';
+import AttackDice from '../../enums/AttackDice';
+import WeaponKeywords from '../../enums/WeaponKeywords';
+import { v4 as uuidv4 } from 'uuid';
+
+// Child modal component
+const WeaponEditorModal = ({ show, onClose, onSave, weapon, setWeapon }) => {
+  const allKeywords = useMemo(() => WeaponKeywords.getAllKeywords(), []);
+
+  const handleWeaponChange = (e) => {
+    const { name, value } = e.target;
+    setWeapon((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleWeaponDiceChange = (diceType, value) => {
+    const numValue = parseInt(value, 10) || 0;
+    setWeapon((prev) => ({
+      ...prev,
+      dice: { ...prev.dice, [diceType]: numValue },
+    }));
+  };
+
+  const handleWeaponKeywordToggle = (keyword) => {
+    setWeapon((prev) => {
+      const keywords = prev.keywords.includes(keyword)
+        ? prev.keywords.filter((k) => k !== keyword)
+        : [...prev.keywords, keyword];
+      return { ...prev, keywords };
+    });
+  };
+
+  return (
+    <Modal show={show} onHide={onClose} size="lg" backdrop="static">
+      <Modal.Header closeButton>
+        <Modal.Title>{weapon.id ? 'Edit Weapon' : 'Add Weapon'}</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <Form onSubmit={(e) => e.preventDefault()}>
+          <Form.Group className="mb-3">
+            <Form.Label>Weapon Name*</Form.Label>
+            <Form.Control
+              type="text"
+              name="name"
+              value={weapon.name}
+              onChange={handleWeaponChange}
+              placeholder="Enter weapon name"
+              required
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Range</Form.Label>
+            <Form.Select name="range" value={weapon.range} onChange={handleWeaponChange}>
+              {Object.keys(WeaponRanges)
+                .filter((key) => typeof WeaponRanges[key] === 'string')
+                .map((key) => (
+                  <option key={key} value={WeaponRanges[key]}>
+                    {WeaponRanges.getDisplayName(WeaponRanges[key])}
+                  </option>
+                ))}
+            </Form.Select>
+          </Form.Group>
+
+          <Form.Group className="mb-4">
+            <Form.Label>Attack Dice</Form.Label>
+            <Row>
+              {[
+                [AttackDice.RED, 'text-danger', 'Red Dice'],
+                [AttackDice.BLACK, 'text-dark', 'Black Dice'],
+                [AttackDice.WHITE, 'text-secondary', 'White Dice'],
+              ].map(([dice, color, label]) => (
+                <Col md={4} key={dice}>
+                  <Form.Label className={color}>{label}</Form.Label>
+                  <Form.Control
+                    type="number"
+                    min="0"
+                    max="10"
+                    value={weapon.dice[dice]}
+                    onChange={(e) => handleWeaponDiceChange(dice, e.target.value)}
+                  />
+                </Col>
+              ))}
+            </Row>
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Keywords</Form.Label>
+            <Card>
+              <Card.Body className="p-2">
+                <div className="mb-2">
+                  <strong>Selected Keywords:</strong>
+                  {weapon.keywords.length === 0 ? (
+                    <span className="text-muted ms-2">None</span>
+                  ) : (
+                    <div className="mt-1">
+                      {weapon.keywords.map((keyword, index) => (
+                        <Badge
+                          key={index}
+                          bg="info"
+                          className="me-1 mb-1 p-2"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => handleWeaponKeywordToggle(keyword)}
+                        >
+                          {WeaponKeywords.getDisplayName(keyword)} ×
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <Accordion>
+                  {Object.entries(allKeywords).map(([category, keywords]) => (
+                    <Accordion.Item key={category} eventKey={category}>
+                      <Accordion.Header>
+                        {category.charAt(0).toUpperCase() + category.slice(1)} Keywords
+                      </Accordion.Header>
+                      <Accordion.Body className="p-0">
+                        <ListGroup variant="flush">
+                          {keywords.map((keyword) => (
+                            <ListGroup.Item
+                              key={keyword}
+                              action
+                              active={weapon.keywords.includes(keyword)}
+                              onClick={() => handleWeaponKeywordToggle(keyword)}
+                              className="py-2"
+                            >
+                              <div className="d-flex justify-content-between align-items-center">
+                                <span>{WeaponKeywords.getDisplayName(keyword)}</span>
+                                {weapon.keywords.includes(keyword) && <Badge bg="success">Selected</Badge>}
+                              </div>
+                            </ListGroup.Item>
+                          ))}
+                        </ListGroup>
+                      </Accordion.Body>
+                    </Accordion.Item>
+                  ))}
+                </Accordion>
+              </Card.Body>
+            </Card>
+          </Form.Group>
+        </Form>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button variant="primary" onClick={() => onSave(weapon)}>
+          Save Weapon
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+};
 
 const UpgradeCardForm = () => {
-    const { upgradeId } = useParams();
-    const navigate = useNavigate();
-    const { currentUser } = useAuth();
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
+  const { upgradeId } = useParams();
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [showWeaponModal, setShowWeaponModal] = useState(false);
 
-    const [formData, setFormData] = useState({
-        name: '',
-        upgradeType: UpgradeCardTypes.GEAR,
-        pointsCost: 0,
-        description: '',
-        effects: {
-            modelCountChange: 0,
-            addWeapons: [],
-            addKeywords: [],
-            addAbilities: [],
-            statModifiers: {}
-        },
-        reminders: []
+  const [formData, setFormData] = useState({
+    name: '',
+    upgradeType: UpgradeCardTypes.GEAR,
+    pointsCost: 0,
+    description: '',
+    effects: {
+      modelCountChange: 0,
+      addWeapons: [],
+      addKeywords: [],
+      addAbilities: [],
+      statModifiers: {},
+    },
+    reminders: [],
+  });
+
+  const [availableKeywords, setAvailableKeywords] = useState([]);
+  const [availableAbilities, setAvailableAbilities] = useState([]);
+  const [currentWeapon, setCurrentWeapon] = useState({
+    id: '',
+    name: '',
+    range: WeaponRanges.MELEE,
+    dice: { [AttackDice.RED]: 0, [AttackDice.BLACK]: 0, [AttackDice.WHITE]: 0 },
+    keywords: [],
+  });
+  const [editingWeaponIndex, setEditingWeaponIndex] = useState(null);
+
+  useEffect(() => {
+    if (upgradeId && currentUser) fetchUpgrade();
+  }, [upgradeId]);
+
+  useEffect(() => {
+    if (currentUser) fetchAvailableOptions();
+  }, []); // only once
+
+  const fetchUpgrade = async () => {
+    try {
+      const ref = doc(db, 'users', currentUser.uid, 'upgradeCards', upgradeId);
+      const docSnap = await getDoc(ref);
+      if (docSnap.exists()) {
+        setFormData(docSnap.data());
+      } else setError('Upgrade not found.');
+    } catch (err) {
+      console.error(err);
+      setError('Failed to fetch upgrade.');
+    }
+  };
+
+  const fetchAvailableOptions = async () => {
+    try {
+      const keywordsSnap = await getDocs(collection(db, 'users', currentUser.uid, 'customKeywords'));
+      setAvailableKeywords(keywordsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+
+      const abilitiesSnap = await getDocs(collection(db, 'users', currentUser.uid, 'abilities'));
+      setAvailableAbilities(abilitiesSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleEffectChange = (field, value) =>
+    setFormData((prev) => ({
+      ...prev,
+      effects: { ...prev.effects, [field]: value },
+    }));
+
+  const handleAddWeapon = () => {
+    setEditingWeaponIndex(null);
+    setCurrentWeapon({
+      id: uuidv4(),
+      name: '',
+      range: WeaponRanges.MELEE,
+      dice: { [AttackDice.RED]: 0, [AttackDice.BLACK]: 0, [AttackDice.WHITE]: 0 },
+      keywords: [],
     });
+    setShowWeaponModal(true);
+  };
 
-    const [availableWeapons, setAvailableWeapons] = useState([]);
-    const [availableKeywords, setAvailableKeywords] = useState([]);
-    const [availableAbilities, setAvailableAbilities] = useState([]);
+  const handleEditWeapon = (index) => {
+    setEditingWeaponIndex(index);
+    setCurrentWeapon({ ...formData.effects.addWeapons[index] });
+    setShowWeaponModal(true);
+  };
 
-    const [newReminder, setNewReminder] = useState({
-        text: '',
-        reminderType: ReminderTypes.GENERAL,
-        condition: ''
-    });
+  const handleSaveWeapon = (weapon) => {
+    if (!weapon.name.trim()) return setError('Weapon name required.');
+    const totalDice = weapon.dice[AttackDice.RED] + weapon.dice[AttackDice.BLACK] + weapon.dice[AttackDice.WHITE];
+    if (totalDice <= 0) return setError('Weapon must have at least one attack die.');
 
-    useEffect(() => {
-        fetchUpgrade();
-        fetchAvailableOptions();
-    }, [upgradeId, currentUser]);
+    const newWeapons = [...(formData.effects.addWeapons || [])];
+    if (editingWeaponIndex !== null) newWeapons[editingWeaponIndex] = weapon;
+    else newWeapons.push(weapon);
+    handleEffectChange('addWeapons', newWeapons);
+    setShowWeaponModal(false);
+    setError('');
+  };
 
-    const fetchUpgrade = async () => {
-        if (!upgradeId || !currentUser) return;
+  const handleDeleteWeapon = (index) => {
+    const newWeapons = [...formData.effects.addWeapons];
+    newWeapons.splice(index, 1);
+    handleEffectChange('addWeapons', newWeapons);
+  };
 
-        try {
-            const upgradeRef = doc(db, 'users', currentUser.uid, 'upgradeCards', upgradeId);
-            const upgradeDoc = await getDoc(upgradeRef);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.name.trim()) return setError('Upgrade name is required.');
 
-            if (upgradeDoc.exists()) {
-                const data = upgradeDoc.data();
-                setFormData({
-                    ...data,
-                    effects: data.effects || {
-                        modelCountChange: 0,
-                        addWeapons: [],
-                        addKeywords: [],
-                        addAbilities: [],
-                        statModifiers: {}
-                    },
-                    reminders: data.reminders || []
-                });
-            } else {
-                setError('Upgrade card not found');
-            }
-        } catch (err) {
-            console.error('Error fetching upgrade:', err);
-            setError('Failed to load upgrade card');
-        }
-    };
+    try {
+      setLoading(true);
+      const upgradeData = {
+        ...formData,
+        lastUpdated: serverTimestamp(),
+        userId: currentUser.uid,
+        isCustom: true,
+      };
 
-    const fetchAvailableOptions = async () => {
-        if (!currentUser) return;
-
-        try {
-            // Fetch user's custom keywords
-            const keywordsRef = collection(db, 'users', currentUser.uid, 'customKeywords');
-            const keywordsSnapshot = await getDocs(keywordsRef);
-            const keywords = keywordsSnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            setAvailableKeywords(keywords);
-
-            // Fetch user's abilities
-            const abilitiesRef = collection(db, 'users', currentUser.uid, 'abilities');
-            const abilitiesSnapshot = await getDocs(abilitiesRef);
-            const abilities = abilitiesSnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            setAvailableAbilities(abilities);
-        } catch (err) {
-            console.error('Error fetching options:', err);
-        }
-    };
-
-    const handleChange = (e) => {
-        const { name, value, type } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: type === 'number' ? parseInt(value) || 0 : value
-        }));
-    };
-
-    const handleEffectChange = (field, value) => {
-        setFormData(prev => ({
-            ...prev,
-            effects: {
-                ...prev.effects,
-                [field]: value
-            }
-        }));
-    };
-
-    const handleStatModifierChange = (stat, value) => {
-        setFormData(prev => ({
-            ...prev,
-            effects: {
-                ...prev.effects,
-                statModifiers: {
-                    ...prev.effects.statModifiers,
-                    [stat]: parseInt(value) || 0
-                }
-            }
-        }));
-    };
-
-    const toggleKeyword = (keywordId) => {
-        const keywords = formData.effects.addKeywords || [];
-        if (keywords.includes(keywordId)) {
-            handleEffectChange('addKeywords', keywords.filter(k => k !== keywordId));
-        } else {
-            handleEffectChange('addKeywords', [...keywords, keywordId]);
-        }
-    };
-
-    const toggleAbility = (abilityId) => {
-        const abilities = formData.effects.addAbilities || [];
-        if (abilities.includes(abilityId)) {
-            handleEffectChange('addAbilities', abilities.filter(a => a !== abilityId));
-        } else {
-            handleEffectChange('addAbilities', [...abilities, abilityId]);
-        }
-    };
-
-    const handleReminderChange = (e) => {
-        const { name, value } = e.target;
-        setNewReminder(prev => ({ ...prev, [name]: value }));
-    };
-
-    const addReminder = () => {
-        if (!newReminder.text.trim()) {
-            setError('Reminder text is required');
-            return;
-        }
-
-        setFormData(prev => ({
-            ...prev,
-            reminders: [...prev.reminders, { ...newReminder }]
-        }));
-
-        setNewReminder({
-            text: '',
-            reminderType: ReminderTypes.GENERAL,
-            condition: ''
+      if (upgradeId) {
+        await updateDoc(doc(db, 'users', currentUser.uid, 'upgradeCards', upgradeId), upgradeData);
+        setSuccess('Upgrade updated!');
+      } else {
+        await addDoc(collection(db, 'users', currentUser.uid, 'upgradeCards'), {
+          ...upgradeData,
+          createdAt: serverTimestamp(),
         });
-        setError('');
-    };
+        setSuccess('Upgrade created!');
+      }
 
-    const removeReminder = (index) => {
-        setFormData(prev => ({
-            ...prev,
-            reminders: prev.reminders.filter((_, i) => i !== index)
-        }));
-    };
+      setTimeout(() => navigate('/upgrades'), 1000);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to save upgrade.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+  return (
+    <>
+      <Card>
+        <Card.Header>
+          <h3>{upgradeId ? 'Edit' : 'Create'} Upgrade Card</h3>
+        </Card.Header>
+        <Card.Body>
+          {error && <Alert variant="danger">{error}</Alert>}
+          {success && <Alert variant="success">{success}</Alert>}
 
-        if (!formData.name.trim()) {
-            setError('Upgrade name is required');
-            return;
-        }
+          <Form onSubmit={handleSubmit}>
+            {/* Basic Info */}
+            <Row>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label>Upgrade Name*</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={3}>
+                <Form.Group>
+                  <Form.Label>Upgrade Type*</Form.Label>
+                  <Form.Select
+                    value={formData.upgradeType}
+                    onChange={(e) => setFormData({ ...formData, upgradeType: e.target.value })}
+                  >
+                    {UpgradeCardTypes.getAllTypes().map((type) => (
+                      <option key={type} value={type}>
+                        {UpgradeCardTypes.getDisplayName(type)}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={3}>
+                <Form.Group>
+                  <Form.Label>Points</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={formData.pointsCost}
+                    onChange={(e) => setFormData({ ...formData, pointsCost: parseInt(e.target.value) || 0 })}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
 
-        try {
-            setLoading(true);
-            setError('');
+            <Form.Group className="mt-3">
+              <Form.Label>Description*</Form.Label>
+              <Form.Control
+                as="textarea"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                required
+              />
+            </Form.Group>
 
-            const upgradeData = {
-                name: formData.name.trim(),
-                upgradeType: formData.upgradeType,
-                pointsCost: formData.pointsCost,
-                description: formData.description.trim(),
-                effects: formData.effects,
-                reminders: formData.reminders,
-                lastUpdated: serverTimestamp(),
-                userId: currentUser.uid,
-                isCustom: true
-            };
+            {/* Weapons */}
+            <Card className="mt-4">
+              <Card.Header className="d-flex justify-content-between align-items-center">
+                <span>Weapons ({formData.effects.addWeapons.length})</span>
+                <Button variant="primary" size="sm" onClick={handleAddWeapon}>
+                  Add Weapon
+                </Button>
+              </Card.Header>
+              {formData.effects.addWeapons.length > 0 && (
+                <ListGroup variant="flush">
+                  {formData.effects.addWeapons.map((weapon, i) => (
+                    <ListGroup.Item key={weapon.id}>
+                      <div className="d-flex justify-content-between">
+                        <div>
+                          <div className="fw-bold">{weapon.name}</div>
+                          <div className="small text-muted">
+                            {WeaponRanges.getDisplayName(weapon.range)} |{' '}
+                            {weapon.dice[AttackDice.RED]}R {weapon.dice[AttackDice.BLACK]}B {weapon.dice[AttackDice.WHITE]}W
+                          </div>
+                        </div>
+                        <div>
+                          <Button size="sm" variant="outline-secondary" className="me-2" onClick={() => handleEditWeapon(i)}>
+                            Edit
+                          </Button>
+                          <Button size="sm" variant="outline-danger" onClick={() => handleDeleteWeapon(i)}>
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    </ListGroup.Item>
+                  ))}
+                </ListGroup>
+              )}
+            </Card>
 
-            if (upgradeId) {
-                await updateDoc(
-                    doc(db, 'users', currentUser.uid, 'upgradeCards', upgradeId),
-                    upgradeData
-                );
-                setSuccess('Upgrade card updated successfully!');
-            } else {
-                upgradeData.createdAt = serverTimestamp();
-                await addDoc(
-                    collection(db, 'users', currentUser.uid, 'upgradeCards'),
-                    upgradeData
-                );
-                setSuccess('Upgrade card created successfully!');
+            <div className="d-flex justify-content-between mt-4">
+              <Button variant="secondary" onClick={() => navigate('/upgrades')}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" disabled={loading}>
+                {loading ? 'Saving...' : upgradeId ? 'Update Upgrade' : 'Create Upgrade'}
+              </Button>
+            </div>
+          </Form>
+        </Card.Body>
+      </Card>
 
-                // Reset form
-                setFormData({
-                    name: '',
-                    upgradeType: UpgradeCardTypes.GEAR,
-                    pointsCost: 0,
-                    description: '',
-                    effects: {
-                        modelCountChange: 0,
-                        addWeapons: [],
-                        addKeywords: [],
-                        addAbilities: [],
-                        statModifiers: {}
-                    },
-                    reminders: []
-                });
-            }
-
-            setTimeout(() => {
-                navigate('/upgrades');
-            }, 1500);
-        } catch (err) {
-            console.error('Error saving upgrade:', err);
-            setError('Failed to save upgrade card: ' + err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <Card>
-            <Card.Header>
-                <h3 className="mb-0">{upgradeId ? 'Edit' : 'Create'} Upgrade Card</h3>
-            </Card.Header>
-            <Card.Body>
-                {error && <Alert variant="danger">{error}</Alert>}
-                {success && <Alert variant="success">{success}</Alert>}
-
-                <Form onSubmit={handleSubmit}>
-                    <Row>
-                        <Col md={6}>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Upgrade Name*</Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    name="name"
-                                    value={formData.name}
-                                    onChange={handleChange}
-                                    placeholder="e.g., Advanced Targeting Computer"
-                                    required
-                                />
-                            </Form.Group>
-                        </Col>
-
-                        <Col md={3}>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Upgrade Type*</Form.Label>
-                                <Form.Select
-                                    name="upgradeType"
-                                    value={formData.upgradeType}
-                                    onChange={handleChange}
-                                    required
-                                >
-                                    {UpgradeCardTypes.getAllTypes().map(type => (
-                                        <option key={type} value={type}>
-                                            {UpgradeCardTypes.getDisplayName(type)}
-                                        </option>
-                                    ))}
-                                </Form.Select>
-                            </Form.Group>
-                        </Col>
-
-                        <Col md={3}>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Points Cost</Form.Label>
-                                <Form.Control
-                                    type="number"
-                                    name="pointsCost"
-                                    value={formData.pointsCost}
-                                    onChange={handleChange}
-                                    min="0"
-                                    max="100"
-                                />
-                            </Form.Group>
-                        </Col>
-                    </Row>
-
-                    <Form.Group className="mb-4">
-                        <Form.Label>Description*</Form.Label>
-                        <Form.Control
-                            as="textarea"
-                            name="description"
-                            value={formData.description}
-                            onChange={handleChange}
-                            placeholder="Describe what this upgrade does..."
-                            rows={3}
-                            required
-                        />
-                    </Form.Group>
-
-                    <Card className="mb-4">
-                        <Card.Header>
-                            <h5 className="mb-0">Upgrade Effects</h5>
-                        </Card.Header>
-                        <Card.Body>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Model Count Change</Form.Label>
-                                <Form.Control
-                                    type="number"
-                                    value={formData.effects.modelCountChange}
-                                    onChange={(e) => handleEffectChange('modelCountChange', parseInt(e.target.value) || 0)}
-                                    min="-10"
-                                    max="10"
-                                />
-                                <Form.Text className="text-muted">
-                                    Number of models added (positive) or removed (negative)
-                                </Form.Text>
-                            </Form.Group>
-
-                            <Accordion className="mb-3">
-                                <Accordion.Item eventKey="keywords">
-                                    <Accordion.Header>
-                                        Keywords ({formData.effects.addKeywords?.length || 0} selected)
-                                    </Accordion.Header>
-                                    <Accordion.Body>
-                                        {availableKeywords.length === 0 ? (
-                                            <Alert variant="info">
-                                                No custom keywords available. Create keywords first.
-                                            </Alert>
-                                        ) : (
-                                            <ListGroup>
-                                                {availableKeywords.map(keyword => (
-                                                    <ListGroup.Item
-                                                        key={keyword.id}
-                                                        action
-                                                        active={formData.effects.addKeywords?.includes(keyword.id)}
-                                                        onClick={() => toggleKeyword(keyword.id)}
-                                                    >
-                                                        {keyword.name}
-                                                    </ListGroup.Item>
-                                                ))}
-                                            </ListGroup>
-                                        )}
-                                    </Accordion.Body>
-                                </Accordion.Item>
-
-                                <Accordion.Item eventKey="abilities">
-                                    <Accordion.Header>
-                                        Abilities ({formData.effects.addAbilities?.length || 0} selected)
-                                    </Accordion.Header>
-                                    <Accordion.Body>
-                                        {availableAbilities.length === 0 ? (
-                                            <Alert variant="info">
-                                                No abilities available. Create abilities first.
-                                            </Alert>
-                                        ) : (
-                                            <ListGroup>
-                                                {availableAbilities.map(ability => (
-                                                    <ListGroup.Item
-                                                        key={ability.id}
-                                                        action
-                                                        active={formData.effects.addAbilities?.includes(ability.id)}
-                                                        onClick={() => toggleAbility(ability.id)}
-                                                    >
-                                                        <div className="fw-bold">{ability.name}</div>
-                                                        <div className="small text-muted">{ability.description}</div>
-                                                    </ListGroup.Item>
-                                                ))}
-                                            </ListGroup>
-                                        )}
-                                    </Accordion.Body>
-                                </Accordion.Item>
-
-                                <Accordion.Item eventKey="stats">
-                                    <Accordion.Header>Stat Modifiers</Accordion.Header>
-                                    <Accordion.Body>
-                                        <Row>
-                                            <Col md={4}>
-                                                <Form.Group className="mb-2">
-                                                    <Form.Label>Wounds</Form.Label>
-                                                    <Form.Control
-                                                        type="number"
-                                                        value={formData.effects.statModifiers.wounds || 0}
-                                                        onChange={(e) => handleStatModifierChange('wounds', e.target.value)}
-                                                        min="-10"
-                                                        max="10"
-                                                    />
-                                                </Form.Group>
-                                            </Col>
-                                            <Col md={4}>
-                                                <Form.Group className="mb-2">
-                                                    <Form.Label>Courage</Form.Label>
-                                                    <Form.Control
-                                                        type="number"
-                                                        value={formData.effects.statModifiers.courage || 0}
-                                                        onChange={(e) => handleStatModifierChange('courage', e.target.value)}
-                                                        min="-5"
-                                                        max="5"
-                                                    />
-                                                </Form.Group>
-                                            </Col>
-                                            <Col md={4}>
-                                                <Form.Group className="mb-2">
-                                                    <Form.Label>Speed</Form.Label>
-                                                    <Form.Control
-                                                        type="number"
-                                                        value={formData.effects.statModifiers.speed || 0}
-                                                        onChange={(e) => handleStatModifierChange('speed', e.target.value)}
-                                                        min="-3"
-                                                        max="3"
-                                                    />
-                                                </Form.Group>
-                                            </Col>
-                                        </Row>
-                                    </Accordion.Body>
-                                </Accordion.Item>
-                            </Accordion>
-                        </Card.Body>
-                    </Card>
-
-                    <Card className="mb-4">
-                        <Card.Header>
-                            <h5 className="mb-0">Reminders</h5>
-                        </Card.Header>
-                        <Card.Body>
-                            <Row className="mb-3">
-                                <Col md={12}>
-                                    <Form.Group className="mb-2">
-                                        <Form.Label>Reminder Text</Form.Label>
-                                        <Form.Control
-                                            as="textarea"
-                                            name="text"
-                                            value={newReminder.text}
-                                            onChange={handleReminderChange}
-                                            placeholder="What should the player be reminded about?"
-                                            rows={2}
-                                        />
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-
-                            <Row className="mb-3">
-                                <Col md={6}>
-                                    <Form.Group className="mb-2">
-                                        <Form.Label>Reminder Type</Form.Label>
-                                        <Form.Select
-                                            name="reminderType"
-                                            value={newReminder.reminderType}
-                                            onChange={handleReminderChange}
-                                        >
-                                            {ReminderTypes.getAllTypes().map(type => (
-                                                <option key={type} value={type}>
-                                                    {ReminderTypes.getDisplayName(type)}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-
-                                <Col md={6}>
-                                    <Form.Group className="mb-2">
-                                        <Form.Label>Condition (Optional)</Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            name="condition"
-                                            value={newReminder.condition}
-                                            onChange={handleReminderChange}
-                                            placeholder="e.g., When attacking"
-                                        />
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-
-                            <Button variant="outline-primary" onClick={addReminder}>
-                                Add Reminder
-                            </Button>
-
-                            {formData.reminders.length > 0 && (
-                                <ListGroup className="mt-3">
-                                    {formData.reminders.map((reminder, index) => (
-                                        <ListGroup.Item key={index}>
-                                            <div className="d-flex justify-content-between align-items-start">
-                                                <div>
-                                                    <div className="mb-1">{reminder.text}</div>
-                                                    <Badge bg={ReminderTypes.getBadgeColor(reminder.reminderType)}>
-                                                        {ReminderTypes.getDisplayName(reminder.reminderType)}
-                                                    </Badge>
-                                                    {reminder.condition && (
-                                                        <span className="ms-2 text-muted small">
-                              Condition: {reminder.condition}
-                            </span>
-                                                    )}
-                                                </div>
-                                                <Button
-                                                    variant="outline-danger"
-                                                    size="sm"
-                                                    onClick={() => removeReminder(index)}
-                                                >
-                                                    Remove
-                                                </Button>
-                                            </div>
-                                        </ListGroup.Item>
-                                    ))}
-                                </ListGroup>
-                            )}
-                        </Card.Body>
-                    </Card>
-
-                    <div className="d-flex justify-content-between">
-                        <Button
-                            variant="secondary"
-                            onClick={() => navigate('/upgrades')}
-                        >
-                            Cancel
-                        </Button>
-                        <Button type="submit" variant="primary" disabled={loading}>
-                            {loading ? 'Saving...' : (upgradeId ? 'Update' : 'Create') + ' Upgrade Card'}
-                        </Button>
-                    </div>
-                </Form>
-            </Card.Body>
-        </Card>
-    );
+      {/* Modal */}
+      <WeaponEditorModal
+        show={showWeaponModal}
+        onClose={() => setShowWeaponModal(false)}
+        onSave={handleSaveWeapon}
+        weapon={currentWeapon}
+        setWeapon={setCurrentWeapon}
+      />
+    </>
+  );
 };
 
 export default UpgradeCardForm;

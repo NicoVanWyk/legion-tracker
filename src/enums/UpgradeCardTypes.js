@@ -1,136 +1,129 @@
-﻿// src/enums/UpgradeCardTypes.js
-const UpgradeCardTypes = Object.freeze({
-    PERSONNEL: 'personnel',
-    HEAVY_WEAPON: 'heavy_weapon',
-    GEAR: 'gear',
-    GRENADES: 'grenades',
-    COMMS: 'comms',
-    FORCE: 'force',
-    COMMAND: 'command',
-    TRAINING: 'training',
-    PILOT: 'pilot',
-    HARDPOINT: 'hardpoint',
-    ORDNANCE: 'ordnance',
-    ARMAMENT: 'armament',
+﻿// src/enums/UpgradeCardTypes.js (Updated with Specialist)
+const UpgradeCardTypes = {
+  // Type constants
+  HEAVY_WEAPON: 'heavy_weapon',
+  PERSONNEL: 'personnel',
+  FORCE: 'force',
+  COMMAND: 'command',
+  HARDPOINT: 'hardpoint',
+  GEAR: 'gear',
+  GRENADES: 'grenades',
+  COMMS: 'comms',
+  PILOT: 'pilot',
+  TRAINING: 'training',
+  GENERATOR: 'generator',
+  ARMAMENT: 'armament',
+  SPECIALIST: 'specialist',  // NEW TYPE
 
-    getDisplayName: function(type) {
-        const names = {
-            [this.PERSONNEL]: 'Personnel',
-            [this.HEAVY_WEAPON]: 'Heavy Weapon',
-            [this.GEAR]: 'Gear',
-            [this.GRENADES]: 'Grenades',
-            [this.COMMS]: 'Comms',
-            [this.FORCE]: 'Force',
-            [this.COMMAND]: 'Command',
-            [this.TRAINING]: 'Training',
-            [this.PILOT]: 'Pilot',
-            [this.HARDPOINT]: 'Hardpoint',
-            [this.ORDNANCE]: 'Ordnance',
-            [this.ARMAMENT]: 'Armament'
-        };
-        return names[type] || 'Unknown';
-    },
+  // Display names
+  getDisplayName: (type) => {
+    const names = {
+      heavy_weapon: 'Heavy Weapon',
+      personnel: 'Personnel',
+      force: 'Force',
+      command: 'Command',
+      hardpoint: 'Hardpoint',
+      gear: 'Gear',
+      grenades: 'Grenades',
+      comms: 'Comms',
+      pilot: 'Pilot',
+      training: 'Training',
+      generator: 'Generator',
+      armament: 'Armament',
+      specialist: 'Specialist'
+    };
+    return names[type] || type;
+  },
 
-    getDescription: function(type) {
-        const descriptions = {
-            [this.PERSONNEL]: 'Add additional personnel to the unit',
-            [this.HEAVY_WEAPON]: 'Equip heavy weapons for increased firepower',
-            [this.GEAR]: 'Add equipment and gear to enhance capabilities',
-            [this.GRENADES]: 'Add grenade weapons to the unit',
-            [this.COMMS]: 'Improve communication and command abilities',
-            [this.FORCE]: 'Force-sensitive abilities and powers',
-            [this.COMMAND]: 'Command abilities and leadership upgrades',
-            [this.TRAINING]: 'Special training and tactics',
-            [this.PILOT]: 'Vehicle pilot upgrades and skills',
-            [this.HARDPOINT]: 'Vehicle weapon hardpoint upgrades',
-            [this.ORDNANCE]: 'Vehicle ordnance and ammunition upgrades',
-            [this.ARMAMENT]: 'Additional armament options'
-        };
-        return descriptions[type] || 'No description available';
-    },
+  // Descriptions
+  getDescription: (type) => {
+    const descriptions = {
+      heavy_weapon: 'Add a heavy weapon to the unit',
+      personnel: 'Add additional personnel to the unit',
+      force: 'Force-sensitive upgrades and abilities',
+      command: 'Leadership and command abilities',
+      hardpoint: 'Vehicle or emplacement weapon systems',
+      gear: 'Equipment and tactical gear',
+      grenades: 'Explosive ordnance',
+      comms: 'Communication equipment',
+      pilot: 'Vehicle crew and pilot upgrades',
+      training: 'Special training and tactics',
+      generator: 'Shield generators and power systems',
+      armament: 'Additional armaments and weapons',
+      specialist: 'Specialized unit members with unique skills'
+    };
+    return descriptions[type] || '';
+  },
 
-    getAllTypes: function() {
-        return [
-            this.PERSONNEL,
-            this.HEAVY_WEAPON,
-            this.GEAR,
-            this.GRENADES,
-            this.COMMS,
-            this.FORCE,
-            this.COMMAND,
-            this.TRAINING,
-            this.PILOT,
-            this.HARDPOINT,
-            this.ORDNANCE,
-            this.ARMAMENT
-        ];
-    },
+  // Badge colors for UI
+  getBadgeColor: (type) => {
+    const colors = {
+      heavy_weapon: 'danger',
+      personnel: 'primary',
+      force: 'info',
+      command: 'warning',
+      hardpoint: 'dark',
+      gear: 'secondary',
+      grenades: 'danger',
+      comms: 'info',
+      pilot: 'primary',
+      training: 'success',
+      generator: 'info',
+      armament: 'danger',
+      specialist: 'purple'
+    };
+    return colors[type] || 'secondary';
+  },
 
-    getInfantryTypes: function() {
-        return [
-            this.PERSONNEL,
-            this.HEAVY_WEAPON,
-            this.GEAR,
-            this.GRENADES,
-            this.COMMS,
-            this.TRAINING
-        ];
-    },
+  // Icon classes (Bootstrap Icons)
+  getIconClass: (type) => {
+    const icons = {
+      heavy_weapon: 'bi-crosshair',
+      personnel: 'bi-people-fill',
+      force: 'bi-stars',
+      command: 'bi-flag-fill',
+      hardpoint: 'bi-bullseye',
+      gear: 'bi-tools',
+      grenades: 'bi-circle-fill',
+      comms: 'bi-broadcast',
+      pilot: 'bi-person-badge',
+      training: 'bi-book',
+      generator: 'bi-shield-fill-check',
+      armament: 'bi-hammer',
+      specialist: 'bi-award-fill'
+    };
+    return icons[type] || 'bi-box';
+  },
 
-    getVehicleTypes: function() {
-        return [
-            this.PILOT,
-            this.HARDPOINT,
-            this.ORDNANCE,
-            this.COMMS,
-            this.GEAR
-        ];
-    },
+  // Get all upgrade types
+  getAllTypes: () => {
+    return [
+      UpgradeCardTypes.HEAVY_WEAPON,
+      UpgradeCardTypes.PERSONNEL,
+      UpgradeCardTypes.FORCE,
+      UpgradeCardTypes.COMMAND,
+      UpgradeCardTypes.HARDPOINT,
+      UpgradeCardTypes.GEAR,
+      UpgradeCardTypes.GRENADES,
+      UpgradeCardTypes.COMMS,
+      UpgradeCardTypes.PILOT,
+      UpgradeCardTypes.TRAINING,
+      UpgradeCardTypes.GENERATOR,
+      UpgradeCardTypes.ARMAMENT,
+      UpgradeCardTypes.SPECIALIST
+    ];
+  },
 
-    getCommanderTypes: function() {
-        return [
-            this.FORCE,
-            this.COMMAND,
-            this.TRAINING,
-            this.GEAR
-        ];
-    },
-
-    getIconClass: function(type) {
-        const icons = {
-            [this.PERSONNEL]: 'bi-person-plus-fill',
-            [this.HEAVY_WEAPON]: 'bi-crosshair',
-            [this.GEAR]: 'bi-gear-fill',
-            [this.GRENADES]: 'bi-bomb',
-            [this.COMMS]: 'bi-broadcast',
-            [this.FORCE]: 'bi-stars',
-            [this.COMMAND]: 'bi-flag-fill',
-            [this.TRAINING]: 'bi-trophy-fill',
-            [this.PILOT]: 'bi-person-badge-fill',
-            [this.HARDPOINT]: 'bi-lightning-charge-fill',
-            [this.ORDNANCE]: 'bi-rocket-takeoff-fill',
-            [this.ARMAMENT]: 'bi-shield-fill-plus'
-        };
-        return icons[type] || 'bi-question-circle';
-    },
-
-    getBadgeColor: function(type) {
-        const colors = {
-            [this.PERSONNEL]: 'primary',
-            [this.HEAVY_WEAPON]: 'danger',
-            [this.GEAR]: 'secondary',
-            [this.GRENADES]: 'warning',
-            [this.COMMS]: 'info',
-            [this.FORCE]: 'dark',
-            [this.COMMAND]: 'success',
-            [this.TRAINING]: 'primary',
-            [this.PILOT]: 'info',
-            [this.HARDPOINT]: 'danger',
-            [this.ORDNANCE]: 'warning',
-            [this.ARMAMENT]: 'secondary'
-        };
-        return colors[type] || 'secondary';
-    }
-});
+  // Check if a type typically adds weapons
+  shouldAddWeapons: (type) => {
+    return [
+      UpgradeCardTypes.HEAVY_WEAPON,
+      UpgradeCardTypes.HARDPOINT,
+      UpgradeCardTypes.GRENADES,
+      UpgradeCardTypes.ARMAMENT,
+      UpgradeCardTypes.SPECIALIST
+    ].includes(type);
+  }
+};
 
 export default UpgradeCardTypes;

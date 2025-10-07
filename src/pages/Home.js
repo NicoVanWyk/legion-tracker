@@ -1,5 +1,7 @@
 // src/pages/Home.js
-import React from 'react';
+import UnitsImage from '../assets/UnitsImage.png';
+import ArmiesImage from '../assets/ArmiesImage.png';
+import BattleTrackerImage from '../assets/BattleTrackerImage.png';
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,7 +36,7 @@ const Home = () => {
       <Row className="mb-5">
         <Col md={4} className="mb-4">
           <Card className="h-100">
-            <Card.Img variant="top" src="/img/units.jpg" />
+            <Card.Img variant="top" src={UnitsImage} />
             <Card.Body>
               <Card.Title>Custom Units</Card.Title>
               <Card.Text>
@@ -52,7 +54,7 @@ const Home = () => {
         
         <Col md={4} className="mb-4">
           <Card className="h-100">
-            <Card.Img variant="top" src="/img/armies.jpg" />
+            <Card.Img variant="top" src={ArmiesImage} />
             <Card.Body>
               <Card.Title>Army Builder</Card.Title>
               <Card.Text>
@@ -69,7 +71,7 @@ const Home = () => {
         
         <Col md={4} className="mb-4">
           <Card className="h-100">
-            <Card.Img variant="top" src="/img/battles.jpg" />
+            <Card.Img variant="top" src={BattleTrackerImage} />
             <Card.Body>
               <Card.Title>Battle Tracker</Card.Title>
               <Card.Text>

@@ -1,5 +1,5 @@
 // src/components/layout/Header.js (Updated with new navigation)
-import React from 'react';
+import logo from '../../assets/SWLegionLogo.png';
 import { Navbar, Nav, Container, Button, NavDropdown } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -22,7 +22,7 @@ const Header = () => {
             <Container>
                 <Navbar.Brand as={Link} to="/">
                     <img
-                        src="/logo.png"
+                        src={logo}
                         width="30"
                         height="30"
                         className="d-inline-block align-top me-2"
