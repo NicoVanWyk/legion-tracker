@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Row, Col, Card, ListGroup, Button, Badge, Form } from 'react-bootstrap';
 import PlayerSides from '../../enums/PlayerSides';
 import UnitTracker from './UnitTracker';
-import ModelCasualtyTracker from './ModelCasualtyTracker';
+import ModelCasualtyTracker from './ModelCasualtyTrackerComponent';
 
 const ActivationPhase = ({ battle, onUnitUpdate, onSetSelectedUnit }) => {
   const [selectedUnit, setSelectedUnit] = useState(null);
@@ -157,11 +157,11 @@ const ActivationPhase = ({ battle, onUnitUpdate, onSetSelectedUnit }) => {
             </Button>
           </Card.Header>
           <Card.Body>
-              <ModelCasualtyTracker
-                  unit={selectedUnit}
-                  upgrades={upgrades}  // Pass available upgrades
-                  onUpdateModels={(models) => handleUnitTrackerUpdate({ models })}
-              />
+            <ModelCasualtyTracker
+                unit={selectedUnit}
+                upgrades={selectedUnit.upgradeSlots || []}
+                onUpdateModels={(models) => handleUnitTrackerUpdate({ models })}
+            />
             <UnitTracker 
               unit={selectedUnit} 
               onUpdate={handleUnitTrackerUpdate}

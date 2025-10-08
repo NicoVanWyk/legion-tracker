@@ -299,8 +299,7 @@ const UnitDetail = ({ unitId }) => {
                     {unit.currentModelCount || 1}
                     {modifiedStats.modelCount !== unit.currentModelCount && (
                       <span className="text-primary"> → {modifiedStats.modelCount}</span>
-                    )}{' '}
-                    | Max: {unit.maxModelCount || 10}
+                    )}
                   </p>
                 </Col>
               </Row>
