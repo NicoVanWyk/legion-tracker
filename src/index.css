@@ -274,3 +274,27 @@ h1, h2, h3 {
   from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
 }
+
+.reference-detail p,
+.reference-detail .list-group-item {
+  white-space: pre-line; /* respects newlines but still wraps long text */
+}
+
+/* Ensure line breaks and spacing are preserved in reference panels */
+.reference-panel-offcanvas p,
+.reference-panel-offcanvas li,
+.reference-panel-offcanvas .list-group-item {
+  white-space: pre-line;
+  line-height: 1.5;
+}
+
+/* Optional: improve readability of text blocks */
+.reference-panel-offcanvas p {
+  margin-bottom: 0.5rem;
+}
+
+.reference-panel-offcanvas .accordion-body {
+  background-color: #f8f9fa; /* subtle contrast */
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+}
