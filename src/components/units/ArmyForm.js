@@ -16,6 +16,7 @@ const ArmyForm = () => {
   const [loading, setLoading] = useState(false);
   const [loadingArmy, setLoadingArmy] = useState(armyId ? true : false);
   const [loadingUnits, setLoadingUnits] = useState(true);
+  const [customUnitTypes, setCustomUnitTypes] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
@@ -74,6 +75,11 @@ const ArmyForm = () => {
               }
             }
 
+            // Fetch custom unit types for display
+            const typesSnap = await getDocs(collection(db, 'users', currentUser.uid, 'customUnitTypes'));
+            const customTypes = typesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setCustomUnitTypes(customTypes);
+
             setSelectedUnits(unitDetails);
           } else {
             setError('Army not found');
@@ -117,14 +123,17 @@ const ArmyForm = () => {
         unitsList.sort((a, b) => {
           // Order: Command, Corps, Special Forces, Support, Heavy, Operative, Auxiliary
           const typeOrder = {
-            [UnitTypes.COMMAND]: 1,
-            [UnitTypes.CORPS]: 2,
-            [UnitTypes.SPECIAL_FORCES]: 3,
-            [UnitTypes.SUPPORT]: 4,
-            [UnitTypes.HEAVY]: 5,
-            [UnitTypes.OPERATIVE]: 6,
-            [UnitTypes.AUXILIARY]: 7
+              [UnitTypes.COMMAND]: 1,
+              [UnitTypes.CORPS]: 2,
+              [UnitTypes.SPECIAL_FORCES]: 3,
+              [UnitTypes.SUPPORT]: 4,
+              [UnitTypes.HEAVY]: 5,
+              [UnitTypes.OPERATIVE]: 6,
+              [UnitTypes.AUXILIARY]: 7
           };
+          customUnitTypes.forEach(ct => {
+              typeOrder[ct.name] = ct.sortOrder + 100;
+          });
           
           return typeOrder[a.type] - typeOrder[b.type] || a.name.localeCompare(b.name);
         });
@@ -140,6 +149,14 @@ const ArmyForm = () => {
 
     fetchUnits();
   }, [currentUser, formData.faction]);
+
+  const getTypeDisplayName = (type) => {
+    if (Object.values(UnitTypes).includes(type)) {
+        return UnitTypes.getDisplayName(type);
+    }
+    const customType = customUnitTypes.find(t => t.name === type);
+    return customType ? customType.displayName : type;
+  };
   
   // Handle input changes
   const handleChange = (e) => {
@@ -363,7 +380,7 @@ const ArmyForm = () => {
                           padding: '0.25rem 0.5rem'
                         }}
                       >
-                        {UnitTypes.getDisplayName(type)}: {count}
+                        {getTypeDisplayName(type)}: {count}
                       </Badge>
                     ))}
                   </div>
@@ -382,7 +399,7 @@ const ArmyForm = () => {
                           <div>
                             <div className="fw-bold">{unit.name}</div>
                             <div className="small text-muted">
-                              {UnitTypes.getDisplayName(unit.type)} • {unit.points || 0} points
+                              {getTypeDisplayName(unit.type)} • {unit.points || 0} points
                             </div>
                           </div>
                           <Button 
@@ -447,7 +464,7 @@ const ArmyForm = () => {
                       return (
                         <div key={unitType}>
                           <div className="bg-light p-2 fw-bold">
-                            {UnitTypes.getDisplayName(unitType)}
+                            {getTypeDisplayName(unitType)}
                           </div>
                           <ListGroup variant="flush">
                             {unitsOfType.map(unit => (

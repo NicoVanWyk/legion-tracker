@@ -1,4 +1,4 @@
-﻿// src/components/custom/CustomUnitTypeForm.jsx
+﻿// src/components/custom/CustomUnitTypeForm.jsx (Fixed)
 import React, { useState, useEffect } from 'react';
 import { Form, Button, Card, Alert, Row, Col } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -23,26 +23,35 @@ const CustomUnitTypeForm = () => {
     });
 
     useEffect(() => {
-        const fetchUnitType = async () => {
-            if (!typeId || !currentUser) return;
-
-            try {
-                const typeRef = doc(db, 'users', currentUser.uid, 'customUnitTypes', typeId);
-                const typeDoc = await getDoc(typeRef);
-
-                if (typeDoc.exists()) {
-                    setFormData(typeDoc.data());
-                } else {
-                    setError('Unit type not found');
-                }
-            } catch (err) {
-                console.error('Error fetching unit type:', err);
-                setError('Failed to load unit type');
-            }
-        };
-
-        fetchUnitType();
+        if (typeId && currentUser) {
+            fetchUnitType();
+        }
     }, [typeId, currentUser]);
+
+    const fetchUnitType = async () => {
+        if (!currentUser) return;
+
+        try {
+            const typeRef = doc(db, 'users', currentUser.uid, 'customUnitTypes', typeId);
+            const typeDoc = await getDoc(typeRef);
+
+            if (typeDoc.exists()) {
+                const data = typeDoc.data();
+                setFormData({
+                    name: data.name || '',
+                    displayName: data.displayName || '',
+                    description: data.description || '',
+                    icon: data.icon || '',
+                    sortOrder: data.sortOrder || 100
+                });
+            } else {
+                setError('Unit type not found');
+            }
+        } catch (err) {
+            console.error('Error fetching unit type:', err);
+            setError('Failed to load unit type: ' + err.message);
+        }
+    };
 
     const handleChange = (e) => {
         const { name, value, type } = e.target;
@@ -54,6 +63,11 @@ const CustomUnitTypeForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (!currentUser) {
+            setError('You must be logged in to create unit types');
+            return;
+        }
 
         if (!formData.name.trim()) {
             setError('Name is required');
@@ -70,14 +84,14 @@ const CustomUnitTypeForm = () => {
             setError('');
 
             // Create a slug from the name (lowercase, replace spaces with underscores)
-            const slug = formData.name.toLowerCase().replace(/\s+/g, '_');
+            const slug = formData.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 
             const typeData = {
                 name: slug,
                 displayName: formData.displayName.trim(),
                 description: formData.description.trim(),
                 icon: formData.icon.trim(),
-                sortOrder: formData.sortOrder,
+                sortOrder: formData.sortOrder || 100,
                 lastUpdated: serverTimestamp(),
                 userId: currentUser.uid
             };
@@ -187,7 +201,7 @@ const CustomUnitTypeForm = () => {
                                     placeholder="e.g., bi-shield-fill"
                                 />
                                 <Form.Text className="text-muted">
-                                    Bootstrap icon class
+                                    Bootstrap icon class (see <a href="https://icons.getbootstrap.com" target="_blank" rel="noopener noreferrer">icons.getbootstrap.com</a>)
                                 </Form.Text>
                             </Form.Group>
                         </Col>
@@ -204,7 +218,7 @@ const CustomUnitTypeForm = () => {
                                     max="999"
                                 />
                                 <Form.Text className="text-muted">
-                                    Lower numbers appear first in lists
+                                    Lower numbers appear first in lists (0-999)
                                 </Form.Text>
                             </Form.Group>
                         </Col>
@@ -214,6 +228,7 @@ const CustomUnitTypeForm = () => {
                         <Button
                             variant="secondary"
                             onClick={() => navigate('/units/types')}
+                            disabled={loading}
                         >
                             Cancel
                         </Button>

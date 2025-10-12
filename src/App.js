@@ -1,4 +1,4 @@
-// src/App.js (Updated with all new routes)
+// src/App.js (Complete Fixed Version)
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Container } from 'react-bootstrap';
@@ -60,10 +60,6 @@ function App() {
                             <Route path="/register" element={<Register />} />
                             <Route path="/forgot-password" element={<ForgotPassword />} />
 
-                            {/* Reference Routes - Public Access for Viewing */}
-                            <Route path="/references" element={<ReferencePage />} />
-                            <Route path="/references/:id" element={<ReferencePage />} />
-
                             {/* Private Routes */}
                             <Route element={<PrivateRoute />}>
                                 {/* Units Routes */}
@@ -104,7 +100,7 @@ function App() {
                                 <Route path="/upgrades/create" element={<UpgradeCardForm />} />
                                 <Route path="/upgrades/edit/:upgradeId" element={<UpgradeCardForm />} />
 
-                                {/* References Creation/Edit Routes - Authenticated Only */}
+                                {/* References Creation/Edit Routes - MUST come before /references/:id */}
                                 <Route path="/references/create" element={<ReferencePage />} />
                                 <Route path="/references/edit/:id" element={<ReferencePage />} />
 
@@ -113,6 +109,10 @@ function App() {
                                 <Route path="/profile/settings" element={<ProfilePage />} />
                                 <Route path="/profile/stats" element={<ProfilePage />} />
                             </Route>
+
+                            {/* Reference Routes - Public Access for Viewing (AFTER private routes) */}
+                            <Route path="/references" element={<ReferencePage />} />
+                            <Route path="/references/:id" element={<ReferencePage />} />
 
                             {/* Home page is accessible to everyone */}
                             <Route path="/" element={<Home />} />

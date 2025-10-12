@@ -23,6 +23,7 @@ const UnitDetail = ({ unitId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [customUnitTypes, setCustomUnitTypes] = useState([]);
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
@@ -72,6 +73,13 @@ const UnitDetail = ({ unitId }) => {
             ...doc.data()
           }));
           setCustomKeywords(keywordsList);
+
+          const typesRef = collection(db, 'users', currentUser.uid, 'customUnitTypes');
+          const typesSnapshot = await getDocs(typesRef);
+          setCustomUnitTypes(typesSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+          })));
         } else {
           setError('Unit not found');
         }
@@ -85,6 +93,14 @@ const UnitDetail = ({ unitId }) => {
 
     if (currentUser && unitId) fetchData();
   }, [currentUser, unitId]);
+
+  const getTypeDisplayName = (type) => {
+    if (Object.values(UnitTypes).includes(type)) {
+        return UnitTypes.getDisplayName(type);
+    }
+    const customType = customUnitTypes.find(t => t.name === type);
+    return customType ? customType.displayName : type;
+  };
 
   const handleEdit = () => navigate(`/units/edit/${unitId}`);
 
@@ -246,7 +262,7 @@ const UnitDetail = ({ unitId }) => {
             <Card.Header className={`faction-${unit.faction}`}>
               <div className="d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">Unit Information</h5>
-                <Badge bg="secondary">{UnitTypes.getDisplayName(unit.type)}</Badge>
+                <Badge bg="secondary">{getTypeDisplayName(unit.type)}</Badge>
               </div>
             </Card.Header>
             <Card.Body>

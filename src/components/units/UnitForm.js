@@ -12,6 +12,7 @@ import KeywordSelector from './KeywordSelector';
 import WeaponSelector from './WeaponSelector';
 import LoadingSpinner from '../layout/LoadingSpinner';
 import UpgradeCardSelector from '../upgrades/UpgradeCardSelector';
+import AbilitySelector from '../abilities/AbilitySelector';
 
 const UnitForm = () => {
     const { unitId } = useParams();
@@ -22,8 +23,8 @@ const UnitForm = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [activeTab, setActiveTab] = useState('basic');
+    const [customUnitTypes, setCustomUnitTypes] = useState([]);
 
-    const [availableAbilities, setAvailableAbilities] = useState([]);
     const [availableUpgrades, setAvailableUpgrades] = useState([]);
 
     const [formData, setFormData] = useState({
@@ -78,15 +79,14 @@ const UnitForm = () => {
         fetchUnit();
     }, [currentUser, unitId]);
 
-    // Load available abilities & upgrades
+    // Load available upgrades
     useEffect(() => {
         const fetchAvailableOptions = async () => {
             if (!currentUser) return;
             try {
-                const abilitiesSnap = await getDocs(collection(db, 'users', currentUser.uid, 'abilities'));
+                const customTypesSnap = await getDocs(collection(db, 'users', currentUser.uid, 'customUnitTypes'));
+                setCustomUnitTypes(customTypesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
                 const upgradesSnap = await getDocs(collection(db, 'users', currentUser.uid, 'upgradeCards'));
-
-                setAvailableAbilities(abilitiesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
                 setAvailableUpgrades(upgradesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
             } catch (err) {
                 console.error('Error fetching options:', err);
@@ -107,15 +107,7 @@ const UnitForm = () => {
 
     const handleKeywordsChange = (keywords) => setFormData(prev => ({ ...prev, keywords }));
     const handleWeaponsChange = (weapons) => setFormData(prev => ({ ...prev, weapons }));
-
-    const toggleAbility = (id) => {
-        setFormData(prev => ({
-            ...prev,
-            abilities: prev.abilities.includes(id)
-                ? prev.abilities.filter(a => a !== id)
-                : [...prev.abilities, id]
-        }));
-    };
+    const handleAbilitiesChange = (abilities) => setFormData(prev => ({ ...prev, abilities }));
 
     const addUpgradeSlot = () => {
         setFormData(prev => ({
@@ -256,8 +248,13 @@ const UnitForm = () => {
                                     <Form.Group>
                                         <Form.Label>Unit Type</Form.Label>
                                         <Form.Select name="type" value={formData.type} onChange={handleChange}>
-                                            {Object.values(UnitTypes).map(t => (
+                                            {/* System unit types */}
+                                            {Object.values(UnitTypes).filter(t => typeof t !== 'function').map(t => (
                                                 <option key={t} value={t}>{UnitTypes.getDisplayName(t)}</option>
+                                            ))}
+                                            {/* Custom unit types */}
+                                            {customUnitTypes.map(t => (
+                                                <option key={t.id} value={t.name}>{t.displayName}</option>
                                             ))}
                                         </Form.Select>
                                     </Form.Group>
@@ -355,27 +352,14 @@ const UnitForm = () => {
                     <Card><Card.Body><WeaponSelector weapons={formData.weapons} onChange={handleWeaponsChange} /></Card.Body></Card>
                 </Tab>
 
-                {/* ABILITIES */}
+                {/* ABILITIES - NOW USING AbilitySelector */}
                 <Tab eventKey="abilities" title={`Abilities (${formData.abilities?.length || 0})`}>
                     <Card>
                         <Card.Body>
-                            {availableAbilities.length === 0 ? (
-                                <Alert>No abilities available</Alert>
-                            ) : (
-                                <ListGroup>
-                                    {availableAbilities.map(a => (
-                                        <ListGroup.Item
-                                            key={a.id}
-                                            active={formData.abilities.includes(a.id)}
-                                            onClick={() => toggleAbility(a.id)}
-                                            action
-                                        >
-                                            <div className="fw-bold">{a.name}</div>
-                                            <div className="small text-muted">{a.description}</div>
-                                        </ListGroup.Item>
-                                    ))}
-                                </ListGroup>
-                            )}
+                            <AbilitySelector 
+                                selectedAbilities={formData.abilities} 
+                                onChange={handleAbilitiesChange}
+                            />
                         </Card.Body>
                     </Card>
                 </Tab>
@@ -403,8 +387,10 @@ const UnitForm = () => {
                                                             value={slot.type}
                                                             onChange={(e) => updateUpgradeSlot(i, 'type', e.target.value)}
                                                         >
-                                                            {Object.entries(UpgradeCardTypes.getAllTypes()).map(([key, label]) => (
-                                                                <option key={key} value={key}>{label}</option>
+                                                            {UpgradeCardTypes.getAllTypes().map((type) => (
+                                                                <option key={type} value={type}>
+                                                                    {UpgradeCardTypes.getDisplayName(type)}
+                                                                </option>
                                                             ))}
                                                         </Form.Select>
                                                     </Form.Group>

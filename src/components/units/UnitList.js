@@ -16,6 +16,7 @@ const UnitList = () => {
   const [filterFaction, setFilterFaction] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [customUnitTypes, setCustomUnitTypes] = useState([]);
   const { currentUser } = useAuth();
 
   useEffect(() => {
@@ -48,10 +49,31 @@ const UnitList = () => {
       }
     };
 
+    const fetchCustomTypes = async () => {
+    if (!currentUser) return;
+      try {
+          const typesSnap = await getDocs(collection(db, 'users', currentUser.uid, 'customUnitTypes'));
+          setCustomUnitTypes(typesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (err) {
+          console.error('Error fetching custom types:', err);
+      }
+    };
+    fetchCustomTypes();
+
     if (currentUser) {
       fetchUnits();
     }
   }, [currentUser]);
+
+  const getTypeDisplayName = (type) => {
+    // Check if it's a system type
+    if (Object.values(UnitTypes).includes(type)) {
+        return UnitTypes.getDisplayName(type);
+    }
+    // Check if it's a custom type
+    const customType = customUnitTypes.find(t => t.name === type);
+    return customType ? customType.displayName : type;
+  };
 
   // Apply filters
   const filteredUnits = units.filter(unit => {
@@ -105,17 +127,22 @@ const UnitList = () => {
                   <Form.Group>
                     <Form.Label>Unit Type</Form.Label>
                     <Form.Select
-                      value={filterType}
-                      onChange={(e) => setFilterType(e.target.value)}
+                        value={filterType}
+                        onChange={(e) => setFilterType(e.target.value)}
                     >
-                      <option value="all">All Types</option>
-                      <option value={UnitTypes.COMMAND}>{UnitTypes.getDisplayName(UnitTypes.COMMAND)}</option>
-                      <option value={UnitTypes.CORPS}>{UnitTypes.getDisplayName(UnitTypes.CORPS)}</option>
-                      <option value={UnitTypes.SPECIAL_FORCES}>{UnitTypes.getDisplayName(UnitTypes.SPECIAL_FORCES)}</option>
-                      <option value={UnitTypes.SUPPORT}>{UnitTypes.getDisplayName(UnitTypes.SUPPORT)}</option>
-                      <option value={UnitTypes.HEAVY}>{UnitTypes.getDisplayName(UnitTypes.HEAVY)}</option>
-                      <option value={UnitTypes.OPERATIVE}>{UnitTypes.getDisplayName(UnitTypes.OPERATIVE)}</option>
-                      <option value={UnitTypes.AUXILIARY}>{UnitTypes.getDisplayName(UnitTypes.AUXILIARY)}</option>
+                        <option value="all">All Types</option>
+                        <optgroup label="System Types">
+                            {Object.values(UnitTypes).filter(t => typeof t !== 'function').map(t => (
+                                <option key={t} value={t}>{UnitTypes.getDisplayName(t)}</option>
+                            ))}
+                        </optgroup>
+                        {customUnitTypes.length > 0 && (
+                            <optgroup label="Custom Types">
+                                {customUnitTypes.map(t => (
+                                    <option key={t.id} value={t.name}>{t.displayName}</option>
+                                ))}
+                            </optgroup>
+                        )}
                     </Form.Select>
                   </Form.Group>
                 </Col>
@@ -186,7 +213,7 @@ const UnitList = () => {
               <Card className={`unit-card unit-type-${unit.type}`}>
                 <Card.Header className={`d-flex justify-content-between align-items-center faction-${unit.faction}`}>
                   <span>{unit.name}</span>
-                  <Badge bg="secondary">{UnitTypes.getDisplayName(unit.type)}</Badge>
+                  <Badge bg="secondary">{getTypeDisplayName(unit.type)}</Badge>
                 </Card.Header>
                 
                 <Card.Body>

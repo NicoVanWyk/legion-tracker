@@ -1,4 +1,4 @@
-﻿// src/components/custom/CustomUnitTypeList.jsx
+﻿// src/components/custom/CustomUnitTypeList.jsx (Fixed)
 import React, { useState, useEffect } from 'react';
 import { Card, Badge, Button, ListGroup, Row, Col, Form, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
@@ -19,12 +19,18 @@ const CustomUnitTypeList = () => {
     }, [currentUser]);
 
     const fetchUnitTypes = async () => {
-        if (!currentUser) return;
+        if (!currentUser) {
+            setLoading(false);
+            setError('You must be logged in to view custom unit types');
+            return;
+        }
 
         try {
             setLoading(true);
+            setError('');
+            
             const typesRef = collection(db, 'users', currentUser.uid, 'customUnitTypes');
-            const q = query(typesRef, orderBy('sortOrder', 'asc'), orderBy('displayName', 'asc'));
+            const q = query(typesRef, orderBy('sortOrder', 'asc'));
             const querySnapshot = await getDocs(q);
 
             const typesList = querySnapshot.docs.map(doc => ({
@@ -33,10 +39,22 @@ const CustomUnitTypeList = () => {
             }));
 
             setUnitTypes(typesList);
-            setError('');
         } catch (err) {
             console.error('Error fetching unit types:', err);
-            setError('Failed to fetch custom unit types');
+            console.error('Error details:', {
+                code: err.code,
+                message: err.message,
+                name: err.name
+            });
+            
+            // More specific error messages
+            if (err.code === 'permission-denied') {
+                setError('Permission denied. Please check your Firebase security rules.');
+            } else if (err.code === 'unavailable') {
+                setError('Firebase service is unavailable. Please check your internet connection.');
+            } else {
+                setError(`Failed to fetch custom unit types: ${err.message}`);
+            }
         } finally {
             setLoading(false);
         }
@@ -52,13 +70,14 @@ const CustomUnitTypeList = () => {
             fetchUnitTypes();
         } catch (err) {
             console.error('Error deleting unit type:', err);
-            setError('Failed to delete unit type');
+            setError('Failed to delete unit type: ' + err.message);
         }
     };
 
     const filteredTypes = unitTypes.filter(type =>
         searchTerm === '' ||
-        type.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        type.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        type.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         type.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -75,7 +94,22 @@ const CustomUnitTypeList = () => {
                 </Button>
             </Card.Header>
             <Card.Body>
-                {error && <Alert variant="danger">{error}</Alert>}
+                {error && (
+                    <Alert variant="danger" dismissible onClose={() => setError('')}>
+                        <Alert.Heading>Error Loading Data</Alert.Heading>
+                        <p>{error}</p>
+                        <hr />
+                        <div className="d-flex justify-content-end">
+                            <Button 
+                                onClick={fetchUnitTypes} 
+                                variant="outline-danger"
+                                size="sm"
+                            >
+                                Try Again
+                            </Button>
+                        </div>
+                    </Alert>
+                )}
 
                 <Row className="mb-3">
                     <Col md={12}>
@@ -91,7 +125,7 @@ const CustomUnitTypeList = () => {
                     </Col>
                 </Row>
 
-                {unitTypes.length === 0 ? (
+                {unitTypes.length === 0 && !error ? (
                     <Alert variant="info" className="text-center">
                         <p className="mb-3">You haven't created any custom unit types yet.</p>
                         <p className="small text-muted mb-3">
@@ -113,9 +147,9 @@ const CustomUnitTypeList = () => {
                                     <div className="flex-grow-1">
                                         <h5 className="mb-2">
                                             {type.icon && <i className={`${type.icon} me-2`}></i>}
-                                            {type.displayName}
+                                            {type.displayName || type.name}
                                             <Badge bg="secondary" className="ms-2">
-                                                Sort: {type.sortOrder}
+                                                Sort: {type.sortOrder || 0}
                                             </Badge>
                                         </h5>
                                         <div className="small text-muted mb-2">
@@ -149,7 +183,7 @@ const CustomUnitTypeList = () => {
                     </ListGroup>
                 )}
 
-                {unitTypes.length > 0 && (
+                {unitTypes.length > 0 && !error && (
                     <Alert variant="info" className="mt-3 mb-0">
                         <small>
                             <strong>Note:</strong> Custom unit types will appear in unit creation dropdowns alongside system types.

@@ -1,6 +1,8 @@
 // src/components/battles/CommandPhase.js
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Row, Col, Card, ListGroup, Button, Form, Badge } from 'react-bootstrap';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase/config';
 import UnitTypes from '../../enums/UnitTypes';
 import PlayerSides from '../../enums/PlayerSides';
 
@@ -9,6 +11,26 @@ const CommandPhase = ({ battle, onUnitUpdate }) => {
     blue: '',
     red: ''
   });
+
+  const [customUnitTypes, setCustomUnitTypes] = useState([]);
+
+  useEffect(() => {
+    const fetchCustomTypes = async () => {
+        if (!battle?.blueUnits?.[0]?.userId) return;
+        const userId = battle.blueUnits[0].userId || battle.redUnits[0].userId;
+        const typesSnap = await getDocs(collection(db, 'users', userId, 'customUnitTypes'));
+        setCustomUnitTypes(typesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    };
+    fetchCustomTypes();
+  }, [battle]);
+
+  const getTypeDisplayName = (type) => {
+    if (Object.values(UnitTypes).includes(type)) {
+        return UnitTypes.getDisplayName(type);
+    }
+    const customType = customUnitTypes.find(t => t.name === type);
+    return customType ? customType.displayName : type;
+  };
   
   // Toggle order status for a unit
   const toggleUnitOrder = (side, unitId) => {
@@ -84,7 +106,7 @@ const CommandPhase = ({ battle, onUnitUpdate }) => {
         {sortedTypes.map(type => (
           <Card key={type} className="mb-3">
             <Card.Header className={`bg-${color} text-white d-flex justify-content-between align-items-center`}>
-              <span>{UnitTypes.getDisplayName(type)}</span>
+              <span>{getTypeDisplayName(type)}</span>
               <span>
                 {unitsByType[type].filter(unit => unit.hasOrder).length}/{unitsByType[type].length} Orders
               </span>

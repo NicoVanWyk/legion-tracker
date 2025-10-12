@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Badge, Button, Alert, Table, ListGroup } from 'react-bootstrap';
 import { useNavigate, Link } from 'react-router-dom';
-import { doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import UnitTypes from '../../enums/UnitTypes';
@@ -16,6 +16,7 @@ const ArmyDetail = ({ armyId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [customUnitTypes, setCustomUnitTypes] = useState([]);
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
@@ -53,19 +54,25 @@ const ArmyDetail = ({ armyId }) => {
               });
             }
           }
+
+          const typesSnap = await getDocs(collection(db, 'users', currentUser.uid, 'customUnitTypes'));
+          setCustomUnitTypes(typesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
           
           // Sort units by type
           units.sort((a, b) => {
             // Order: Command, Corps, Special Forces, Support, Heavy, Operative, Auxiliary
             const typeOrder = {
-              [UnitTypes.COMMAND]: 1,
-              [UnitTypes.CORPS]: 2,
-              [UnitTypes.SPECIAL_FORCES]: 3,
-              [UnitTypes.SUPPORT]: 4,
-              [UnitTypes.HEAVY]: 5,
-              [UnitTypes.OPERATIVE]: 6,
-              [UnitTypes.AUXILIARY]: 7
+                [UnitTypes.COMMAND]: 1,
+                [UnitTypes.CORPS]: 2,
+                [UnitTypes.SPECIAL_FORCES]: 3,
+                [UnitTypes.SUPPORT]: 4,
+                [UnitTypes.HEAVY]: 5,
+                [UnitTypes.OPERATIVE]: 6,
+                [UnitTypes.AUXILIARY]: 7
             };
+            customUnitTypes.forEach(ct => {
+                typeOrder[ct.name] = ct.sortOrder + 100;
+            });
             
             return typeOrder[a.type] - typeOrder[b.type] || a.name.localeCompare(b.name);
           });
@@ -118,6 +125,14 @@ const ArmyDetail = ({ armyId }) => {
 
   const startBattle = () => {
     navigate(`/battles/create?armyId=${armyId}`);
+  };
+
+  const getTypeDisplayName = (type) => {
+    if (Object.values(UnitTypes).includes(type)) {
+        return UnitTypes.getDisplayName(type);
+    }
+    const customType = customUnitTypes.find(t => t.name === type);
+    return customType ? customType.displayName : type;
   };
 
   const printArmy = () => {
@@ -243,7 +258,7 @@ const ArmyDetail = ({ armyId }) => {
                           padding: '0.25rem 0.5rem'
                         }}
                       >
-                        {UnitTypes.getDisplayName(type)}: {count}
+                        {getTypeDisplayName(type)}: {count}
                       </Badge>
                     ))}
                   </div>
@@ -273,7 +288,7 @@ const ArmyDetail = ({ armyId }) => {
                   {unitDetails.map(unit => (
                     <tr key={unit.id}>
                       <td>{unit.name}</td>
-                      <td>{UnitTypes.getDisplayName(unit.type)}</td>
+                      <td>{getTypeDisplayName(unit.type)}</td>
                       <td>{unit.points || 0}</td>
                       <td>{unit.wounds || 1}</td>
                       <td>
@@ -311,7 +326,7 @@ const ArmyDetail = ({ armyId }) => {
           return (
             <Card key={unitType} className="mb-4">
               <Card.Header className={`unit-type-${unitType}`}>
-                <h5 className="mb-0">{UnitTypes.getDisplayName(unitType)}</h5>
+                <h5 className="mb-0">{getTypeDisplayName(unitType)}</h5>
               </Card.Header>
               <Card.Body>
                 <Row>
