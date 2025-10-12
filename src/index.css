@@ -191,3 +191,86 @@ h1, h2, h3 {
         max-height: none !important;
     }
 }
+
+/* Center overlay and give proper backdrop */
+.react-confirm-alert-overlay {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55) !important;
+  z-index: 2000;
+}
+
+/* Main dialog styling */
+.react-confirm-alert {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 420px;
+  padding: 1.75rem;
+  text-align: center;
+  animation: fadeIn 0.2s ease-in-out;
+  font-family: "Segoe UI", Roboto, sans-serif;
+}
+
+/* Title and message */
+.react-confirm-alert h1,
+.react-confirm-alert h2 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.react-confirm-alert p {
+  color: #555;
+  margin-bottom: 1.5rem;
+}
+
+/* Buttons container */
+.react-confirm-alert-button-group {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+/* Buttons styled like Bootstrap */
+.react-confirm-alert-button-group button {
+  min-width: 100px;
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+/* Primary (confirm) button */
+.react-confirm-alert-button-group button:first-of-type {
+  background-color: #0d6efd; /* Bootstrap primary */
+  color: #fff;
+}
+
+.react-confirm-alert-button-group button:first-of-type:hover {
+  background-color: #0b5ed7;
+}
+
+/* Secondary (cancel) button */
+.react-confirm-alert-button-group button:last-of-type {
+  background-color: #6c757d; /* Bootstrap secondary */
+  color: #fff;
+}
+
+.react-confirm-alert-button-group button:last-of-type:hover {
+  background-color: #5c636a;
+}
+
+/* Smooth fade-in */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
