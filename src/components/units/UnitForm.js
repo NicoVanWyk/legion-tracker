@@ -238,7 +238,7 @@ const UnitForm = () => {
                                     <Form.Group>
                                         <Form.Label>Faction</Form.Label>
                                         <Form.Select name="faction" value={formData.faction} onChange={handleChange}>
-                                            {Object.values(Factions).map(f => (
+                                            {Object.values(Factions).filter(f => typeof f === 'string').map(f => (
                                                 <option key={f} value={f}>{Factions.getDisplayName(f)}</option>
                                             ))}
                                         </Form.Select>
