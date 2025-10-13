@@ -1,70 +1,177 @@
-# Getting Started with Create React App
+# Star Wars Legion Tracker
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A comprehensive web application for creating, managing, and tracking custom Star Wars Legion units, armies, and battles.
 
-## Available Scripts
+**Live Application:** [https://nicovanwyk.github.io/legion-tracker](https://nicovanwyk.github.io/legion-tracker)
 
-In the project directory, you can run:
+## Table of Contents
 
-### `npm start`
+- [Overview](#overview)
+- [Features](#features)
+    - [Custom Units Management](#custom-units-management)
+    - [Army Builder](#army-builder)
+    - [Battle Tracker](#battle-tracker)
+    - [Reference System](#reference-system)
+    - [User Account System](#user-account-system)
+- [Custom Game Mechanics](#custom-game-mechanics)
+- [Getting Started](#getting-started)
+- [Technical Details](#technical-details)
+- [Browser Compatibility](#browser-compatibility)
+- [Roadmap](#roadmap)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Overview
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Star Wars Legion Tracker is a React-based web application designed to enhance your Star Wars Legion tabletop gaming experience, with a particular focus on custom army development. The application allows you to create and manage custom units, build balanced armies, and track your battles in real-time, all with a mobile-friendly interface.
 
-### `npm test`
+## Features
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Custom Units Management
 
-### `npm run build`
+- **Unit Creation Interface**
+    - Create detailed custom units with complete stat blocks
+    - Track proxy miniature sources for each unit
+    - Document conversion work for unofficial miniatures
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- **Stat Management**
+    - Points cost calculation
+    - Detailed movement values
+    - Weapon statistics (range bands, attack dice, abilities)
+    - Defense values (defense dice, wounds, resilience)
+    - Courage and surge values
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- **Unit Customization**
+    - Support for all standard unit types (Command, Corps, Special Forces, Support, Heavy, Operative)
+    - Additional custom unit types (Auxiliary Forces, Strike Teams, Task Forces)
+    - Custom faction management (Republic, Separatist/CIS, Rebel, Empire)
+    - Upgrade slots configuration with custom upgrade types
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- **Keyword System**
+    - Comprehensive library of standard keywords with descriptions
+    - Custom keywords management with full rules text
+    - Specialized faction-specific abilities
 
-### `npm run eject`
+- **Weapons Management**
+    - Detailed weapon statistics
+    - Custom attack dice configuration (red, black, white)
+    - Weapon-specific keywords and abilities
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Army Builder
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- **Army Creation**
+    - Build custom armies using your created units
+    - Faction-specific army lists
+    - Points tracking and army composition analysis
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+- **Army Management**
+    - Add/remove units from armies
+    - Track total army points
+    - Balance analysis between unit types
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+- **Army Validation**
+    - Rules-based army validation
+    - Unit type requirements tracking
+    - Points limit enforcement
 
-## Learn More
+- **List Sharing**
+    - Export army lists for sharing
+    - Print army details for game reference
+    - Army list versioning
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Battle Tracker
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- **Real-time Battle Management**
+    - Track Star Wars Legion battles through each game phase
+    - Phase-specific interface changes:
+        - Command Phase: Order assignment, command card selection
+        - Activation Phase: Unit activation tracking
+        - End Phase: Round cleanup and token management
 
-### Code Splitting
+- **Unit Tracking**
+    - Order token assignment
+    - Activation status
+    - Suppression management
+    - Wound tracking
+    - Token status (aim, dodge, standby, etc.)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+- **Command Management**
+    - Command card selection
+    - Order pool management
+    - Priority tracking
 
-### Analyzing the Bundle Size
+- **Game State**
+    - Current round tracking
+    - Victory point calculation
+    - Objective status
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+- **Battle Statistics**
+    - Track battle results and history
+    - Unit performance metrics
+    - Win/loss records
 
-### Making a Progressive Web App
+### Reference System
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+- **Rules Reference**
+    - Quick access to game rules and keywords
+    - Searchable keyword database
+    - Phase-specific rule reminders
 
-### Advanced Configuration
+- **Reference Panel**
+    - Pop-up interface for rules lookup during gameplay
+    - Context-sensitive rule displays
+    - Mobile-friendly reference access
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+- **Keyword Library**
+    - Standard keywords with full descriptions
+    - Custom keywords with rules text
+    - Keyword categorization (Movement, Attack, Defense, etc.)
 
-### Deployment
+- **Custom Rules Documentation**
+    - Documentation for house rules and custom game mechanics
+    - Explanation of custom unit types and their role in gameplay
+    - Proxy miniature mapping guidelines
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### User Account System
 
-### `npm run build` fails to minify
+- **User Authentication**
+    - Firebase-based authentication system
+    - Account creation and management
+    - Secure data storage
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- **Data Management**
+    - Cloud storage of all user data
+    - Synchronization across devices
+    - Backup and recovery options
+
+- **Privacy Settings**
+    - Control sharing of custom content
+    - Public/private army lists
+
+## Getting Started
+
+1. Visit [https://nicovanwyk.github.io/legion-tracker](https://nicovanwyk.github.io/legion-tracker)
+2. Create an account (or login if returning)
+3. Start by creating your custom units
+4. Build armies using your custom units
+5. Use the battle tracker during your games
+
+## Technical Details
+
+- **Frontend**: React with Bootstrap for styling
+- **Backend**: Firebase (Authentication and Firestore database)
+- **Hosting**: GitHub Pages
+- **State Management**: React Context API
+- **Routing**: React Router
+- **Authentication**: Firebase Authentication
+- **Data Storage**: Firestore
+
+## Browser Compatibility
+
+Star Wars Legion Tracker is compatible with:
+
+- Google Chrome (recommended)
+- Mozilla Firefox
+- Microsoft Edge
+- Safari
+- Mobile browsers (responsive design)
+
+*Star Wars Legion Tracker is a fan-made application and is not affiliated with or endorsed by Lucasfilm Ltd., Atomic Mass Games, or Disney.*
