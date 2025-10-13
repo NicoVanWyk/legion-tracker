@@ -367,6 +367,33 @@ const UpgradeCardForm = () => {
               />
             </Form.Group>
 
+            {/* --- EFFECTS --- */}
+            <Card className="mt-4">
+              <Card.Header>
+                <strong>Effects</strong>
+              </Card.Header>
+              <Card.Body>
+                <Row>
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label>Model Count Change</Form.Label>
+                      <Form.Control
+                        type="number"
+                        value={formData.effects.modelCountChange}
+                        onChange={(e) =>
+                          handleEffectChange('modelCountChange', parseInt(e.target.value) || 0)
+                        }
+                        placeholder="e.g. +1 for Heavy Weapon"
+                      />
+                      <Form.Text className="text-muted">
+                        Increase/decrease number of models in the unit (e.g. +1 for Heavy Weapon).
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+
             {/* Weapons */}
             <Card className="mt-4">
               <Card.Header className="d-flex justify-content-between align-items-center">
