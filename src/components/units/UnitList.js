@@ -8,6 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import UnitTypes from '../../enums/UnitTypes';
 import Factions from '../../enums/Factions';
 import LoadingSpinner from '../layout/LoadingSpinner';
+import Keywords from '../../enums/Keywords';
 
 const UnitList = () => {
   const [units, setUnits] = useState([]);
@@ -17,6 +18,7 @@ const UnitList = () => {
   const [filterType, setFilterType] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [customUnitTypes, setCustomUnitTypes] = useState([]);
+  const [customKeywords, setCustomKeywords] = useState([]);
   const { currentUser } = useAuth();
 
   useEffect(() => {
@@ -58,7 +60,21 @@ const UnitList = () => {
           console.error('Error fetching custom types:', err);
       }
     };
+
+    const fetchCustomKeywords = async () => {
+      if (!currentUser) return;
+      try {
+        const snap = await getDocs(collection(db, 'users', currentUser.uid, 'units', 'keywords'));
+        const keywords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        console.log("Fetched custom keywords:", keywords);
+        setCustomKeywords(keywords);
+      } catch (err) {
+        console.error('Error fetching custom keywords:', err);
+      }
+    };
+
     fetchCustomTypes();
+    fetchCustomKeywords();
 
     if (currentUser) {
       fetchUnits();
@@ -228,11 +244,25 @@ const UnitList = () => {
                   <div className="mb-2">
                     <strong>Keywords:</strong><br />
                     {unit.keywords && unit.keywords.length > 0 ? (
-                      unit.keywords.map((keyword, index) => (
-                        <Badge key={index} bg="secondary" className="keyword-badge">
-                          {keyword}
-                        </Badge>
-                      ))
+                      unit.keywords.map((keyword, index) => {
+                        let displayName = keyword;
+
+                        if (keyword.startsWith('custom:')) {
+                          const id = keyword.split(':')[1];
+                          const custom = customKeywords.find(k => k.id === id);
+                          displayName = custom
+                            ? custom.name || custom.term || custom.displayName || 'Custom Keyword'
+                            : `Custom:${id}`;
+                        } else if (Keywords.getDisplayName && Keywords.getDisplayName(keyword) !== keyword) {
+                          displayName = Keywords.getDisplayName(keyword);
+                        }
+
+                        return (
+                          <Badge key={index} bg="secondary" className="keyword-badge me-1">
+                            {displayName}
+                          </Badge>
+                        );
+                      })
                     ) : (
                       <span className="text-muted">None</span>
                     )}

@@ -1,5 +1,5 @@
 // src/components/units/WeaponSelector.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form, Button, Card, Row, Col, Badge, Modal, ListGroup } from 'react-bootstrap';
 import WeaponRanges from '../../enums/WeaponRanges';
 import AttackDice from '../../enums/AttackDice';
@@ -53,6 +53,14 @@ const WeaponSelector = ({ weapons = [], onChange }) => {
     newWeapons.splice(index, 1);
     onChange(newWeapons);
   };
+
+  useEffect(() => {
+  if (editingIndex !== null) {
+      const updatedWeapons = [...weapons];
+      updatedWeapons[editingIndex] = currentWeapon;
+      onChange(updatedWeapons);
+    }
+  }, [currentWeapon]);
 
   // Save the current weapon
   const handleSaveWeapon = () => {
