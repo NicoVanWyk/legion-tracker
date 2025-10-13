@@ -222,7 +222,7 @@ const UnitForm = () => {
                     <Card>
                         <Card.Body>
                             <Row>
-                                <Col md={6}>
+                                <Col md={3}>
                                     <Form.Group>
                                         <Form.Label>Unit Name</Form.Label>
                                         <Form.Control
@@ -232,6 +232,20 @@ const UnitForm = () => {
                                             onChange={handleChange}
                                             placeholder="Enter unit name"
                                         />
+                                    </Form.Group>
+                                </Col>
+                                <Col md={3}>
+                                    <Form.Group>
+                                        <Form.Label>Defense Dice</Form.Label>
+                                        <Form.Select 
+                                            name="defense" 
+                                            value={formData.defense} 
+                                            onChange={handleChange}
+                                        >
+                                            {Object.values(DefenseDice).filter(f => typeof f === 'string').map(f => (
+                                                <option key={f} value={f}>{DefenseDice.getDisplayName(f)}</option>
+                                            ))}
+                                        </Form.Select>
                                     </Form.Group>
                                 </Col>
                                 <Col md={3}>
