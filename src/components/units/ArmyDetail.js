@@ -1,6 +1,6 @@
 // src/components/units/ArmyDetail.js
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Badge, Button, Alert, Table, ListGroup } from 'react-bootstrap';
+import { Card, Row, Col, Badge, Button, Alert, Table, ListGroup, Accordion } from 'react-bootstrap';
 import { useNavigate, Link } from 'react-router-dom';
 import { doc, getDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/config';
@@ -8,11 +8,17 @@ import { useAuth } from '../../contexts/AuthContext';
 import UnitTypes from '../../enums/UnitTypes';
 import Factions from '../../enums/Factions';
 import DefenseDice from '../../enums/DefenseDice';
+import Keywords from '../../enums/Keywords';
+import WeaponKeywords from '../../enums/WeaponKeywords';
+import WeaponRanges from '../../enums/WeaponRanges';
+import AttackDice from '../../enums/AttackDice';
 import LoadingSpinner from '../layout/LoadingSpinner';
 
 const ArmyDetail = ({ armyId }) => {
   const [army, setArmy] = useState(null);
   const [unitDetails, setUnitDetails] = useState([]);
+  const [upgrades, setUpgrades] = useState([]);
+  const [customKeywords, setCustomKeywords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -43,6 +49,33 @@ const ArmyDetail = ({ armyId }) => {
           const unitIds = armyData.units || [];
           const units = [];
           
+          // Fetch custom keywords
+          const keywordsRef = collection(db, 'users', currentUser.uid, 'customKeywords');
+          const keywordsSnapshot = await getDocs(keywordsRef);
+          const keywordsList = keywordsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          setCustomKeywords(keywordsList);
+
+          // Fetch custom unit types
+          const typesRef = collection(db, 'users', currentUser.uid, 'customUnitTypes');
+          const typesSnapshot = await getDocs(typesRef);
+          const typesList = typesSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          setCustomUnitTypes(typesList);
+
+          // Fetch all upgrades
+          const upgradesRef = collection(db, 'users', currentUser.uid, 'upgradeCards');
+          const upgradesSnapshot = await getDocs(upgradesRef);
+          const upgradesList = upgradesSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          setUpgrades(upgradesList);
+          
           for (const unitId of unitIds) {
             const unitRef = doc(db, 'users', currentUser.uid, 'units', unitId);
             const unitDoc = await getDoc(unitRef);
@@ -54,9 +87,6 @@ const ArmyDetail = ({ armyId }) => {
               });
             }
           }
-
-          const typesSnap = await getDocs(collection(db, 'users', currentUser.uid, 'customUnitTypes'));
-          setCustomUnitTypes(typesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
           
           // Sort units by type
           units.sort((a, b) => {
@@ -70,7 +100,7 @@ const ArmyDetail = ({ armyId }) => {
                 [UnitTypes.OPERATIVE]: 6,
                 [UnitTypes.AUXILIARY]: 7
             };
-            customUnitTypes.forEach(ct => {
+            typesList.forEach(ct => {
                 typeOrder[ct.name] = ct.sortOrder + 100;
             });
             
@@ -133,6 +163,87 @@ const ArmyDetail = ({ armyId }) => {
     }
     const customType = customUnitTypes.find(t => t.name === type);
     return customType ? customType.displayName : type;
+  };
+
+  // Handle custom keywords
+  const getKeywordDisplay = (keyword) => {
+    if (keyword.startsWith('custom:')) {
+      const customId = keyword.replace('custom:', '');
+      const customKeyword = customKeywords.find(k => k.id === customId);
+      return customKeyword ? (
+        <>
+          {customKeyword.name}
+          <span className="ms-1" title="Custom Keyword">★</span>
+        </>
+      ) : keyword;
+    }
+    return Keywords.getDisplayName(keyword);
+  };
+
+  // Get all keywords including those from upgrades
+  const getAllKeywords = (unit) => {
+    if (!unit) return [];
+
+    let allKeywords = [...(unit.keywords || [])];
+
+    // Add keywords from equipped upgrades
+    unit.upgradeSlots?.forEach(slot => {
+      slot.equippedUpgrades?.forEach(upgradeId => {
+        const upgrade = upgrades.find(u => u.id === upgradeId);
+        if (upgrade?.effects?.addKeywords?.length > 0) {
+          allKeywords = [...allKeywords, ...upgrade.effects.addKeywords];
+        }
+      });
+    });
+
+    // Remove duplicates
+    return [...new Set(allKeywords)];
+  };
+
+  // Get all equipped upgrades for a unit
+  const getEquippedUpgrades = (unit) => {
+    if (!unit || !unit.upgradeSlots) return [];
+
+    const equippedUpgrades = [];
+    unit.upgradeSlots.forEach(slot => {
+      if (slot.equippedUpgrades) {
+        slot.equippedUpgrades.forEach(upgradeId => {
+          const upgrade = upgrades.find(u => u.id === upgradeId);
+          if (upgrade) {
+            equippedUpgrades.push({
+              ...upgrade,
+              slotType: slot.type
+            });
+          }
+        });
+      }
+    });
+
+    return equippedUpgrades;
+  };
+
+  // Combine base weapons with upgrade weapons
+  const getAllWeapons = (unit) => {
+    if (!unit) return [];
+
+    const baseWeapons = unit.weapons || [];
+    const upgradeWeapons = [];
+
+    unit.upgradeSlots?.forEach(slot => {
+      slot.equippedUpgrades?.forEach(upgradeId => {
+        const upgrade = upgrades.find(u => u.id === upgradeId);
+        if (upgrade?.effects?.addWeapons?.length > 0) {
+          upgrade.effects.addWeapons.forEach(weapon => {
+            upgradeWeapons.push({
+              ...weapon,
+              source: upgrade.name
+            });
+          });
+        }
+      });
+    });
+
+    return [...baseWeapons.map(w => ({ ...w, source: 'Base Unit' })), ...upgradeWeapons];
   };
 
   const printArmy = () => {
@@ -281,7 +392,8 @@ const ArmyDetail = ({ armyId }) => {
                     <th>Type</th>
                     <th>Points</th>
                     <th>Wounds</th>
-                    <th></th>
+                    <th>{/* Stats */}</th>
+                    <th>{/* Actions */}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -291,6 +403,13 @@ const ArmyDetail = ({ armyId }) => {
                       <td>{getTypeDisplayName(unit.type)}</td>
                       <td>{unit.points || 0}</td>
                       <td>{unit.wounds || 1}</td>
+                      <td className="small text-nowrap">
+                        {unit.isVehicle ? (
+                          <span>{unit.resilience || 0}R</span>
+                        ) : (
+                          <span>{unit.courage || 0}C</span>
+                        )} / {unit.speed || 2}S
+                      </td>
                       <td>
                         <Button 
                           as={Link}
@@ -342,42 +461,113 @@ const ArmyDetail = ({ armyId }) => {
                         <Card.Body className="p-3">
                           <div className="small mb-2">
                             <strong>Stats:</strong> {unit.wounds || 1}W / 
-                            {unit.courage ? ` ${unit.courage}C /` : ' - /'} 
+                            {unit.isVehicle ? (
+                              ` ${unit.resilience || 0}R /`
+                            ) : (
+                              ` ${unit.courage || 0}C /`
+                            )} 
                             {unit.speed || 2}S / 
                             <span className={DefenseDice.getColorClass(unit.defense)}>
                               {unit.defense === DefenseDice.WHITE ? 'W' : 'R'}
                             </span> Defense
                           </div>
                           
-                          {unit.keywords && unit.keywords.length > 0 && (
+                          {/* Keywords (including from upgrades) */}
+                          {getAllKeywords(unit).length > 0 && (
                             <div className="small mb-2">
                               <strong>Keywords:</strong><br />
                               <div className="mt-1">
-                                {unit.keywords.map((keyword, index) => (
-                                  <Badge key={index} bg="secondary" className="me-1 mb-1">
-                                    {keyword}
+                                {getAllKeywords(unit).map((keyword, index) => (
+                                  <Badge 
+                                    key={`${unit.id}-kw-${index}`}
+                                    bg={keyword.startsWith('custom:') ? 'info' : (
+                                      unit.keywords && unit.keywords.includes(keyword) ? 'secondary' : 'success'
+                                    )}
+                                    className="me-1 mb-1"
+                                  >
+                                    {getKeywordDisplay(keyword)}
+                                    {!unit.keywords?.includes(keyword) && (
+                                      <span className="ms-1" title="From Upgrade">+</span>
+                                    )}
                                   </Badge>
                                 ))}
                               </div>
                             </div>
                           )}
                           
-                          {unit.weapons && unit.weapons.length > 0 && (
+                          {/* Weapons (including from upgrades) */}
+                          {getAllWeapons(unit).length > 0 && (
                             <div className="small">
                               <strong>Weapons:</strong>
-                              <ListGroup variant="flush" className="mt-1">
-                                {unit.weapons.map((weapon, index) => (
-                                  <ListGroup.Item key={index} className="p-2">
-                                    <div className="fw-bold">{weapon.name}</div>
-                                    <div>{weapon.range}</div>
-                                    {weapon.keywords && weapon.keywords.length > 0 && (
-                                      <div>
-                                        {weapon.keywords.join(', ')}
-                                      </div>
-                                    )}
-                                  </ListGroup.Item>
-                                ))}
-                              </ListGroup>
+                              <Accordion className="mt-1">
+                                <Accordion.Item eventKey="0">
+                                  <Accordion.Header>
+                                    <span className="small">{getAllWeapons(unit).length} weapon{getAllWeapons(unit).length !== 1 ? 's' : ''}</span>
+                                  </Accordion.Header>
+                                  <Accordion.Body className="p-0">
+                                    <ListGroup variant="flush">
+                                      {getAllWeapons(unit).map((weapon, index) => (
+                                        <ListGroup.Item key={`${unit.id}-weapon-${index}`} className="p-2">
+                                          <div className="d-flex justify-content-between">
+                                            <strong>{weapon.name}</strong>
+                                            <Badge bg={weapon.source === 'Base Unit' ? 'secondary' : 'info'} className="small">
+                                              {weapon.source}
+                                            </Badge>
+                                          </div>
+                                          <div>
+                                            {WeaponRanges.getDisplayName ? WeaponRanges.getDisplayName(weapon.range) : weapon.range} | 
+                                            {weapon.dice?.[AttackDice.RED] > 0 && (
+                                              <span className="text-danger"> {weapon.dice[AttackDice.RED]}R</span>
+                                            )}
+                                            {weapon.dice?.[AttackDice.BLACK] > 0 && (
+                                              <span> {weapon.dice[AttackDice.BLACK]}B</span>
+                                            )}
+                                            {weapon.dice?.[AttackDice.WHITE] > 0 && (
+                                              <span className="text-muted"> {weapon.dice[AttackDice.WHITE]}W</span>
+                                            )}
+                                          </div>
+                                          {weapon.keywords?.length > 0 && (
+                                            <div className="small text-muted">
+                                              {weapon.keywords.map(keyword => 
+                                                WeaponKeywords.getDisplayName ? WeaponKeywords.getDisplayName(keyword) : keyword
+                                              ).join(', ')}
+                                            </div>
+                                          )}
+                                        </ListGroup.Item>
+                                      ))}
+                                    </ListGroup>
+                                  </Accordion.Body>
+                                </Accordion.Item>
+                              </Accordion>
+                            </div>
+                          )}
+                          
+                          {/* Equipped upgrades */}
+                          {getEquippedUpgrades(unit).length > 0 && (
+                            <div className="small mt-2">
+                              <strong>Upgrades:</strong>
+                              <Accordion className="mt-1">
+                                <Accordion.Item eventKey="0">
+                                  <Accordion.Header>
+                                    <span className="small">{getEquippedUpgrades(unit).length} upgrade{getEquippedUpgrades(unit).length !== 1 ? 's' : ''}</span>
+                                  </Accordion.Header>
+                                  <Accordion.Body className="p-0">
+                                    <ListGroup variant="flush">
+                                      {getEquippedUpgrades(unit).map((upgrade, index) => (
+                                        <ListGroup.Item key={`${unit.id}-upgrade-${index}`} className="p-2">
+                                          <div className="d-flex justify-content-between align-items-center">
+                                            <strong>{upgrade.name}</strong>
+                                            <Badge bg="warning" text="dark">
+                                              {upgrade.pointsCost || 0} pts
+                                            </Badge>
+                                          </div>
+                                          <div className="text-muted">{upgrade.description}</div>
+                                        </ListGroup.Item>
+                                      ))}
+                                    </ListGroup>
+                                  </Accordion.Body>
+                                </Accordion.Item>
+                              </Accordion>
                             </div>
                           )}
                         </Card.Body>
@@ -397,6 +587,160 @@ const ArmyDetail = ({ armyId }) => {
             </Card>
           );
         })}
+      
+      {/* Display custom unit types */}
+      {customUnitTypes.map(customType => {
+        const unitsOfType = unitDetails.filter(unit => unit.type === customType.name);
+        
+        if (unitsOfType.length === 0) {
+          return null;
+        }
+        
+        return (
+          <Card key={customType.id} className="mb-4">
+            <Card.Header className="bg-info text-white">
+              <h5 className="mb-0">{customType.displayName}</h5>
+            </Card.Header>
+            <Card.Body>
+              <Row>
+                {unitsOfType.map(unit => (
+                  <Col key={unit.id} md={6} lg={4} className="mb-4">
+                    <Card className="h-100">
+                      <Card.Header>
+                        <div className="d-flex justify-content-between align-items-center">
+                          <span className="fw-bold">{unit.name}</span>
+                          <span>{unit.points || 0} pts</span>
+                        </div>
+                      </Card.Header>
+                      <Card.Body className="p-3">
+                        <div className="small mb-2">
+                          <strong>Stats:</strong> {unit.wounds || 1}W / 
+                          {unit.isVehicle ? (
+                            ` ${unit.resilience || 0}R /`
+                          ) : (
+                            ` ${unit.courage || 0}C /`
+                          )} 
+                          {unit.speed || 2}S / 
+                          <span className={DefenseDice.getColorClass(unit.defense)}>
+                            {unit.defense === DefenseDice.WHITE ? 'W' : 'R'}
+                          </span> Defense
+                        </div>
+                        
+                        {/* Keywords (including from upgrades) */}
+                        {getAllKeywords(unit).length > 0 && (
+                          <div className="small mb-2">
+                            <strong>Keywords:</strong><br />
+                            <div className="mt-1">
+                              {getAllKeywords(unit).map((keyword, index) => (
+                                <Badge 
+                                  key={`${unit.id}-kw-${index}`}
+                                  bg={keyword.startsWith('custom:') ? 'info' : (
+                                    unit.keywords && unit.keywords.includes(keyword) ? 'secondary' : 'success'
+                                  )}
+                                  className="me-1 mb-1"
+                                >
+                                  {getKeywordDisplay(keyword)}
+                                  {!unit.keywords?.includes(keyword) && (
+                                    <span className="ms-1" title="From Upgrade">+</span>
+                                  )}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Weapons (including from upgrades) */}
+                        {getAllWeapons(unit).length > 0 && (
+                          <div className="small">
+                            <strong>Weapons:</strong>
+                            <Accordion className="mt-1">
+                              <Accordion.Item eventKey="0">
+                                <Accordion.Header>
+                                  <span className="small">{getAllWeapons(unit).length} weapon{getAllWeapons(unit).length !== 1 ? 's' : ''}</span>
+                                </Accordion.Header>
+                                <Accordion.Body className="p-0">
+                                  <ListGroup variant="flush">
+                                    {getAllWeapons(unit).map((weapon, index) => (
+                                      <ListGroup.Item key={`${unit.id}-weapon-${index}`} className="p-2">
+                                        <div className="d-flex justify-content-between">
+                                          <strong>{weapon.name}</strong>
+                                          <Badge bg={weapon.source === 'Base Unit' ? 'secondary' : 'info'} className="small">
+                                            {weapon.source}
+                                          </Badge>
+                                        </div>
+                                        <div>
+                                          {WeaponRanges.getDisplayName ? WeaponRanges.getDisplayName(weapon.range) : weapon.range} | 
+                                          {weapon.dice?.[AttackDice.RED] > 0 && (
+                                            <span className="text-danger"> {weapon.dice[AttackDice.RED]}R</span>
+                                          )}
+                                          {weapon.dice?.[AttackDice.BLACK] > 0 && (
+                                            <span> {weapon.dice[AttackDice.BLACK]}B</span>
+                                          )}
+                                          {weapon.dice?.[AttackDice.WHITE] > 0 && (
+                                            <span className="text-muted"> {weapon.dice[AttackDice.WHITE]}W</span>
+                                          )}
+                                        </div>
+                                        {weapon.keywords?.length > 0 && (
+                                          <div className="small text-muted">
+                                            {weapon.keywords.map(keyword => 
+                                              WeaponKeywords.getDisplayName ? WeaponKeywords.getDisplayName(keyword) : keyword
+                                            ).join(', ')}
+                                          </div>
+                                        )}
+                                      </ListGroup.Item>
+                                    ))}
+                                  </ListGroup>
+                                </Accordion.Body>
+                              </Accordion.Item>
+                            </Accordion>
+                          </div>
+                        )}
+                        
+                        {/* Equipped upgrades */}
+                        {getEquippedUpgrades(unit).length > 0 && (
+                          <div className="small mt-2">
+                            <strong>Upgrades:</strong>
+                            <Accordion className="mt-1">
+                              <Accordion.Item eventKey="0">
+                                <Accordion.Header>
+                                  <span className="small">{getEquippedUpgrades(unit).length} upgrade{getEquippedUpgrades(unit).length !== 1 ? 's' : ''}</span>
+                                </Accordion.Header>
+                                <Accordion.Body className="p-0">
+                                  <ListGroup variant="flush">
+                                    {getEquippedUpgrades(unit).map((upgrade, index) => (
+                                      <ListGroup.Item key={`${unit.id}-upgrade-${index}`} className="p-2">
+                                        <div className="d-flex justify-content-between align-items-center">
+                                          <strong>{upgrade.name}</strong>
+                                          <Badge bg="warning" text="dark">
+                                            {upgrade.pointsCost || 0} pts
+                                          </Badge>
+                                        </div>
+                                        <div className="text-muted">{upgrade.description}</div>
+                                      </ListGroup.Item>
+                                    ))}
+                                  </ListGroup>
+                                </Accordion.Body>
+                              </Accordion.Item>
+                            </Accordion>
+                          </div>
+                        )}
+                      </Card.Body>
+                      <Card.Footer className="p-2">
+                        <Link 
+                          to={`/units/${unit.id}`}
+                          className="btn btn-sm btn-outline-primary w-100"
+                        >
+                          View Details
+                        </Link>
+                      </Card.Footer>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            </Card.Body>
+          </Card>
+        );
+      })}
       
       <div className="d-flex justify-content-start mt-4">
         <Button variant="secondary" onClick={() => navigate('/armies')}>
