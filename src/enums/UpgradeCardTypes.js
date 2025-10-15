@@ -10,6 +10,7 @@ const UpgradeCardTypes = {
   GRENADES: 'grenades',
   COMMS: 'comms',
   PILOT: 'pilot',
+  CREW: 'crew',
   TRAINING: 'training',
   GENERATOR: 'generator',
   ARMAMENT: 'armament',
@@ -27,6 +28,7 @@ const UpgradeCardTypes = {
       grenades: 'Grenades',
       comms: 'Comms',
       pilot: 'Pilot',
+      crew: 'Crew',
       training: 'Training',
       generator: 'Generator',
       armament: 'Armament',
@@ -46,7 +48,8 @@ const UpgradeCardTypes = {
       gear: 'Equipment and tactical gear',
       grenades: 'Explosive ordnance',
       comms: 'Communication equipment',
-      pilot: 'Vehicle crew and pilot upgrades',
+      pilot: 'Vehicle pilot upgrades',
+      crew: 'Vehicle crew upgrades',
       training: 'Special training and tactics',
       generator: 'Shield generators and power systems',
       armament: 'Additional armaments and weapons',
@@ -67,6 +70,7 @@ const UpgradeCardTypes = {
       grenades: 'danger',
       comms: 'info',
       pilot: 'primary',
+      crew: 'info',
       training: 'success',
       generator: 'info',
       armament: 'danger',
@@ -87,6 +91,7 @@ const UpgradeCardTypes = {
       grenades: 'bi-circle-fill',
       comms: 'bi-broadcast',
       pilot: 'bi-person-badge',
+      crew: 'binoculars',
       training: 'bi-book',
       generator: 'bi-shield-fill-check',
       armament: 'bi-hammer',
@@ -107,6 +112,7 @@ const UpgradeCardTypes = {
       UpgradeCardTypes.GRENADES,
       UpgradeCardTypes.COMMS,
       UpgradeCardTypes.PILOT,
+      UpgradeCardTypes.CREW,
       UpgradeCardTypes.TRAINING,
       UpgradeCardTypes.GENERATOR,
       UpgradeCardTypes.ARMAMENT,
@@ -121,7 +127,8 @@ const UpgradeCardTypes = {
       UpgradeCardTypes.HARDPOINT,
       UpgradeCardTypes.GRENADES,
       UpgradeCardTypes.ARMAMENT,
-      UpgradeCardTypes.SPECIALIST
+      UpgradeCardTypes.SPECIALIST,
+      UpgradeCardTypes.CREW
     ].includes(type);
   }
 };
