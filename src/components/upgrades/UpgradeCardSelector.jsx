@@ -1,15 +1,18 @@
 ﻿// src/components/upgrades/UpgradeCardSelector.jsx
 import React, { useState, useEffect } from 'react';
-import { Card, ListGroup, Form, Button, Alert, Badge, Accordion } from 'react-bootstrap';
+import { Card, ListGroup, Form, Button, Alert, Badge } from 'react-bootstrap';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import UpgradeCardTypes from '../../enums/UpgradeCardTypes';
 import LoadingSpinner from '../layout/LoadingSpinner';
 
+const ITEMS_PER_PAGE = 2;
+
 const UpgradeCardSelector = ({ upgradeType, selectedUpgrades = [], onChange, maxCount = 1 }) => {
     const [upgrades, setUpgrades] = useState([]);
     const [filteredUpgrades, setFilteredUpgrades] = useState([]);
+    const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_PAGE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -21,6 +24,7 @@ const UpgradeCardSelector = ({ upgradeType, selectedUpgrades = [], onChange, max
 
     useEffect(() => {
         filterUpgradesList();
+        setDisplayedCount(ITEMS_PER_PAGE); // Reset displayed count when filters change
     }, [upgrades, searchTerm]);
 
     const fetchUpgrades = async () => {
@@ -85,6 +89,14 @@ const UpgradeCardSelector = ({ upgradeType, selectedUpgrades = [], onChange, max
         }
     };
 
+    const showMore = () => {
+        setDisplayedCount(prev => prev + ITEMS_PER_PAGE);
+    };
+
+    const showAll = () => {
+        setDisplayedCount(filteredUpgrades.length);
+    };
+
     const getEffectsSummary = (effects) => {
         const summary = [];
 
@@ -100,10 +112,15 @@ const UpgradeCardSelector = ({ upgradeType, selectedUpgrades = [], onChange, max
             summary.push(`+${effects.addAbilities.length} abilit${effects.addAbilities.length > 1 ? 'ies' : 'y'}`);
         }
 
+        if (effects?.addWeapons?.length > 0) {
+            summary.push(`+${effects.addWeapons.length} weapon${effects.addWeapons.length > 1 ? 's' : ''}`);
+        }
+
         if (effects?.statModifiers) {
-            const { wounds, courage, speed } = effects.statModifiers;
+            const { wounds, courage, resilience, speed } = effects.statModifiers;
             if (wounds) summary.push(`Wounds: ${wounds > 0 ? '+' : ''}${wounds}`);
             if (courage) summary.push(`Courage: ${courage > 0 ? '+' : ''}${courage}`);
+            if (resilience) summary.push(`Resilience: ${resilience > 0 ? '+' : ''}${resilience}`);
             if (speed) summary.push(`Speed: ${speed > 0 ? '+' : ''}${speed}`);
         }
 
@@ -113,6 +130,10 @@ const UpgradeCardSelector = ({ upgradeType, selectedUpgrades = [], onChange, max
     if (loading) {
         return <LoadingSpinner text="Loading upgrade cards..." />;
     }
+
+    const displayedUpgrades = filteredUpgrades.slice(0, displayedCount);
+    const hasMore = displayedCount < filteredUpgrades.length;
+    const remainingCount = filteredUpgrades.length - displayedCount;
 
     return (
         <div className="upgrade-card-selector">
@@ -145,6 +166,7 @@ const UpgradeCardSelector = ({ upgradeType, selectedUpgrades = [], onChange, max
                                                 <div className="small text-muted">{upgrade.description}</div>
                                             </div>
                                             <Button
+                                                type="button"
                                                 variant="danger"
                                                 size="sm"
                                                 onClick={() => toggleUpgrade(upgrade.id)}
@@ -166,12 +188,18 @@ const UpgradeCardSelector = ({ upgradeType, selectedUpgrades = [], onChange, max
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
+                {filteredUpgrades.length > 0 && (
+                    <Form.Text className="text-muted">
+                        Showing {Math.min(displayedCount, filteredUpgrades.length)} of {filteredUpgrades.length} upgrade{filteredUpgrades.length !== 1 ? 's' : ''}
+                    </Form.Text>
+                )}
             </Form.Group>
 
             {upgrades.length === 0 ? (
                 <Alert variant="info">
                     <p className="mb-2">No {UpgradeCardTypes.getDisplayName(upgradeType)} upgrades available.</p>
                     <Button
+                        type="button"
                         variant="outline-primary"
                         size="sm"
                         onClick={() => window.open('/upgrades/create', '_blank')}
@@ -184,44 +212,71 @@ const UpgradeCardSelector = ({ upgradeType, selectedUpgrades = [], onChange, max
                     <p className="mb-0">No upgrades match your search.</p>
                 </Alert>
             ) : (
-                <ListGroup className="upgrade-list">
-                    {filteredUpgrades.map(upgrade => (
-                        <ListGroup.Item
-                            key={upgrade.id}
-                            action
-                            active={selectedUpgrades.includes(upgrade.id)}
-                            onClick={() => toggleUpgrade(upgrade.id)}
-                            disabled={selectedUpgrades.length >= maxCount && !selectedUpgrades.includes(upgrade.id)}
-                        >
-                            <div className="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <div className="fw-bold">
-                                        {upgrade.name}
-                                        <Badge bg="warning" text="dark" className="ms-2">
-                                            {upgrade.pointsCost} pts
-                                        </Badge>
-                                    </div>
-                                    <div className="small text-muted">{upgrade.description}</div>
-                                    <div className="small">{getEffectsSummary(upgrade.effects)}</div>
-                                    {upgrade.reminders?.length > 0 && (
-                                        <div className="mt-1">
-                                            <Badge bg="secondary">
-                                                {upgrade.reminders.length} reminder{upgrade.reminders.length !== 1 ? 's' : ''}
+                <>
+                    <ListGroup className="upgrade-list" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                        {displayedUpgrades.map(upgrade => (
+                            <ListGroup.Item
+                                key={upgrade.id}
+                                action
+                                active={selectedUpgrades.includes(upgrade.id)}
+                                onClick={() => toggleUpgrade(upgrade.id)}
+                                disabled={selectedUpgrades.length >= maxCount && !selectedUpgrades.includes(upgrade.id)}
+                            >
+                                <div className="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div className="fw-bold">
+                                            {upgrade.name}
+                                            <Badge bg="warning" text="dark" className="ms-2">
+                                                {upgrade.pointsCost} pts
                                             </Badge>
                                         </div>
-                                    )}
+                                        <div className="small text-muted">{upgrade.description}</div>
+                                        <div className="small">{getEffectsSummary(upgrade.effects)}</div>
+                                        {upgrade.reminders?.length > 0 && (
+                                            <div className="mt-1">
+                                                <Badge bg="secondary">
+                                                    {upgrade.reminders.length} reminder{upgrade.reminders.length !== 1 ? 's' : ''}
+                                                </Badge>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant={selectedUpgrades.includes(upgrade.id) ? "danger" : "primary"}
+                                        size="sm"
+                                        disabled={selectedUpgrades.length >= maxCount && !selectedUpgrades.includes(upgrade.id)}
+                                    >
+                                        {selectedUpgrades.includes(upgrade.id) ? "Remove" : "Add"}
+                                    </Button>
                                 </div>
-                                <Button
-                                    variant={selectedUpgrades.includes(upgrade.id) ? "danger" : "primary"}
-                                    size="sm"
-                                    disabled={selectedUpgrades.length >= maxCount && !selectedUpgrades.includes(upgrade.id)}
+                            </ListGroup.Item>
+                        ))}
+                    </ListGroup>
+                    
+                    {hasMore && (
+                        <div className="text-center mt-3">
+                            <Button 
+                                type="button"
+                                variant="outline-primary" 
+                                size="sm" 
+                                onClick={showMore}
+                                className="me-2"
+                            >
+                                Show {Math.min(ITEMS_PER_PAGE, remainingCount)} More
+                            </Button>
+                            {remainingCount > ITEMS_PER_PAGE && (
+                                <Button 
+                                    type="button"
+                                    variant="outline-secondary" 
+                                    size="sm" 
+                                    onClick={showAll}
                                 >
-                                    {selectedUpgrades.includes(upgrade.id) ? "Remove" : "Add"}
+                                    Show All ({remainingCount} remaining)
                                 </Button>
-                            </div>
-                        </ListGroup.Item>
-                    ))}
-                </ListGroup>
+                            )}
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

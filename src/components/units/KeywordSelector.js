@@ -1,4 +1,4 @@
-// src/components/units/KeywordSelector.js (Updated to include custom keywords)
+// src/components/units/KeywordSelector.js (Updated to prevent form submission)
 import React, { useState, useEffect } from 'react';
 import { Form, Button, Badge, Accordion, ListGroup, Alert } from 'react-bootstrap';
 import { collection, getDocs } from 'firebase/firestore';
@@ -41,7 +41,13 @@ const KeywordSelector = ({ selectedKeywords = [], onChange }) => {
         }
     };
 
-    const handleKeywordToggle = (keyword) => {
+    const handleKeywordToggle = (e, keyword) => {
+        // Prevent form submission
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
         if (selectedKeywords.includes(keyword)) {
             onChange(selectedKeywords.filter(k => k !== keyword));
         } else {
@@ -49,7 +55,13 @@ const KeywordSelector = ({ selectedKeywords = [], onChange }) => {
         }
     };
 
-    const handleCustomKeywordToggle = (keywordId) => {
+    const handleCustomKeywordToggle = (e, keywordId) => {
+        // Prevent form submission
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
         const keywordRef = `custom:${keywordId}`;
         if (selectedKeywords.includes(keywordRef)) {
             onChange(selectedKeywords.filter(k => k !== keywordRef));
@@ -103,11 +115,12 @@ const KeywordSelector = ({ selectedKeywords = [], onChange }) => {
                                 bg={keyword.startsWith('custom:') ? 'info' : 'primary'}
                                 className="me-2 mb-2 p-2"
                                 style={{ cursor: 'pointer' }}
-                                onClick={() => {
+                                onClick={(e) => {
+                                    e.preventDefault();
                                     if (keyword.startsWith('custom:')) {
-                                        handleCustomKeywordToggle(keyword.replace('custom:', ''));
+                                        handleCustomKeywordToggle(e, keyword.replace('custom:', ''));
                                     } else {
-                                        handleKeywordToggle(keyword);
+                                        handleKeywordToggle(e, keyword);
                                     }
                                 }}
                             >
@@ -148,13 +161,15 @@ const KeywordSelector = ({ selectedKeywords = [], onChange }) => {
                                         key={keyword}
                                         action
                                         active={selectedKeywords.includes(keyword)}
-                                        onClick={() => handleKeywordToggle(keyword)}
+                                        onClick={(e) => handleKeywordToggle(e, keyword)}
                                     >
                                         <div className="d-flex justify-content-between align-items-center">
                                             <strong>{Keywords.getDisplayName(keyword)}</strong>
                                             <Button
+                                                type="button"
                                                 variant={selectedKeywords.includes(keyword) ? "danger" : "primary"}
                                                 size="sm"
+                                                onClick={(e) => handleKeywordToggle(e, keyword)}
                                             >
                                                 {selectedKeywords.includes(keyword) ? "Remove" : "Add"}
                                             </Button>
@@ -190,7 +205,7 @@ const KeywordSelector = ({ selectedKeywords = [], onChange }) => {
                                                 key={keyword.id}
                                                 action
                                                 active={selectedKeywords.includes(keywordRef)}
-                                                onClick={() => handleCustomKeywordToggle(keyword.id)}
+                                                onClick={(e) => handleCustomKeywordToggle(e, keyword.id)}
                                             >
                                                 <div className="d-flex justify-content-between align-items-center">
                                                     <div>
@@ -205,8 +220,10 @@ const KeywordSelector = ({ selectedKeywords = [], onChange }) => {
                                                         )}
                                                     </div>
                                                     <Button
+                                                        type="button"
                                                         variant={selectedKeywords.includes(keywordRef) ? "danger" : "primary"}
                                                         size="sm"
+                                                        onClick={(e) => handleCustomKeywordToggle(e, keyword.id)}
                                                     >
                                                         {selectedKeywords.includes(keywordRef) ? "Remove" : "Add"}
                                                     </Button>
@@ -233,6 +250,7 @@ const KeywordSelector = ({ selectedKeywords = [], onChange }) => {
                 <Alert variant="info">
                     <p className="mb-2">You haven't created any custom keywords yet.</p>
                     <Button
+                        type="button"
                         variant="outline-primary"
                         size="sm"
                         onClick={() => window.open('/units/keywords/create', '_blank')}

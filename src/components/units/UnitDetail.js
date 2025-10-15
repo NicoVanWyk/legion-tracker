@@ -1,20 +1,4 @@
-const getKeywordDisplay = keyword => {
-    if (keyword.startsWith('custom:')) {
-        const customId = keyword.replace('custom:', '');
-        const customKeyword = customKeywords.find(k => k.id === customId);
-        return customKeyword ? (
-            <>
-                {customKeyword.name}
-                <span className="ms-1" title="Custom Keyword">
-            ★
-          </span>
-            </>
-        ) : (
-            keyword
-        );
-    }
-    return Keywords.getDisplayName(keyword);
-};import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Badge, Button, Alert, ListGroup, Accordion } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { doc, getDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
@@ -108,6 +92,24 @@ const UnitDetail = ({ unitId }) => {
 
         if (currentUser && unitId) fetchData();
     }, [currentUser, unitId]);
+
+    const getKeywordDisplay = keyword => {
+        if (keyword.startsWith('custom:')) {
+            const customId = keyword.replace('custom:', '');
+            const customKeyword = customKeywords.find(k => k.id === customId);
+            return customKeyword ? (
+                <>
+                    {customKeyword.name}
+                    <span className="ms-1" title="Custom Keyword">
+                ★
+            </span>
+                </>
+            ) : (
+                keyword
+            );
+        }
+        return Keywords.getDisplayName(keyword);
+    };
 
     const getTypeDisplayName = (type) => {
         if (Object.values(UnitTypes).includes(type)) {

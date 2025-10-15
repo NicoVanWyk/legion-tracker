@@ -1,6 +1,6 @@
 // src/components/profile/Profile.jsx
 import React, { useState, useEffect } from 'react';
-import { Form, Button, Alert, Spinner, Card } from 'react-bootstrap';
+import { Form, Button, Alert, Spinner, Card, Row, Col } from 'react-bootstrap';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
