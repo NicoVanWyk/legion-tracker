@@ -10,447 +10,632 @@ import ReminderTypes from '../../enums/ReminderTypes';
 import WeaponRanges from '../../enums/WeaponRanges';
 import AttackDice from '../../enums/AttackDice';
 import WeaponKeywords from '../../enums/WeaponKeywords';
+import Keywords from '../../enums/Keywords';
+import KeywordSelector from '../units/KeywordSelector';
 import { v4 as uuidv4 } from 'uuid';
 
 // Child modal component
 const WeaponEditorModal = ({ show, onClose, onSave, weapon, setWeapon }) => {
-  const allKeywords = useMemo(() => WeaponKeywords.getAllKeywords(), []);
+    const allKeywords = useMemo(() => WeaponKeywords.getAllKeywords(), []);
 
-  const handleWeaponChange = (e) => {
-    const { name, value } = e.target;
-    setWeapon((prev) => ({ ...prev, [name]: value }));
-  };
+    const handleWeaponChange = (e) => {
+        e.preventDefault(); // Prevent form submission
+        const { name, value } = e.target;
+        setWeapon((prev) => ({ ...prev, [name]: value }));
+    };
 
-  const handleWeaponDiceChange = (diceType, value) => {
-    const numValue = parseInt(value, 10) || 0;
-    setWeapon((prev) => ({
-      ...prev,
-      dice: { ...prev.dice, [diceType]: numValue },
-    }));
-  };
+    const handleWeaponDiceChange = (diceType, value) => {
+        const numValue = parseInt(value, 10) || 0;
+        setWeapon((prev) => ({
+            ...prev,
+            dice: { ...prev.dice, [diceType]: numValue },
+        }));
+    };
 
-  const handleWeaponKeywordToggle = (keyword) => {
-    setWeapon((prev) => {
-      const keywords = prev.keywords.includes(keyword)
-        ? prev.keywords.filter((k) => k !== keyword)
-        : [...prev.keywords, keyword];
-      return { ...prev, keywords };
-    });
-  };
+    const handleWeaponKeywordToggle = (e, keyword) => {
+        // Stop event propagation and prevent default form submission
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
 
-  return (
-    <Modal show={show} onHide={onClose} size="lg" backdrop="static">
-      <Modal.Header closeButton>
-        <Modal.Title>{weapon.id ? 'Edit Weapon' : 'Add Weapon'}</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <Form onSubmit={(e) => e.preventDefault()}>
-          <Form.Group className="mb-3">
-            <Form.Label>Weapon Name*</Form.Label>
-            <Form.Control
-              type="text"
-              name="name"
-              value={weapon.name}
-              onChange={handleWeaponChange}
-              placeholder="Enter weapon name"
-              required
-            />
-          </Form.Group>
+        setWeapon((prev) => {
+            const keywords = prev.keywords.includes(keyword)
+                ? prev.keywords.filter((k) => k !== keyword)
+                : [...prev.keywords, keyword];
+            return { ...prev, keywords };
+        });
+    };
 
-          <Form.Group className="mb-3">
-            <Form.Label>Range</Form.Label>
-            <Form.Select name="range" value={weapon.range} onChange={handleWeaponChange}>
-              {Object.keys(WeaponRanges)
-                .filter((key) => typeof WeaponRanges[key] === 'string')
-                .map((key) => (
-                  <option key={key} value={WeaponRanges[key]}>
-                    {WeaponRanges.getDisplayName(WeaponRanges[key])}
-                  </option>
-                ))}
-            </Form.Select>
-          </Form.Group>
+    return (
+        <Modal show={show} onHide={onClose} size="lg" backdrop="static">
+            <Modal.Header closeButton>
+                <Modal.Title>{weapon.id ? 'Edit Weapon' : 'Add Weapon'}</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                <Form onSubmit={(e) => e.preventDefault()}>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Weapon Name*</Form.Label>
+                        <Form.Control
+                            type="text"
+                            name="name"
+                            value={weapon.name}
+                            onChange={handleWeaponChange}
+                            placeholder="Enter weapon name"
+                            required
+                        />
+                    </Form.Group>
 
-          <Form.Group className="mb-4">
-            <Form.Label>Attack Dice</Form.Label>
-            <Row>
-              {[
-                [AttackDice.RED, 'text-danger', 'Red Dice'],
-                [AttackDice.BLACK, 'text-dark', 'Black Dice'],
-                [AttackDice.WHITE, 'text-secondary', 'White Dice'],
-              ].map(([dice, color, label]) => (
-                <Col md={4} key={dice}>
-                  <Form.Label className={color}>{label}</Form.Label>
-                  <Form.Control
-                    type="number"
-                    min="0"
-                    max="10"
-                    value={weapon.dice[dice]}
-                    onChange={(e) => handleWeaponDiceChange(dice, e.target.value)}
-                  />
-                </Col>
-              ))}
-            </Row>
-          </Form.Group>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Range</Form.Label>
+                        <Form.Select name="range" value={weapon.range} onChange={handleWeaponChange}>
+                            {Object.keys(WeaponRanges)
+                                .filter((key) => typeof WeaponRanges[key] === 'string')
+                                .map((key) => (
+                                    <option key={key} value={WeaponRanges[key]}>
+                                        {WeaponRanges.getDisplayName(WeaponRanges[key])}
+                                    </option>
+                                ))}
+                        </Form.Select>
+                    </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Keywords</Form.Label>
-            <Card>
-              <Card.Body className="p-2">
-                <div className="mb-2">
-                  <strong>Selected Keywords:</strong>
-                  {weapon.keywords.length === 0 ? (
-                    <span className="text-muted ms-2">None</span>
-                  ) : (
-                    <div className="mt-1">
-                      {weapon.keywords.map((keyword, index) => (
-                        <Badge
-                          key={index}
-                          bg="info"
-                          className="me-1 mb-1 p-2"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => handleWeaponKeywordToggle(keyword)}
-                        >
-                          {WeaponKeywords.getDisplayName(keyword)} ×
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                    <Form.Group className="mb-4">
+                        <Form.Label>Attack Dice</Form.Label>
+                        <Row>
+                            {[
+                                [AttackDice.RED, 'text-danger', 'Red Dice'],
+                                [AttackDice.BLACK, 'text-dark', 'Black Dice'],
+                                [AttackDice.WHITE, 'text-secondary', 'White Dice'],
+                            ].map(([dice, color, label]) => (
+                                <Col md={4} key={dice}>
+                                    <Form.Label className={color}>{label}</Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        min="0"
+                                        max="10"
+                                        value={weapon.dice[dice]}
+                                        onChange={(e) => handleWeaponDiceChange(dice, e.target.value)}
+                                    />
+                                </Col>
+                            ))}
+                        </Row>
+                    </Form.Group>
 
-                <Accordion>
-                  {Object.entries(allKeywords).map(([category, keywords]) => (
-                    <Accordion.Item key={category} eventKey={category}>
-                      <Accordion.Header>
-                        {category.charAt(0).toUpperCase() + category.slice(1)} Keywords
-                      </Accordion.Header>
-                      <Accordion.Body className="p-0">
-                        <ListGroup variant="flush">
-                          {keywords.map((keyword) => (
-                            <ListGroup.Item
-                              key={keyword}
-                              action
-                              active={weapon.keywords.includes(keyword)}
-                              onClick={() => handleWeaponKeywordToggle(keyword)}
-                              className="py-2"
-                            >
-                              <div className="d-flex justify-content-between align-items-center">
-                                <span>{WeaponKeywords.getDisplayName(keyword)}</span>
-                                {weapon.keywords.includes(keyword) && <Badge bg="success">Selected</Badge>}
-                              </div>
-                            </ListGroup.Item>
-                          ))}
-                        </ListGroup>
-                      </Accordion.Body>
-                    </Accordion.Item>
-                  ))}
-                </Accordion>
-              </Card.Body>
-            </Card>
-          </Form.Group>
-        </Form>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button variant="primary" onClick={() => onSave(weapon)}>
-          Save Weapon
-        </Button>
-      </Modal.Footer>
-    </Modal>
-  );
+                    <Form.Group className="mb-3">
+                        <Form.Label>Keywords</Form.Label>
+                        <Card>
+                            <Card.Body className="p-2">
+                                <div className="mb-2">
+                                    <strong>Selected Keywords:</strong>
+                                    {weapon.keywords.length === 0 ? (
+                                        <span className="text-muted ms-2">None</span>
+                                    ) : (
+                                        <div className="mt-1">
+                                            {weapon.keywords.map((keyword, index) => (
+                                                <Badge
+                                                    key={index}
+                                                    bg="info"
+                                                    className="me-1 mb-1 p-2"
+                                                    style={{ cursor: 'pointer' }}
+                                                    onClick={(e) => handleWeaponKeywordToggle(e, keyword)}
+                                                >
+                                                    {WeaponKeywords.getDisplayName(keyword)} ×
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <Accordion>
+                                    {Object.entries(allKeywords).map(([category, keywords]) => (
+                                        <Accordion.Item key={category} eventKey={category}>
+                                            <Accordion.Header>
+                                                {category.charAt(0).toUpperCase() + category.slice(1)} Keywords
+                                            </Accordion.Header>
+                                            <Accordion.Body className="p-0">
+                                                <ListGroup variant="flush">
+                                                    {keywords.map((keyword) => (
+                                                        <ListGroup.Item
+                                                            key={keyword}
+                                                            action
+                                                            active={weapon.keywords.includes(keyword)}
+                                                            onClick={(e) => handleWeaponKeywordToggle(e, keyword)}
+                                                            className="py-2"
+                                                        >
+                                                            <div className="d-flex justify-content-between align-items-center">
+                                                                <span>{WeaponKeywords.getDisplayName(keyword)}</span>
+                                                                {weapon.keywords.includes(keyword) && <Badge bg="success">Selected</Badge>}
+                                                            </div>
+                                                        </ListGroup.Item>
+                                                    ))}
+                                                </ListGroup>
+                                            </Accordion.Body>
+                                        </Accordion.Item>
+                                    ))}
+                                </Accordion>
+                            </Card.Body>
+                        </Card>
+                    </Form.Group>
+                </Form>
+            </Modal.Body>
+            <Modal.Footer>
+                <Button variant="secondary" onClick={(e) => {
+                    e.preventDefault();
+                    onClose();
+                }}>
+                    Cancel
+                </Button>
+                <Button variant="primary" onClick={(e) => {
+                    e.preventDefault();
+                    onSave(e, weapon);
+                }}>
+                    Save Weapon
+                </Button>
+            </Modal.Footer>
+        </Modal>
+    );
 };
 
 const UpgradeCardForm = () => {
-  const { upgradeId } = useParams();
-  const navigate = useNavigate();
-  const { currentUser } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [showWeaponModal, setShowWeaponModal] = useState(false);
+    const { upgradeId } = useParams();
+    const navigate = useNavigate();
+    const { currentUser } = useAuth();
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+    const [showWeaponModal, setShowWeaponModal] = useState(false);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    upgradeType: UpgradeCardTypes.GEAR,
-    pointsCost: 0,
-    description: '',
-    effects: {
-      modelCountChange: 0,
-      addWeapons: [],
-      addKeywords: [],
-      addAbilities: [],
-      statModifiers: {},
-    },
-    reminders: [],
-  });
-
-  const [availableKeywords, setAvailableKeywords] = useState([]);
-  const [availableAbilities, setAvailableAbilities] = useState([]);
-  const [currentWeapon, setCurrentWeapon] = useState({
-    id: '',
-    name: '',
-    range: WeaponRanges.MELEE,
-    dice: { [AttackDice.RED]: 0, [AttackDice.BLACK]: 0, [AttackDice.WHITE]: 0 },
-    keywords: [],
-  });
-  const [editingWeaponIndex, setEditingWeaponIndex] = useState(null);
-
-  useEffect(() => {
-    if (upgradeId && currentUser) fetchUpgrade();
-  }, [upgradeId]);
-
-  useEffect(() => {
-    if (currentUser) fetchAvailableOptions();
-  }, []); // only once
-
-  const fetchUpgrade = async () => {
-    try {
-      const ref = doc(db, 'users', currentUser.uid, 'upgradeCards', upgradeId);
-      const docSnap = await getDoc(ref);
-      if (docSnap.exists()) {
-        setFormData(docSnap.data());
-      } else setError('Upgrade not found.');
-    } catch (err) {
-      console.error(err);
-      setError('Failed to fetch upgrade.');
-    }
-  };
-
-  const fetchAvailableOptions = async () => {
-    try {
-      const keywordsSnap = await getDocs(collection(db, 'users', currentUser.uid, 'customKeywords'));
-      setAvailableKeywords(keywordsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
-
-      const abilitiesSnap = await getDocs(collection(db, 'users', currentUser.uid, 'abilities'));
-      setAvailableAbilities(abilitiesSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleEffectChange = (field, value) =>
-    setFormData((prev) => ({
-      ...prev,
-      effects: { ...prev.effects, [field]: value },
-    }));
-
-  const handleAddWeapon = () => {
-    setEditingWeaponIndex(null);
-    setCurrentWeapon({
-      id: uuidv4(),
-      name: '',
-      range: WeaponRanges.MELEE,
-      dice: { [AttackDice.RED]: 0, [AttackDice.BLACK]: 0, [AttackDice.WHITE]: 0 },
-      keywords: [],
+    const [formData, setFormData] = useState({
+        name: '',
+        upgradeType: UpgradeCardTypes.GEAR,
+        pointsCost: 0,
+        description: '',
+        effects: {
+            modelCountChange: 0,
+            addWeapons: [],
+            addKeywords: [],
+            addAbilities: [],
+            statModifiers: {
+                wounds: 0,
+                courage: 0,
+                resilience: 0,
+                speed: 0,
+                surgeAttack: false,
+                surgeDefense: false
+            },
+        },
+        reminders: [],
     });
-    setShowWeaponModal(true);
-  };
 
-  const handleEditWeapon = (index) => {
-    setEditingWeaponIndex(index);
-    setCurrentWeapon({ ...formData.effects.addWeapons[index] });
-    setShowWeaponModal(true);
-  };
+    const [availableKeywords, setAvailableKeywords] = useState([]);
+    const [availableAbilities, setAvailableAbilities] = useState([]);
+    const [currentWeapon, setCurrentWeapon] = useState({
+        id: '',
+        name: '',
+        range: WeaponRanges.MELEE,
+        dice: { [AttackDice.RED]: 0, [AttackDice.BLACK]: 0, [AttackDice.WHITE]: 0 },
+        keywords: [],
+    });
+    const [editingWeaponIndex, setEditingWeaponIndex] = useState(null);
 
-  const handleSaveWeapon = (weapon) => {
-    if (!weapon.name.trim()) return setError('Weapon name required.');
-    const totalDice = weapon.dice[AttackDice.RED] + weapon.dice[AttackDice.BLACK] + weapon.dice[AttackDice.WHITE];
-    if (totalDice <= 0) return setError('Weapon must have at least one attack die.');
+    useEffect(() => {
+        if (upgradeId && currentUser) fetchUpgrade();
+    }, [upgradeId, currentUser]);
 
-    const newWeapons = [...(formData.effects.addWeapons || [])];
-    if (editingWeaponIndex !== null) newWeapons[editingWeaponIndex] = weapon;
-    else newWeapons.push(weapon);
-    handleEffectChange('addWeapons', newWeapons);
-    setShowWeaponModal(false);
-    setError('');
-  };
+    useEffect(() => {
+        if (currentUser) fetchAvailableOptions();
+    }, [currentUser]); // only once
 
-  const handleDeleteWeapon = (index) => {
-    const newWeapons = [...formData.effects.addWeapons];
-    newWeapons.splice(index, 1);
-    handleEffectChange('addWeapons', newWeapons);
-  };
+    const fetchUpgrade = async () => {
+        try {
+            const ref = doc(db, 'users', currentUser.uid, 'upgradeCards', upgradeId);
+            const docSnap = await getDoc(ref);
+            if (docSnap.exists()) {
+                // Ensure we have all the expected fields in the effects object
+                const data = docSnap.data();
+                if (!data.effects) {
+                    data.effects = {
+                        modelCountChange: 0,
+                        addWeapons: [],
+                        addKeywords: [],
+                        addAbilities: [],
+                        statModifiers: {}
+                    };
+                } else {
+                    // Ensure all properties exist
+                    data.effects = {
+                        modelCountChange: data.effects.modelCountChange || 0,
+                        addWeapons: data.effects.addWeapons || [],
+                        addKeywords: data.effects.addKeywords || [],
+                        addAbilities: data.effects.addAbilities || [],
+                        statModifiers: data.effects.statModifiers || {}
+                    };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.name.trim()) return setError('Upgrade name is required.');
+                    // Ensure all statModifiers exist
+                    data.effects.statModifiers = {
+                        wounds: data.effects.statModifiers?.wounds || 0,
+                        courage: data.effects.statModifiers?.courage || 0,
+                        resilience: data.effects.statModifiers?.resilience || 0,
+                        speed: data.effects.statModifiers?.speed || 0,
+                        surgeAttack: data.effects.statModifiers?.surgeAttack || false,
+                        surgeDefense: data.effects.statModifiers?.surgeDefense || false,
+                        ...data.effects.statModifiers
+                    };
+                }
 
-    try {
-      setLoading(true);
-      const upgradeData = {
-        ...formData,
-        lastUpdated: serverTimestamp(),
-        userId: currentUser.uid,
-        isCustom: true,
-      };
+                setFormData(data);
+            } else setError('Upgrade not found.');
+        } catch (err) {
+            console.error(err);
+            setError('Failed to fetch upgrade.');
+        }
+    };
 
-      if (upgradeId) {
-        await updateDoc(doc(db, 'users', currentUser.uid, 'upgradeCards', upgradeId), upgradeData);
-        setSuccess('Upgrade updated!');
-      } else {
-        await addDoc(collection(db, 'users', currentUser.uid, 'upgradeCards'), {
-          ...upgradeData,
-          createdAt: serverTimestamp(),
+    const fetchAvailableOptions = async () => {
+        try {
+            const keywordsSnap = await getDocs(collection(db, 'users', currentUser.uid, 'customKeywords'));
+            setAvailableKeywords(keywordsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+
+            const abilitiesSnap = await getDocs(collection(db, 'users', currentUser.uid, 'abilities'));
+            setAvailableAbilities(abilitiesSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleEffectChange = (field, value) =>
+        setFormData((prev) => ({
+            ...prev,
+            effects: { ...prev.effects, [field]: value },
+        }));
+
+    const handleStatModifierChange = (field, value) => {
+        const isCheckbox = typeof value === 'boolean';
+        const parsedValue = isCheckbox ? value : (parseInt(value) || 0);
+
+        setFormData((prev) => ({
+            ...prev,
+            effects: {
+                ...prev.effects,
+                statModifiers: {
+                    ...prev.effects.statModifiers,
+                    [field]: parsedValue
+                }
+            }
+        }));
+    };
+
+    const handleAddWeapon = () => {
+        setEditingWeaponIndex(null);
+        setCurrentWeapon({
+            id: uuidv4(),
+            name: '',
+            range: WeaponRanges.MELEE,
+            dice: { [AttackDice.RED]: 0, [AttackDice.BLACK]: 0, [AttackDice.WHITE]: 0 },
+            keywords: [],
         });
-        setSuccess('Upgrade created!');
-      }
+        setShowWeaponModal(true);
+    };
 
-      setTimeout(() => navigate('/upgrades'), 1000);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to save upgrade.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    const handleEditWeapon = (index) => {
+        setEditingWeaponIndex(index);
+        setCurrentWeapon({ ...formData.effects.addWeapons[index] });
+        setShowWeaponModal(true);
+    };
 
-  return (
-    <>
-      <Card>
-        <Card.Header>
-          <h3>{upgradeId ? 'Edit' : 'Create'} Upgrade Card</h3>
-        </Card.Header>
-        <Card.Body>
-          {error && <Alert variant="danger">{error}</Alert>}
-          {success && <Alert variant="success">{success}</Alert>}
+    const handleSaveWeapon = (e, weapon) => {
+        // Prevent default form submission
+        if (e) e.preventDefault();
 
-          <Form onSubmit={handleSubmit}>
-            {/* Basic Info */}
-            <Row>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Upgrade Name*</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={3}>
-                <Form.Group>
-                  <Form.Label>Upgrade Type*</Form.Label>
-                  <Form.Select
-                    value={formData.upgradeType}
-                    onChange={(e) => setFormData({ ...formData, upgradeType: e.target.value })}
-                  >
-                    {UpgradeCardTypes.getAllTypes().map((type) => (
-                      <option key={type} value={type}>
-                        {UpgradeCardTypes.getDisplayName(type)}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col md={3}>
-                <Form.Group>
-                  <Form.Label>Points</Form.Label>
-                  <Form.Control
-                    type="number"
-                    value={formData.pointsCost}
-                    onChange={(e) => setFormData({ ...formData, pointsCost: parseInt(e.target.value) || 0 })}
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
+        if (!weapon.name.trim()) {
+            setError('Weapon name required.');
+            return;
+        }
 
-            <Form.Group className="mt-3">
-              <Form.Label>Description*</Form.Label>
-              <Form.Control
-                as="textarea"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={3}
-                required
-              />
-            </Form.Group>
+        const totalDice = weapon.dice[AttackDice.RED] + weapon.dice[AttackDice.BLACK] + weapon.dice[AttackDice.WHITE];
+        if (totalDice <= 0) {
+            setError('Weapon must have at least one attack die.');
+            return;
+        }
 
-            {/* --- EFFECTS --- */}
-            <Card className="mt-4">
-              <Card.Header>
-                <strong>Effects</strong>
-              </Card.Header>
-              <Card.Body>
-                <Row>
-                  <Col md={4}>
-                    <Form.Group>
-                      <Form.Label>Model Count Change</Form.Label>
-                      <Form.Control
-                        type="number"
-                        value={formData.effects.modelCountChange}
-                        onChange={(e) =>
-                          handleEffectChange('modelCountChange', parseInt(e.target.value) || 0)
-                        }
-                        placeholder="e.g. +1 for Heavy Weapon"
-                      />
-                      <Form.Text className="text-muted">
-                        Increase/decrease number of models in the unit (e.g. +1 for Heavy Weapon).
-                      </Form.Text>
-                    </Form.Group>
-                  </Col>
-                </Row>
-              </Card.Body>
+        const newWeapons = [...(formData.effects.addWeapons || [])];
+        if (editingWeaponIndex !== null) newWeapons[editingWeaponIndex] = weapon;
+        else newWeapons.push(weapon);
+        handleEffectChange('addWeapons', newWeapons);
+        setShowWeaponModal(false);
+        setError('');
+    };
+
+    const handleDeleteWeapon = (index) => {
+        const newWeapons = [...formData.effects.addWeapons];
+        newWeapons.splice(index, 1);
+        handleEffectChange('addWeapons', newWeapons);
+    };
+
+    // Handle keywords selection
+    const handleKeywordsChange = (keywords) => {
+        handleEffectChange('addKeywords', keywords);
+    };
+
+    // Handle abilities selection
+    const handleAbilitiesChange = (abilities) => {
+        handleEffectChange('addAbilities', abilities);
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!formData.name.trim()) return setError('Upgrade name is required.');
+
+        try {
+            setLoading(true);
+            const upgradeData = {
+                ...formData,
+                lastUpdated: serverTimestamp(),
+                userId: currentUser.uid,
+                isCustom: true,
+            };
+
+            if (upgradeId) {
+                await updateDoc(doc(db, 'users', currentUser.uid, 'upgradeCards', upgradeId), upgradeData);
+                setSuccess('Upgrade updated!');
+            } else {
+                await addDoc(collection(db, 'users', currentUser.uid, 'upgradeCards'), {
+                    ...upgradeData,
+                    createdAt: serverTimestamp(),
+                });
+                setSuccess('Upgrade created!');
+            }
+
+            setTimeout(() => navigate('/upgrades'), 1000);
+        } catch (err) {
+            console.error(err);
+            setError('Failed to save upgrade.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <>
+            <Card>
+                <Card.Header>
+                    <h3>{upgradeId ? 'Edit' : 'Create'} Upgrade Card</h3>
+                </Card.Header>
+                <Card.Body>
+                    {error && <Alert variant="danger">{error}</Alert>}
+                    {success && <Alert variant="success">{success}</Alert>}
+
+                    <Form onSubmit={handleSubmit}>
+                        {/* Basic Info */}
+                        <Row>
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label>Upgrade Name*</Form.Label>
+                                    <Form.Control
+                                        type="text"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        required
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col md={3}>
+                                <Form.Group>
+                                    <Form.Label>Upgrade Type*</Form.Label>
+                                    <Form.Select
+                                        value={formData.upgradeType}
+                                        onChange={(e) => setFormData({ ...formData, upgradeType: e.target.value })}
+                                    >
+                                        {UpgradeCardTypes.getAllTypes().map((type) => (
+                                            <option key={type} value={type}>
+                                                {UpgradeCardTypes.getDisplayName(type)}
+                                            </option>
+                                        ))}
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                            <Col md={3}>
+                                <Form.Group>
+                                    <Form.Label>Points</Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        value={formData.pointsCost}
+                                        onChange={(e) => setFormData({ ...formData, pointsCost: parseInt(e.target.value) || 0 })}
+                                    />
+                                </Form.Group>
+                            </Col>
+                        </Row>
+
+                        <Form.Group className="mt-3">
+                            <Form.Label>Description*</Form.Label>
+                            <Form.Control
+                                as="textarea"
+                                value={formData.description}
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                rows={3}
+                                required
+                            />
+                        </Form.Group>
+
+                        {/* --- EFFECTS --- */}
+                        <Card className="mt-4">
+                            <Card.Header>
+                                <strong>Effects</strong>
+                            </Card.Header>
+                            <Card.Body>
+                                <Row>
+                                    <Col md={4}>
+                                        <Form.Group>
+                                            <Form.Label>Model Count Change</Form.Label>
+                                            <Form.Control
+                                                type="number"
+                                                value={formData.effects.modelCountChange}
+                                                onChange={(e) =>
+                                                    handleEffectChange('modelCountChange', parseInt(e.target.value) || 0)
+                                                }
+                                                placeholder="e.g. +1 for Heavy Weapon"
+                                            />
+                                            <Form.Text className="text-muted">
+                                                Increase/decrease number of models in the unit (e.g. +1 for Heavy Weapon).
+                                            </Form.Text>
+                                        </Form.Group>
+                                    </Col>
+                                </Row>
+
+                                {/* Stat Modifiers */}
+                                <Card className="mt-3">
+                                    <Card.Header>Stat Modifiers</Card.Header>
+                                    <Card.Body>
+                                        <Row>
+                                            <Col md={3}>
+                                                <Form.Group>
+                                                    <Form.Label>Wounds</Form.Label>
+                                                    <Form.Control
+                                                        type="number"
+                                                        value={formData.effects.statModifiers?.wounds || 0}
+                                                        onChange={(e) => handleStatModifierChange('wounds', e.target.value)}
+                                                    />
+                                                </Form.Group>
+                                            </Col>
+                                            <Col md={3}>
+                                                <Form.Group>
+                                                    <Form.Label>Courage</Form.Label>
+                                                    <Form.Control
+                                                        type="number"
+                                                        value={formData.effects.statModifiers?.courage || 0}
+                                                        onChange={(e) => handleStatModifierChange('courage', e.target.value)}
+                                                    />
+                                                </Form.Group>
+                                            </Col>
+                                            <Col md={3}>
+                                                <Form.Group>
+                                                    <Form.Label>Resilience</Form.Label>
+                                                    <Form.Control
+                                                        type="number"
+                                                        value={formData.effects.statModifiers?.resilience || 0}
+                                                        onChange={(e) => handleStatModifierChange('resilience', e.target.value)}
+                                                    />
+                                                </Form.Group>
+                                            </Col>
+                                            <Col md={3}>
+                                                <Form.Group>
+                                                    <Form.Label>Speed</Form.Label>
+                                                    <Form.Control
+                                                        type="number"
+                                                        value={formData.effects.statModifiers?.speed || 0}
+                                                        onChange={(e) => handleStatModifierChange('speed', e.target.value)}
+                                                    />
+                                                </Form.Group>
+                                            </Col>
+                                        </Row>
+
+                                        <Row className="mt-3">
+                                            <Col md={6}>
+                                                <Form.Check
+                                                    type="checkbox"
+                                                    id="surge-attack-modifier"
+                                                    label="Adds Surge to Attack"
+                                                    checked={formData.effects.statModifiers?.surgeAttack || false}
+                                                    onChange={(e) => handleStatModifierChange('surgeAttack', e.target.checked)}
+                                                />
+                                            </Col>
+                                            <Col md={6}>
+                                                <Form.Check
+                                                    type="checkbox"
+                                                    id="surge-defense-modifier"
+                                                    label="Adds Surge to Defense"
+                                                    checked={formData.effects.statModifiers?.surgeDefense || false}
+                                                    onChange={(e) => handleStatModifierChange('surgeDefense', e.target.checked)}
+                                                />
+                                            </Col>
+                                        </Row>
+                                    </Card.Body>
+                                </Card>
+                            </Card.Body>
+                        </Card>
+
+                        {/* Keywords */}
+                        <Card className="mt-4">
+                            <Card.Header>
+                                <strong>Add Keywords to Unit</strong>
+                                <span className="text-muted ms-2">({formData.effects.addKeywords.length} selected)</span>
+                            </Card.Header>
+                            <Card.Body>
+                                <KeywordSelector
+                                    selectedKeywords={formData.effects.addKeywords || []}
+                                    onChange={handleKeywordsChange}
+                                />
+                            </Card.Body>
+                        </Card>
+
+                        {/* Weapons */}
+                        <Card className="mt-4">
+                            <Card.Header className="d-flex justify-content-between align-items-center">
+                                <span>Weapons ({formData.effects.addWeapons.length})</span>
+                                <Button variant="primary" size="sm" onClick={handleAddWeapon}>
+                                    Add Weapon
+                                </Button>
+                            </Card.Header>
+                            <Card.Body>
+                                {formData.effects.addWeapons.length > 0 ? (
+                                    <ListGroup variant="flush">
+                                        {formData.effects.addWeapons.map((weapon, i) => (
+                                            <ListGroup.Item key={weapon.id || i}>
+                                                <div className="d-flex justify-content-between">
+                                                    <div>
+                                                        <div className="fw-bold">{weapon.name}</div>
+                                                        <div className="small text-muted">
+                                                            {WeaponRanges.getDisplayName ? WeaponRanges.getDisplayName(weapon.range) : weapon.range} |{' '}
+                                                            {weapon.dice[AttackDice.RED]}R {weapon.dice[AttackDice.BLACK]}B {weapon.dice[AttackDice.WHITE]}W
+                                                        </div>
+                                                        {weapon.keywords?.length > 0 && (
+                                                            <div className="small">
+                                                                <strong>Keywords:</strong> {weapon.keywords.map(k => WeaponKeywords.getDisplayName(k)).join(', ')}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <Button size="sm" variant="outline-secondary" className="me-2" onClick={() => handleEditWeapon(i)}>
+                                                            Edit
+                                                        </Button>
+                                                        <Button size="sm" variant="outline-danger" onClick={() => handleDeleteWeapon(i)}>
+                                                            Delete
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </ListGroup.Item>
+                                        ))}
+                                    </ListGroup>
+                                ) : (
+                                    <Alert variant="info">
+                                        No weapons added. Click the "Add Weapon" button to add a weapon to this upgrade.
+                                    </Alert>
+                                )}
+                            </Card.Body>
+                        </Card>
+
+                        <div className="d-flex justify-content-between mt-4">
+                            <Button variant="secondary" onClick={() => navigate('/upgrades')}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" variant="primary" disabled={loading}>
+                                {loading ? 'Saving...' : upgradeId ? 'Update Upgrade' : 'Create Upgrade'}
+                            </Button>
+                        </div>
+                    </Form>
+                </Card.Body>
             </Card>
 
-            {/* Weapons */}
-            <Card className="mt-4">
-              <Card.Header className="d-flex justify-content-between align-items-center">
-                <span>Weapons ({formData.effects.addWeapons.length})</span>
-                <Button variant="primary" size="sm" onClick={handleAddWeapon}>
-                  Add Weapon
-                </Button>
-              </Card.Header>
-              {formData.effects.addWeapons.length > 0 && (
-                <ListGroup variant="flush">
-                  {formData.effects.addWeapons.map((weapon, i) => (
-                    <ListGroup.Item key={weapon.id}>
-                      <div className="d-flex justify-content-between">
-                        <div>
-                          <div className="fw-bold">{weapon.name}</div>
-                          <div className="small text-muted">
-                            {WeaponRanges.getDisplayName(weapon.range)} |{' '}
-                            {weapon.dice[AttackDice.RED]}R {weapon.dice[AttackDice.BLACK]}B {weapon.dice[AttackDice.WHITE]}W
-                          </div>
-                        </div>
-                        <div>
-                          <Button size="sm" variant="outline-secondary" className="me-2" onClick={() => handleEditWeapon(i)}>
-                            Edit
-                          </Button>
-                          <Button size="sm" variant="outline-danger" onClick={() => handleDeleteWeapon(i)}>
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    </ListGroup.Item>
-                  ))}
-                </ListGroup>
-              )}
-            </Card>
-
-            <div className="d-flex justify-content-between mt-4">
-              <Button variant="secondary" onClick={() => navigate('/upgrades')}>
-                Cancel
-              </Button>
-              <Button type="submit" variant="primary" disabled={loading}>
-                {loading ? 'Saving...' : upgradeId ? 'Update Upgrade' : 'Create Upgrade'}
-              </Button>
-            </div>
-          </Form>
-        </Card.Body>
-      </Card>
-
-      {/* Modal */}
-      <WeaponEditorModal
-        show={showWeaponModal}
-        onClose={() => setShowWeaponModal(false)}
-        onSave={handleSaveWeapon}
-        weapon={currentWeapon}
-        setWeapon={setCurrentWeapon}
-      />
-    </>
-  );
+            {/* Modal */}
+            <WeaponEditorModal
+                show={showWeaponModal}
+                onClose={() => setShowWeaponModal(false)}
+                onSave={handleSaveWeapon}
+                weapon={currentWeapon}
+                setWeapon={setCurrentWeapon}
+            />
+        </>
+    );
 };
 
 export default UpgradeCardForm;

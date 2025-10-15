@@ -27,6 +27,7 @@ const UnitForm = () => {
 
     const [availableUpgrades, setAvailableUpgrades] = useState([]);
 
+    // Updated formData with surge tokens and vehicle differentiation
     const [formData, setFormData] = useState({
         name: '',
         faction: Factions.REPUBLIC,
@@ -34,6 +35,8 @@ const UnitForm = () => {
         points: 0,
         wounds: 1,
         courage: 1,
+        resilience: 0,
+        isVehicle: false,
         speed: 2,
         defense: DefenseDice.WHITE,
         minModelCount: 1,
@@ -43,10 +46,14 @@ const UnitForm = () => {
         abilities: [],
         upgradeSlots: [],
         miniatures: '',
-        notes: ''
+        notes: '',
+        surgeAttack: false,
+        surgeDefense: false
     });
 
     const [validated, setValidated] = useState(false);
+
+    // No auto-detection for vehicle - it should be manually set by the user
 
     // Fetch data if editing
     useEffect(() => {
@@ -57,6 +64,7 @@ const UnitForm = () => {
                 const unitDoc = await getDoc(unitRef);
                 if (unitDoc.exists()) {
                     const unitData = unitDoc.data();
+
                     setFormData({
                         ...unitData,
                         keywords: unitData.keywords || [],
@@ -64,7 +72,14 @@ const UnitForm = () => {
                         abilities: unitData.abilities || [],
                         upgradeSlots: unitData.upgradeSlots || [],
                         minModelCount: unitData.minModelCount || 1,
-                        currentModelCount: unitData.currentModelCount || unitData.minModelCount || 1
+                        currentModelCount: unitData.currentModelCount || unitData.minModelCount || 1,
+                        // Vehicle status is determined solely by the user setting
+                        isVehicle: unitData.isVehicle || false,
+                        surgeAttack: unitData.surgeAttack || false,
+                        surgeDefense: unitData.surgeDefense || false,
+                        // For backward compatibility
+                        courage: unitData.isVehicle ? 0 : (unitData.courage || 1),
+                        resilience: unitData.isVehicle ? (unitData.resilience || unitData.courage || 1) : 0
                     });
                 } else {
                     setError('Unit not found');
@@ -97,15 +112,47 @@ const UnitForm = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+
+        if (name === 'type') {
+            // Type change doesn't affect vehicle status - that's manual
+            setFormData(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                [name]: ['points', 'wounds', 'courage', 'resilience', 'speed', 'minModelCount'].includes(name)
+                    ? parseInt(value, 10) || 0
+                    : value
+            }));
+        }
+    };
+
+    // Handle checkbox changes
+    const handleCheckboxChange = (e) => {
+        const { name, checked } = e.target;
+        setFormData(prev => ({ ...prev, [name]: checked }));
+    };
+
+    // Handle unit type change - vehicle status is separate
+    const handleUnitTypeChange = (e) => {
+        const { value } = e.target;
+
         setFormData(prev => ({
             ...prev,
-            [name]: ['points', 'wounds', 'courage', 'speed', 'minModelCount'].includes(name)
-                ? parseInt(value, 10) || 0
-                : value
+            type: value
         }));
     };
 
-    const handleKeywordsChange = (keywords) => setFormData(prev => ({ ...prev, keywords }));
+    const handleKeywordsChange = (keywords) => {
+        // Keywords don't affect vehicle status - that's manual
+        setFormData(prev => ({
+            ...prev,
+            keywords
+        }));
+    };
+
     const handleWeaponsChange = (weapons) => setFormData(prev => ({ ...prev, weapons }));
     const handleAbilitiesChange = (abilities) => setFormData(prev => ({ ...prev, abilities }));
 
@@ -237,9 +284,9 @@ const UnitForm = () => {
                                 <Col md={3}>
                                     <Form.Group>
                                         <Form.Label>Defense Dice</Form.Label>
-                                        <Form.Select 
-                                            name="defense" 
-                                            value={formData.defense} 
+                                        <Form.Select
+                                            name="defense"
+                                            value={formData.defense}
                                             onChange={handleChange}
                                         >
                                             {Object.values(DefenseDice).filter(f => typeof f === 'string').map(f => (
@@ -261,7 +308,7 @@ const UnitForm = () => {
                                 <Col md={3}>
                                     <Form.Group>
                                         <Form.Label>Unit Type</Form.Label>
-                                        <Form.Select name="type" value={formData.type} onChange={handleChange}>
+                                        <Form.Select name="type" value={formData.type} onChange={handleUnitTypeChange}>
                                             {/* System unit types */}
                                             {Object.values(UnitTypes).filter(t => typeof t !== 'function').map(t => (
                                                 <option key={t} value={t}>{UnitTypes.getDisplayName(t)}</option>
@@ -301,11 +348,16 @@ const UnitForm = () => {
                                 </Col>
                                 <Col md={3}>
                                     <Form.Group>
-                                        <Form.Label>Courage</Form.Label>
+                                        <Form.Label>
+                                            {formData.isVehicle ? 'Resilience' : 'Courage'}
+                                            <Badge bg="info" className="ms-2">
+                                                {formData.isVehicle ? 'Vehicle' : 'Trooper'}
+                                            </Badge>
+                                        </Form.Label>
                                         <Form.Control
-                                            name="courage"
+                                            name={formData.isVehicle ? 'resilience' : 'courage'}
                                             type="number"
-                                            value={formData.courage}
+                                            value={formData.isVehicle ? formData.resilience : formData.courage}
                                             onChange={handleChange}
                                         />
                                     </Form.Group>
@@ -319,6 +371,50 @@ const UnitForm = () => {
                                             value={formData.speed}
                                             onChange={handleChange}
                                         />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+
+                            <Row className="mt-3">
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label>Surge Tokens</Form.Label>
+                                        <div>
+                                            <Form.Check
+                                                type="checkbox"
+                                                id="surge-attack"
+                                                label="Surge to Attack"
+                                                name="surgeAttack"
+                                                checked={formData.surgeAttack}
+                                                onChange={handleCheckboxChange}
+                                                className="mb-2"
+                                            />
+                                            <Form.Check
+                                                type="checkbox"
+                                                id="surge-defense"
+                                                label="Surge to Defense"
+                                                name="surgeDefense"
+                                                checked={formData.surgeDefense}
+                                                onChange={handleCheckboxChange}
+                                            />
+                                        </div>
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label>Vehicle Type</Form.Label>
+                                        <Form.Check
+                                            type="checkbox"
+                                            id="is-vehicle"
+                                            label="This unit is a vehicle"
+                                            name="isVehicle"
+                                            checked={formData.isVehicle}
+                                            onChange={handleCheckboxChange}
+                                            className="mb-2"
+                                        />
+                                        <Form.Text className="text-muted">
+                                            Vehicles use Resilience instead of Courage. Setting this option will switch the stats accordingly.
+                                        </Form.Text>
                                     </Form.Group>
                                 </Col>
                             </Row>
@@ -366,12 +462,12 @@ const UnitForm = () => {
                     <Card><Card.Body><WeaponSelector weapons={formData.weapons} onChange={handleWeaponsChange} /></Card.Body></Card>
                 </Tab>
 
-                {/* ABILITIES - NOW USING AbilitySelector */}
+                {/* ABILITIES */}
                 <Tab eventKey="abilities" title={`Abilities (${formData.abilities?.length || 0})`}>
                     <Card>
                         <Card.Body>
-                            <AbilitySelector 
-                                selectedAbilities={formData.abilities} 
+                            <AbilitySelector
+                                selectedAbilities={formData.abilities}
                                 onChange={handleAbilitiesChange}
                             />
                         </Card.Body>
