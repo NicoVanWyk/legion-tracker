@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Badge, Button, Alert, ListGroup, Accordion } from 'react-bootstrap';
+import { Card, Row, Col, Badge, Button, Alert, ListGroup, Accordion, Tab, Tabs } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { doc, getDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/config';
@@ -13,6 +13,7 @@ import WeaponRanges from '../../enums/WeaponRanges';
 import AttackDice from '../../enums/AttackDice';
 import WeaponKeywords from '../../enums/WeaponKeywords';
 import LoadingSpinner from '../layout/LoadingSpinner';
+import UnitCard from './UnitCard';
 
 const UnitDetail = ({ unitId }) => {
     const [unit, setUnit] = useState(null);
@@ -23,6 +24,7 @@ const UnitDetail = ({ unitId }) => {
     const [error, setError] = useState('');
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [customUnitTypes, setCustomUnitTypes] = useState([]);
+    const [activeTab, setActiveTab] = useState('details');
     const { currentUser } = useAuth();
     const navigate = useNavigate();
 
@@ -226,6 +228,10 @@ const UnitDetail = ({ unitId }) => {
         return [...baseWeapons.map(w => ({ ...w, source: 'Base Unit' })), ...upgradeWeapons];
     };
 
+    const printUnitCard = () => {
+        window.print();
+    };
+
     if (loading) return <LoadingSpinner text="Loading unit details..." />;
 
     if (error)
@@ -275,8 +281,39 @@ const UnitDetail = ({ unitId }) => {
             <Row>
                 <Col>
                     <div className="d-flex justify-content-between align-items-center mb-4">
-                        <h2>{unit.name}</h2>
+                        <h2 className="d-flex align-items-center">
+                            {unit.name}
+                            {unit.unitIcon && (
+                                <div 
+                                    className="unit-icon-small ms-3"
+                                    style={{
+                                        width: '36px',
+                                        height: '36px',
+                                        borderRadius: '50%',
+                                        overflow: 'hidden',
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        backgroundColor: 'white',
+                                        border: `2px solid ${Factions.getColor(unit.faction)}`
+                                    }}
+                                >
+                                    <img 
+                                        src={unit.unitIcon} 
+                                        alt={unit.name} 
+                                        style={{
+                                            maxWidth: '70%',
+                                            maxHeight: '70%',
+                                            objectFit: 'contain'
+                                        }}
+                                    />
+                                </div>
+                            )}
+                        </h2>
                         <div>
+                            <Button variant="outline-secondary" onClick={printUnitCard} className="me-2">
+                                <i className="bi bi-printer"></i> Print Card
+                            </Button>
                             <Button variant="outline-primary" onClick={handleEdit} className="me-2">
                                 Edit
                             </Button>
@@ -286,294 +323,320 @@ const UnitDetail = ({ unitId }) => {
                         </div>
                     </div>
 
-                    {/* --- UNIT INFO --- */}
-                    <Card className="mb-4">
-                        <Card.Header className={`faction-${unit.faction}`}>
-                            <div className="d-flex justify-content-between align-items-center">
-                                <h5 className="mb-0">Unit Information</h5>
-                                <Badge bg="secondary">{getTypeDisplayName(unit.type)}</Badge>
-                                {unit.isVehicle && <Badge bg="info" className="ms-2">Vehicle</Badge>}
-                            </div>
-                        </Card.Header>
-                        <Card.Body>
-                            <Row>
-                                <Col md={3}>
-                                    <p>
-                                        <strong>Faction:</strong> {Factions.getDisplayName(unit.faction)}
-                                    </p>
-                                </Col>
-                                <Col md={3}>
-                                    <p>
-                                        <strong>Points:</strong> {unit.points || 0}
-                                        {modifiedStats.totalPoints !== unit.points && (
-                                            <span className="text-primary"> → {modifiedStats.totalPoints}</span>
-                                        )}
-                                    </p>
-                                </Col>
-                                <Col md={6}>
-                                    <p>
-                                        <strong>Stats:</strong>{' '}
-                                        {modifiedStats.wounds !== unit.wounds && (
-                                            <span className="text-primary">{modifiedStats.wounds}</span>
-                                        )}
-                                        {modifiedStats.wounds === unit.wounds && (unit.wounds || 1)}W /{' '}
-
-                                        {unit.isVehicle ? (
-                                            <>
-                                                {modifiedStats.resilience !== unit.resilience && (
-                                                    <span className="text-primary">{modifiedStats.resilience}</span>
+                    <Tabs activeKey={activeTab} onSelect={setActiveTab} className="mb-4">
+                        <Tab eventKey="details" title="Details">
+                            {/* --- UNIT INFO --- */}
+                            <Card className="mb-4">
+                                <Card.Header className={`faction-${unit.faction}`}>
+                                    <div className="d-flex justify-content-between align-items-center">
+                                        <h5 className="mb-0">Unit Information</h5>
+                                        <div className="d-flex align-items-center">
+                                            <Badge bg="secondary" className="me-2">{getTypeDisplayName(unit.type)}</Badge>
+                                            {unit.isVehicle && <Badge bg="info" className="me-2">Vehicle</Badge>}
+                                        </div>
+                                    </div>
+                                </Card.Header>
+                                <Card.Body>
+                                    <Row>
+                                        <Col md={3}>
+                                            <p>
+                                                <strong>Faction:</strong> {Factions.getDisplayName(unit.faction)}
+                                            </p>
+                                        </Col>
+                                        <Col md={3}>
+                                            <p>
+                                                <strong>Points:</strong> {unit.points || 0}
+                                                {modifiedStats.totalPoints !== unit.points && (
+                                                    <span className="text-primary"> → {modifiedStats.totalPoints}</span>
                                                 )}
-                                                {modifiedStats.resilience === unit.resilience && unit.resilience}R /{' '}
-                                            </>
-                                        ) : (
-                                            <>
-                                                {modifiedStats.courage !== unit.courage && (
-                                                    <span className="text-primary">{modifiedStats.courage}</span>
+                                            </p>
+                                        </Col>
+                                        <Col md={6}>
+                                            <p>
+                                                <strong>Stats:</strong>{' '}
+                                                {modifiedStats.wounds !== unit.wounds && (
+                                                    <span className="text-primary">{modifiedStats.wounds}</span>
                                                 )}
-                                                {modifiedStats.courage === unit.courage && unit.courage}C /{' '}
-                                            </>
-                                        )}
+                                                {modifiedStats.wounds === unit.wounds && (unit.wounds || 1)}W /{' '}
 
-                                        {modifiedStats.speed !== unit.speed && (
-                                            <span className="text-primary">{modifiedStats.speed}</span>
-                                        )}
-                                        {modifiedStats.speed === unit.speed && (unit.speed || 2)}S /{' '}
-                                        <span className={DefenseDice.getColorClass(unit.defense)}>
+                                                {unit.isVehicle ? (
+                                                    <>
+                                                        {modifiedStats.resilience !== unit.resilience && (
+                                                            <span className="text-primary">{modifiedStats.resilience}</span>
+                                                        )}
+                                                        {modifiedStats.resilience === unit.resilience && unit.resilience}R /{' '}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        {modifiedStats.courage !== unit.courage && (
+                                                            <span className="text-primary">{modifiedStats.courage}</span>
+                                                        )}
+                                                        {modifiedStats.courage === unit.courage && unit.courage}C /{' '}
+                                                    </>
+                                                )}
+
+                                                {modifiedStats.speed !== unit.speed && (
+                                                    <span className="text-primary">{modifiedStats.speed}</span>
+                                                )}
+                                                {modifiedStats.speed === unit.speed && (unit.speed || 2)}S /{' '}
+                                                <span className={DefenseDice.getColorClass(unit.defense)}>
                       {unit.defense === 'white' ? 'W' : 'R'}
                     </span>{' '}
-                                        Defense
-                                    </p>
-                                </Col>
-                            </Row>
+                                                Defense
+                                            </p>
+                                        </Col>
+                                    </Row>
+                                    <Row>
+                                        <Col md={6}>
+                                            <p>
+                                                <strong>Model Count:</strong> Min: {unit.minModelCount || 1} | Current:{' '}
+                                                {unit.currentModelCount || 1}
+                                                {modifiedStats.modelCount !== unit.currentModelCount && (
+                                                    <span className="text-primary"> → {modifiedStats.modelCount}</span>
+                                                )}
+                                            </p>
+                                        </Col>
+                                        <Col md={6}>
+                                            <p>
+                                                <strong>Surge Tokens:</strong>{' '}
+                                                {unit.surgeAttack || modifiedStats.surgeAttack ? (
+                                                    <Badge bg="success" className="me-2">Attack</Badge>
+                                                ) : (
+                                                    <Badge bg="secondary" className="me-2">No Attack</Badge>
+                                                )}
+                                                {unit.surgeDefense || modifiedStats.surgeDefense ? (
+                                                    <Badge bg="success">Defense</Badge>
+                                                ) : (
+                                                    <Badge bg="secondary">No Defense</Badge>
+                                                )}
+                                            </p>
+                                        </Col>
+                                    </Row>
+                                </Card.Body>
+                            </Card>
+
+                            {/* --- KEYWORDS --- */}
                             <Row>
                                 <Col md={6}>
-                                    <p>
-                                        <strong>Model Count:</strong> Min: {unit.minModelCount || 1} | Current:{' '}
-                                        {unit.currentModelCount || 1}
-                                        {modifiedStats.modelCount !== unit.currentModelCount && (
-                                            <span className="text-primary"> → {modifiedStats.modelCount}</span>
-                                        )}
-                                    </p>
-                                </Col>
-                                <Col md={6}>
-                                    <p>
-                                        <strong>Surge Tokens:</strong>{' '}
-                                        {unit.surgeAttack || modifiedStats.surgeAttack ? (
-                                            <Badge bg="success" className="me-2">Attack</Badge>
-                                        ) : (
-                                            <Badge bg="secondary" className="me-2">No Attack</Badge>
-                                        )}
-                                        {unit.surgeDefense || modifiedStats.surgeDefense ? (
-                                            <Badge bg="success">Defense</Badge>
-                                        ) : (
-                                            <Badge bg="secondary">No Defense</Badge>
-                                        )}
-                                    </p>
-                                </Col>
-                            </Row>
-                        </Card.Body>
-                    </Card>
-
-                    {/* --- KEYWORDS --- */}
-                    <Row>
-                        <Col md={6}>
-                            <Card className="mb-4">
-                                <Card.Header>
-                                    <h5 className="mb-0">Keywords</h5>
-                                </Card.Header>
-                                <Card.Body>
-                                    {getAllKeywords().length > 0 ? (
-                                        <div>
-                                            {getAllKeywords().map((keyword, index) => (
-                                                <Badge
-                                                    key={index}
-                                                    bg={keyword.startsWith('custom:') ? 'info' : (
-                                                        // Show keywords from upgrades in a different color
-                                                        unit.keywords && unit.keywords.includes(keyword) ? 'secondary' : 'success'
-                                                    )}
-                                                    className="me-2 mb-2 p-2"
-                                                >
-                                                    {getKeywordDisplay(keyword)}
-                                                    {!unit.keywords?.includes(keyword) && (
-                                                        <span className="ms-1" title="From Upgrade">+</span>
-                                                    )}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <p className="text-muted">No keywords assigned to this unit.</p>
-                                    )}
-                                </Card.Body>
-                            </Card>
-                        </Col>
-
-                        {/* --- WEAPONS (Base + Upgrades) --- */}
-                        <Col md={6}>
-                            <Card className="mb-4">
-                                <Card.Header>
-                                    <h5 className="mb-0">Weapons</h5>
-                                </Card.Header>
-                                <Card.Body>
-                                    {modifiedWeapons.length > 0 ? (
-                                        <ListGroup variant="flush">
-                                            {modifiedWeapons.map((weapon, index) => (
-                                                <ListGroup.Item key={index}>
-                                                    <div className="d-flex justify-content-between align-items-center">
-                                                        <h6 className="mb-0">{weapon.name}</h6>
-                                                        <Badge bg={weapon.source === 'Base Unit' ? 'secondary' : 'info'}>
-                                                            {weapon.source}
+                                    <Card className="mb-4">
+                                        <Card.Header>
+                                            <h5 className="mb-0">Keywords</h5>
+                                        </Card.Header>
+                                        <Card.Body>
+                                            {getAllKeywords().length > 0 ? (
+                                                <div>
+                                                    {getAllKeywords().map((keyword, index) => (
+                                                        <Badge
+                                                            key={index}
+                                                            bg={keyword.startsWith('custom:') ? 'info' : (
+                                                                // Show keywords from upgrades in a different color
+                                                                unit.keywords && unit.keywords.includes(keyword) ? 'secondary' : 'success'
+                                                            )}
+                                                            className="me-2 mb-2 p-2"
+                                                        >
+                                                            {getKeywordDisplay(keyword)}
+                                                            {!unit.keywords?.includes(keyword) && (
+                                                                <span className="ms-1" title="From Upgrade">+</span>
+                                                            )}
                                                         </Badge>
-                                                    </div>
-                                                    <div className="small text-muted">
-                                                        <strong>Range:</strong>{' '}
-                                                        {WeaponRanges.getDisplayName
-                                                            ? WeaponRanges.getDisplayName(weapon.range)
-                                                            : weapon.range}
-                                                    </div>
-                                                    <div className="small">
-                                                        <strong>Dice:</strong>
-                                                        {weapon.dice?.[AttackDice.RED] > 0 && (
-                                                            <span className="text-danger"> {weapon.dice[AttackDice.RED]}R</span>
-                                                        )}
-                                                        {weapon.dice?.[AttackDice.BLACK] > 0 && (
-                                                            <span> {weapon.dice[AttackDice.BLACK]}B</span>
-                                                        )}
-                                                        {weapon.dice?.[AttackDice.WHITE] > 0 && (
-                                                            <span className="text-muted"> {weapon.dice[AttackDice.WHITE]}W</span>
-                                                        )}
-                                                    </div>
-                                                    {weapon.keywords?.length > 0 && (
-                                                        <div className="small">
-                                                            <strong>Keywords:</strong>{' '}
-                                                            {weapon.keywords
-                                                                .map(kw =>
-                                                                    WeaponKeywords.getDisplayName
-                                                                        ? WeaponKeywords.getDisplayName(kw)
-                                                                        : kw
-                                                                )
-                                                                .join(', ')}
-                                                        </div>
-                                                    )}
-                                                </ListGroup.Item>
-                                            ))}
-                                        </ListGroup>
-                                    ) : (
-                                        <p className="text-muted">No weapons assigned to this unit.</p>
-                                    )}
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                    </Row>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-muted">No keywords assigned to this unit.</p>
+                                            )}
+                                        </Card.Body>
+                                    </Card>
+                                </Col>
 
-                    {/* --- ABILITIES, UPGRADES, NOTES, etc --- */}
-                    {abilities.length > 0 && (
-                        <Card className="mb-4">
-                            <Card.Header>
-                                <h5 className="mb-0">Abilities</h5>
-                            </Card.Header>
-                            <Card.Body>
-                                <Accordion>
-                                    {abilities.map((ability, index) => (
-                                        <Accordion.Item key={ability.id} eventKey={index.toString()}>
-                                            <Accordion.Header>
-                                                <strong>{ability.name}</strong>
-                                            </Accordion.Header>
-                                            <Accordion.Body>
-                                                <p className="mb-2 text-muted">{ability.description}</p>
-                                                <div className="mb-2">{ability.rulesText}</div>
-                                                {ability.reminders?.length > 0 && (
-                                                    <div className="mt-3">
-                                                        <strong className="small">Reminders:</strong>
-                                                        <div className="mt-1">
-                                                            {ability.reminders.map((reminder, idx) => (
-                                                                <div key={idx} className="small text-muted mb-1">
-                                                                    • {reminder.text}
-                                                                    {reminder.condition && (
-                                                                        <span className="fst-italic"> ({reminder.condition})</span>
-                                                                    )}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </Accordion.Body>
-                                        </Accordion.Item>
-                                    ))}
-                                </Accordion>
-                            </Card.Body>
-                        </Card>
-                    )}
-
-                    {unit.upgradeSlots && unit.upgradeSlots.length > 0 && (
-                        <Card className="mb-4">
-                            <Card.Header>
-                                <h5 className="mb-0">Upgrade Slots</h5>
-                            </Card.Header>
-                            <Card.Body>
-                                {unit.upgradeSlots.map((slot, index) => {
-                                    const equippedUpgrades = upgrades.filter(u =>
-                                        slot.equippedUpgrades?.includes(u.id)
-                                    );
-
-                                    return (
-                                        <div key={index} className="mb-3">
-                                            <div className="d-flex justify-content-between align-items-center mb-2">
-                                                <Badge bg={UpgradeCardTypes.getBadgeColor(slot.type)}>
-                                                    <i
-                                                        className={UpgradeCardTypes.getIconClass(slot.type) + ' me-1'}
-                                                    ></i>
-                                                    {UpgradeCardTypes.getDisplayName(slot.type)}
-                                                </Badge>
-                                                <span className="small text-muted">
-                          {slot.equippedUpgrades?.length || 0} / {slot.maxCount} equipped
-                        </span>
-                                            </div>
-
-                                            {equippedUpgrades.length > 0 ? (
+                                {/* --- WEAPONS (Base + Upgrades) --- */}
+                                <Col md={6}>
+                                    <Card className="mb-4">
+                                        <Card.Header>
+                                            <h5 className="mb-0">Weapons</h5>
+                                        </Card.Header>
+                                        <Card.Body>
+                                            {modifiedWeapons.length > 0 ? (
                                                 <ListGroup variant="flush">
-                                                    {equippedUpgrades.map(upgrade => (
-                                                        <ListGroup.Item key={upgrade.id} className="py-2">
-                                                            <div className="d-flex justify-content-between">
-                                                                <strong>{upgrade.name}</strong>
-                                                                <Badge bg="warning" text="dark">
-                                                                    {upgrade.pointsCost} pts
+                                                    {modifiedWeapons.map((weapon, index) => (
+                                                        <ListGroup.Item key={index}>
+                                                            <div className="d-flex justify-content-between align-items-center">
+                                                                <h6 className="mb-0">{weapon.name}</h6>
+                                                                <Badge bg={weapon.source === 'Base Unit' ? 'secondary' : 'info'}>
+                                                                    {weapon.source}
                                                                 </Badge>
                                                             </div>
-                                                            <div className="small text-muted">{upgrade.description}</div>
+                                                            <div className="small text-muted">
+                                                                <strong>Range:</strong>{' '}
+                                                                {WeaponRanges.getDisplayName
+                                                                    ? WeaponRanges.getDisplayName(weapon.range)
+                                                                    : weapon.range}
+                                                            </div>
+                                                            <div className="small">
+                                                                <strong>Dice:</strong>
+                                                                {weapon.dice?.[AttackDice.RED] > 0 && (
+                                                                    <span className="text-danger"> {weapon.dice[AttackDice.RED]}R</span>
+                                                                )}
+                                                                {weapon.dice?.[AttackDice.BLACK] > 0 && (
+                                                                    <span> {weapon.dice[AttackDice.BLACK]}B</span>
+                                                                )}
+                                                                {weapon.dice?.[AttackDice.WHITE] > 0 && (
+                                                                    <span className="text-muted"> {weapon.dice[AttackDice.WHITE]}W</span>
+                                                                )}
+                                                            </div>
+                                                            {weapon.keywords?.length > 0 && (
+                                                                <div className="small">
+                                                                    <strong>Keywords:</strong>{' '}
+                                                                    {weapon.keywords
+                                                                        .map(kw =>
+                                                                            WeaponKeywords.getDisplayName
+                                                                                ? WeaponKeywords.getDisplayName(kw)
+                                                                                : kw
+                                                                        )
+                                                                        .join(', ')}
+                                                                </div>
+                                                            )}
                                                         </ListGroup.Item>
                                                     ))}
                                                 </ListGroup>
                                             ) : (
-                                                <p className="small text-muted mb-0">No upgrades equipped</p>
+                                                <p className="text-muted">No weapons assigned to this unit.</p>
                                             )}
-                                        </div>
-                                    );
-                                })}
-                            </Card.Body>
-                        </Card>
-                    )}
+                                        </Card.Body>
+                                    </Card>
+                                </Col>
+                            </Row>
 
-                    {unit.miniatures && (
-                        <Card className="mb-4">
-                            <Card.Header>
-                                <h5 className="mb-0">Miniature Information</h5>
-                            </Card.Header>
-                            <Card.Body>
-                                <p style={{ whiteSpace: 'pre-line' }}>{unit.miniatures}</p>
-                            </Card.Body>
-                        </Card>
-                    )}
+                            {/* --- ABILITIES, UPGRADES, NOTES, etc --- */}
+                            {abilities.length > 0 && (
+                                <Card className="mb-4">
+                                    <Card.Header>
+                                        <h5 className="mb-0">Abilities</h5>
+                                    </Card.Header>
+                                    <Card.Body>
+                                        <Accordion>
+                                            {abilities.map((ability, index) => (
+                                                <Accordion.Item key={ability.id} eventKey={index.toString()}>
+                                                    <Accordion.Header>
+                                                        <strong>{ability.name}</strong>
+                                                    </Accordion.Header>
+                                                    <Accordion.Body>
+                                                        <p className="mb-2 text-muted">{ability.description}</p>
+                                                        <div className="mb-2">{ability.rulesText}</div>
+                                                        {ability.reminders?.length > 0 && (
+                                                            <div className="mt-3">
+                                                                <strong className="small">Reminders:</strong>
+                                                                <div className="mt-1">
+                                                                    {ability.reminders.map((reminder, idx) => (
+                                                                        <div key={idx} className="small text-muted mb-1">
+                                                                            • {reminder.text}
+                                                                            {reminder.condition && (
+                                                                                <span className="fst-italic"> ({reminder.condition})</span>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </Accordion.Body>
+                                                </Accordion.Item>
+                                            ))}
+                                        </Accordion>
+                                    </Card.Body>
+                                </Card>
+                            )}
 
-                    {unit.notes && (
-                        <Card className="mb-4">
-                            <Card.Header>
-                                <h5 className="mb-0">Notes</h5>
-                            </Card.Header>
-                            <Card.Body>
-                                <p style={{ whiteSpace: 'pre-line' }}>{unit.notes}</p>
-                            </Card.Body>
-                        </Card>
-                    )}
+                            {unit.upgradeSlots && unit.upgradeSlots.length > 0 && (
+                                <Card className="mb-4">
+                                    <Card.Header>
+                                        <h5 className="mb-0">Upgrade Slots</h5>
+                                    </Card.Header>
+                                    <Card.Body>
+                                        {unit.upgradeSlots.map((slot, index) => {
+                                            const equippedUpgrades = upgrades.filter(u =>
+                                                slot.equippedUpgrades?.includes(u.id)
+                                            );
+
+                                            return (
+                                                <div key={index} className="mb-3">
+                                                    <div className="d-flex justify-content-between align-items-center mb-2">
+                                                        <Badge bg={UpgradeCardTypes.getBadgeColor(slot.type)}>
+                                                            <i
+                                                                className={UpgradeCardTypes.getIconClass(slot.type) + ' me-1'}
+                                                            ></i>
+                                                            {UpgradeCardTypes.getDisplayName(slot.type)}
+                                                        </Badge>
+                                                        <span className="small text-muted">
+                          {slot.equippedUpgrades?.length || 0} / {slot.maxCount} equipped
+                        </span>
+                                                    </div>
+
+                                                    {equippedUpgrades.length > 0 ? (
+                                                        <ListGroup variant="flush">
+                                                            {equippedUpgrades.map(upgrade => (
+                                                                <ListGroup.Item key={upgrade.id} className="py-2">
+                                                                    <div className="d-flex justify-content-between">
+                                                                        <strong>{upgrade.name}</strong>
+                                                                        <Badge bg="warning" text="dark">
+                                                                            {upgrade.pointsCost} pts
+                                                                        </Badge>
+                                                                    </div>
+                                                                    <div className="small text-muted">{upgrade.description}</div>
+                                                                </ListGroup.Item>
+                                                            ))}
+                                                        </ListGroup>
+                                                    ) : (
+                                                        <p className="small text-muted mb-0">No upgrades equipped</p>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </Card.Body>
+                                </Card>
+                            )}
+
+                            {unit.miniatures && (
+                                <Card className="mb-4">
+                                    <Card.Header>
+                                        <h5 className="mb-0">Miniature Information</h5>
+                                    </Card.Header>
+                                    <Card.Body>
+                                        <p style={{ whiteSpace: 'pre-line' }}>{unit.miniatures}</p>
+                                    </Card.Body>
+                                </Card>
+                            )}
+
+                            {unit.notes && (
+                                <Card className="mb-4">
+                                    <Card.Header>
+                                        <h5 className="mb-0">Notes</h5>
+                                    </Card.Header>
+                                    <Card.Body>
+                                        <p style={{ whiteSpace: 'pre-line' }}>{unit.notes}</p>
+                                    </Card.Body>
+                                </Card>
+                            )}
+                        </Tab>
+                        <Tab eventKey="card" title="Unit Card">
+                            {/* Unit Card Display */}
+                            <Card className="mb-4">
+                                <Card.Body>
+                                    <Row>
+                                        <Col lg={8} className="mx-auto">
+                                            <UnitCard 
+                                                unit={unit} 
+                                                customUnitTypes={customUnitTypes}
+                                            />
+                                            <div className="text-center mt-4">
+                                                <Button variant="outline-secondary" onClick={printUnitCard}>
+                                                    <i className="bi bi-printer"></i> Print Card
+                                                </Button>
+                                            </div>
+                                        </Col>
+                                    </Row>
+                                </Card.Body>
+                            </Card>
+                        </Tab>
+                    </Tabs>
 
                     <div className="d-flex justify-content-start mt-4">
                         <Button variant="secondary" onClick={() => navigate('/units')}>

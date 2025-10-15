@@ -62,13 +62,6 @@ const Keywords = Object.freeze({
   UNSTOPPABLE: 'unstoppable',
   FIRE_SUPPORT: 'fire_support',
   
-  // Custom Keywords (For custom armies)
-  MERCENARY_MOTIVATION: 'mercenary_motivation',
-  NEURAL_OVERRIDE: 'neural_override',
-  HIVE_MIND: 'hive_mind',
-  EXHAUST_SPOTTER_1: 'exhaust_spotter_1',
-  EXHAUST_TAKE_COVER_1: 'exhaust_take_cover_1',
-  
   // For display purposes
   getDisplayName: function(keyword) {
     // Replace underscores with spaces and capitalize words
@@ -111,8 +104,6 @@ const Keywords = Object.freeze({
       case this.MASTER_OF_THE_FORCE_1: return 'Master of the Force 1';
       case this.GENERATOR_1: return 'Generator 1';
       case this.RELIABLE_1: return 'Reliable 1';
-      case this.EXHAUST_SPOTTER_1: return 'Exhaust: Spotter 1';
-      case this.EXHAUST_TAKE_COVER_1: return 'Exhaust: Take Cover 1';
       
       default:
         return keyword.split('_').map(word => 
@@ -245,22 +236,6 @@ const Keywords = Object.freeze({
       case this.FIRE_SUPPORT:
         return "When another friendly unit performs a ranged attack, if you have a faceup order token, each mini in your unit may add an eligible weapon to the attack pool. If you do, flip your order token facedown. Limit 1 Fire Support per attack pool.";
         
-      // Custom Keywords
-      case this.MERCENARY_MOTIVATION:
-        return "At the start of the Command Phase, you may choose to pay this unit by spending 1 aim or dodge token from your commander. If paid, this unit gains Independent Orders and Ruthless 1 until the end of the round. If unpaid, this unit gains Insubordinate until the end of the round.";
-      
-      case this.NEURAL_OVERRIDE:
-        return "At the start of this unit's activation, you may have the Cyborg Overseer suffer 1 wound to ignore this unit's AI keyword until the end of the activation.";
-      
-      case this.HIVE_MIND:
-        return "At the start of the Command Phase, you may choose one Unit with the Swarm Instincts keyword. This unit can issue an order to the chosen unit regardless of range.";
-      
-      case this.EXHAUST_SPOTTER_1:
-        return "As a card action, this unit can choose up to 1 friendly units at range 1. Each chosen unit gains one aim token.";
-      
-      case this.EXHAUST_TAKE_COVER_1:
-        return "As a card action, this unit can choose up to 1 friendly units at range 1. Each chosen unit gains one dodge token.";
-      
       default:
         return "No description available.";
     }
@@ -295,10 +270,6 @@ const Keywords = Object.freeze({
       ],
       special: [
         this.GENERATOR_1, this.RELIABLE_1, this.SENTINEL, this.UNSTOPPABLE, this.FIRE_SUPPORT
-      ],
-      custom: [
-        this.MERCENARY_MOTIVATION, this.NEURAL_OVERRIDE, this.HIVE_MIND,
-        this.EXHAUST_SPOTTER_1, this.EXHAUST_TAKE_COVER_1
       ]
     };
   },
@@ -312,8 +283,7 @@ const Keywords = Object.freeze({
       ...this.getAllKeywords().command,
       ...this.getAllKeywords().ai,
       ...this.getAllKeywords().force,
-      ...this.getAllKeywords().special,
-      ...this.getAllKeywords().custom
+      ...this.getAllKeywords().special
     ];
   }
 });

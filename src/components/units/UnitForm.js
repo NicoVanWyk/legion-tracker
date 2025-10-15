@@ -10,9 +10,12 @@ import DefenseDice from '../../enums/DefenseDice';
 import UpgradeCardTypes from '../../enums/UpgradeCardTypes';
 import KeywordSelector from './KeywordSelector';
 import WeaponSelector from './WeaponSelector';
+import IconSelector from './IconSelector';
+import BackgroundSelector from './BackgroundSelector';
 import LoadingSpinner from '../layout/LoadingSpinner';
 import UpgradeCardSelector from '../upgrades/UpgradeCardSelector';
 import AbilitySelector from '../abilities/AbilitySelector';
+import UnitCard from './UnitCard';
 
 const UnitForm = () => {
     const { unitId } = useParams();
@@ -27,7 +30,7 @@ const UnitForm = () => {
 
     const [availableUpgrades, setAvailableUpgrades] = useState([]);
 
-    // Updated formData with surge tokens and vehicle differentiation
+    // Updated formData with surge tokens, vehicle differentiation, and appearance fields
     const [formData, setFormData] = useState({
         name: '',
         faction: Factions.REPUBLIC,
@@ -48,12 +51,12 @@ const UnitForm = () => {
         miniatures: '',
         notes: '',
         surgeAttack: false,
-        surgeDefense: false
+        surgeDefense: false,
+        unitIcon: '',
+        cardBackground: ''
     });
 
     const [validated, setValidated] = useState(false);
-
-    // No auto-detection for vehicle - it should be manually set by the user
 
     // Fetch data if editing
     useEffect(() => {
@@ -79,7 +82,10 @@ const UnitForm = () => {
                         surgeDefense: unitData.surgeDefense || false,
                         // For backward compatibility
                         courage: unitData.isVehicle ? 0 : (unitData.courage || 1),
-                        resilience: unitData.isVehicle ? (unitData.resilience || unitData.courage || 1) : 0
+                        resilience: unitData.isVehicle ? (unitData.resilience || unitData.courage || 1) : 0,
+                        // Appearance fields
+                        unitIcon: unitData.unitIcon || '',
+                        cardBackground: unitData.cardBackground || ''
                     });
                 } else {
                     setError('Unit not found');
@@ -142,6 +148,21 @@ const UnitForm = () => {
         setFormData(prev => ({
             ...prev,
             type: value
+        }));
+    };
+
+    // Handle appearance changes
+    const handleIconChange = (iconPath) => {
+        setFormData(prev => ({
+            ...prev,
+            unitIcon: iconPath
+        }));
+    };
+
+    const handleBackgroundChange = (backgroundPath) => {
+        setFormData(prev => ({
+            ...prev,
+            cardBackground: backgroundPath
         }));
     };
 
@@ -537,9 +558,88 @@ const UnitForm = () => {
                     </Card>
                 </Tab>
 
+                {/* APPEARANCE */}
+                <Tab eventKey="appearance" title="Appearance">
+                    <Card>
+                        <Card.Body>
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-4">
+                                        <Form.Label><strong>Unit Icon</strong></Form.Label>
+                                        <IconSelector 
+                                            selectedIcon={formData.unitIcon}
+                                            onChange={handleIconChange}
+                                        />
+                                        <Form.Text className="text-muted">
+                                            Select an icon to represent this unit on cards and in the army list.
+                                        </Form.Text>
+                                    </Form.Group>
+                                </Col>
+                                
+                                <Col md={6}>
+                                    <Form.Group className="mb-4">
+                                        <Form.Label><strong>Card Background</strong></Form.Label>
+                                        <BackgroundSelector
+                                            selectedBackground={formData.cardBackground}
+                                            onChange={handleBackgroundChange}
+                                        />
+                                        <Form.Text className="text-muted">
+                                            Select a background image for this unit's card.
+                                        </Form.Text>
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                            
+                            <div className="mt-4">
+                                <div className="mb-3">
+                                    <strong>Preview</strong>
+                                </div>
+                                <Row>
+                                    <Col md={8} className="mx-auto">
+                                        <UnitCard unit={formData} customUnitTypes={customUnitTypes} />
+                                    </Col>
+                                </Row>
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Tab>
+
                 {/* MINIATURES + NOTES */}
                 <Tab eventKey="notes" title="Notes">
-                    <Card><Card.Body><Form.Control as="textarea" name="notes" rows={5} value={formData.notes} onChange={handleChange} /></Card.Body></Card>
+                    <Card>
+                        <Card.Header>
+                            <h5 className="mb-0">Miniature Information</h5>
+                        </Card.Header>
+                        <Card.Body>
+                            <Form.Group className="mb-3">
+                                <Form.Label>Miniatures</Form.Label>
+                                <Form.Control 
+                                    as="textarea" 
+                                    name="miniatures" 
+                                    rows={3} 
+                                    value={formData.miniatures || ''} 
+                                    onChange={handleChange}
+                                    placeholder="Enter information about which miniatures to use for this unit..."
+                                />
+                            </Form.Group>
+                        </Card.Body>
+                    </Card>
+                    
+                    <Card className="mt-3">
+                        <Card.Header>
+                            <h5 className="mb-0">Notes</h5>
+                        </Card.Header>
+                        <Card.Body>
+                            <Form.Control 
+                                as="textarea" 
+                                name="notes" 
+                                rows={5} 
+                                value={formData.notes || ''} 
+                                onChange={handleChange}
+                                placeholder="Enter any additional notes about this unit..."
+                            />
+                        </Card.Body>
+                    </Card>
                 </Tab>
             </Tabs>
 

@@ -298,3 +298,113 @@ h1, h2, h3 {
   border-radius: 0.375rem;
   padding: 0.75rem;
 }
+
+/* src/styles/UnitCard.css */
+
+/* Unit Card Container */
+.unit-card-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Card Styling */
+.unit-card {
+  transition: transform 0.8s;
+  transform-style: preserve-3d;
+  position: relative;
+  width: 100%;
+  min-height: 500px;
+}
+
+.card-face {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.card-face.back {
+  transform: rotateY(180deg);
+}
+
+/* Faction-Specific Card Styling */
+.unit-card-front.faction-republic-border,
+.unit-card-back.faction-republic-border {
+  border: 2px solid #8e44ad;
+}
+
+.unit-card-front.faction-separatist-border,
+.unit-card-back.faction-separatist-border {
+  border: 2px solid #2980b9;
+}
+
+.unit-card-front.faction-rebel-border,
+.unit-card-back.faction-rebel-border {
+  border: 2px solid #d35400;
+}
+
+.unit-card-front.faction-empire-border,
+.unit-card-back.faction-empire-border {
+  border: 2px solid #34495e;
+}
+
+/* Styling for the card headers */
+.unit-card-front .card-header.faction-republic,
+.unit-card-back .card-header.faction-republic {
+  background-color: #8e44ad;
+  color: white;
+}
+
+.unit-card-front .card-header.faction-separatist,
+.unit-card-back .card-header.faction-separatist {
+  background-color: #2980b9;
+  color: white;
+}
+
+.unit-card-front .card-header.faction-rebel,
+.unit-card-back .card-header.faction-rebel {
+  background-color: #d35400;
+  color: white;
+}
+
+.unit-card-front .card-header.faction-empire,
+.unit-card-back .card-header.faction-empire {
+  background-color: #34495e;
+  color: white;
+}
+
+/* Icon and Selector Styling */
+.icon-card:hover,
+.bg-card:hover {
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+.icon-card.border-primary,
+.bg-card.border-primary {
+  box-shadow: 0 0 8px rgba(0, 123, 255, 0.7);
+}
+
+/* Print-friendly styles */
+@media print {
+  .unit-card-container .btn {
+    display: none;
+  }
+  
+  .unit-card {
+    transform: none !important;
+  }
+  
+  .card-face.front {
+    position: relative !important;
+    display: block !important;
+    page-break-after: always;
+  }
+  
+  .card-face.back {
+    transform: none !important;
+    position: relative !important;
+    display: block !important;
+  }
+}
