@@ -167,8 +167,9 @@ const UnitDetail = ({ unitId }) => {
 
         let stats = {
             wounds: unit.wounds || 1,
-            courage: unit.isVehicle ? 0 : (unit.courage || 1),
-            resilience: unit.isVehicle ? (unit.resilience || unit.courage || 1) : 0,
+            // Allow 0 values explicitly (will render as dash)
+            courage: unit.isVehicle ? 0 : (unit.courage !== undefined ? unit.courage : 1),
+            resilience: unit.isVehicle ? (unit.resilience !== undefined ? unit.resilience : 0) : 0,
             speed: unit.speed || 2,
             modelCount: unit.currentModelCount || 1,
             totalPoints: unit.points || 0,
@@ -362,16 +363,24 @@ const UnitDetail = ({ unitId }) => {
                                                 {unit.isVehicle ? (
                                                     <>
                                                         {modifiedStats.resilience !== unit.resilience && (
-                                                            <span className="text-primary">{modifiedStats.resilience}</span>
+                                                            <span className="text-primary">
+                                                                {modifiedStats.resilience === 0 ? '-' : modifiedStats.resilience}
+                                                            </span>
                                                         )}
-                                                        {modifiedStats.resilience === unit.resilience && unit.resilience}R /{' '}
+                                                        {modifiedStats.resilience === unit.resilience && (
+                                                            unit.resilience === 0 ? '-' : unit.resilience
+                                                        )}R /{' '}
                                                     </>
                                                 ) : (
                                                     <>
                                                         {modifiedStats.courage !== unit.courage && (
-                                                            <span className="text-primary">{modifiedStats.courage}</span>
+                                                            <span className="text-primary">
+                                                                {modifiedStats.courage === 0 ? '-' : modifiedStats.courage}
+                                                            </span>
                                                         )}
-                                                        {modifiedStats.courage === unit.courage && unit.courage}C /{' '}
+                                                        {modifiedStats.courage === unit.courage && (
+                                                            unit.courage === 0 ? '-' : unit.courage
+                                                        )}C /{' '}
                                                     </>
                                                 )}
 
@@ -380,8 +389,8 @@ const UnitDetail = ({ unitId }) => {
                                                 )}
                                                 {modifiedStats.speed === unit.speed && (unit.speed || 2)}S /{' '}
                                                 <span className={DefenseDice.getColorClass(unit.defense)}>
-                      {unit.defense === 'white' ? 'W' : 'R'}
-                    </span>{' '}
+                                                  {unit.defense === 'white' ? 'W' : 'R'}
+                                                </span>{' '}
                                                 Defense
                                             </p>
                                         </Col>

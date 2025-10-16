@@ -280,9 +280,11 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                     <div className="mb-3">
                       <div><strong>Faction:</strong> {Factions.getDisplayName(unit.faction)}</div>
                       <div>
-                        <strong>Stats:</strong> {unit.wounds}W / 
-                        {unit.isVehicle ? ` ${unit.resilience}R` : ` ${unit.courage}C`} / 
-                        {unit.speed}S / 
+                        <strong>Stats:</strong> {unit.wounds}W /
+                          {unit.isVehicle ?
+                              ` ${unit.resilience === 0 ? '-' : unit.resilience}R` :
+                              ` ${unit.courage === 0 ? '-' : unit.courage}C`} /
+                          {unit.speed}S / 
                         <span className={DefenseDice.getColorClass(unit.defense)}>
                           {unit.defense === 'white' ? 'W' : 'R'}
                         </span> Defense

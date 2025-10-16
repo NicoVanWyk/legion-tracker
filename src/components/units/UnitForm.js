@@ -80,9 +80,9 @@ const UnitForm = () => {
                         isVehicle: unitData.isVehicle || false,
                         surgeAttack: unitData.surgeAttack || false,
                         surgeDefense: unitData.surgeDefense || false,
-                        // For backward compatibility
-                        courage: unitData.isVehicle ? 0 : (unitData.courage || 1),
-                        resilience: unitData.isVehicle ? (unitData.resilience || unitData.courage || 1) : 0,
+                        // For backward compatibility - allow 0 for courage/resilience (will display as dash)
+                        courage: unitData.isVehicle ? 0 : (unitData.courage !== undefined ? unitData.courage : 1),
+                        resilience: unitData.isVehicle ? (unitData.resilience !== undefined ? unitData.resilience : 0) : 0,
                         // Appearance fields
                         unitIcon: unitData.unitIcon || '',
                         cardBackground: unitData.cardBackground || ''
@@ -129,7 +129,7 @@ const UnitForm = () => {
             setFormData(prev => ({
                 ...prev,
                 [name]: ['points', 'wounds', 'courage', 'resilience', 'speed', 'minModelCount'].includes(name)
-                    ? parseInt(value, 10) || 0
+                    ? (value === '' ? 0 : parseInt(value, 10))
                     : value
             }));
         }
