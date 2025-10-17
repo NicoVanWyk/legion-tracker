@@ -9,6 +9,7 @@ const Keywords = Object.freeze({
   RELENTLESS: 'relentless',
   SCOUT_1: 'scout_1',
   SCOUT_2: 'scout_2',
+  WHEEL_MODE: 'wheel_mode',
   
   // Attack Keywords
   ARSENAL_2: 'arsenal_2',
@@ -31,6 +32,8 @@ const Keywords = Object.freeze({
   COVER_2: 'cover_2',
   SHIELDED_1: 'shielded_1',
   SHIELDED_2: 'shielded_2',
+  SHIELDED_3: 'shielded_3',
+  SHIELDED_4: 'shielded_4',
   
   // Command Keywords
   INSPIRE_1: 'inspire_1',
@@ -55,6 +58,7 @@ const Keywords = Object.freeze({
   GUARDIAN_3: 'guardian_3',
   JEDI_HUNTER: 'jedi_hunter',
   MASTER_OF_THE_FORCE_1: 'master_of_the_force_1',
+  SORESU_MASTERY: 'Soresu Mastery',
   
   // Special Keywords
   GENERATOR_1: 'generator_1',
@@ -74,6 +78,7 @@ const Keywords = Object.freeze({
       case this.JUMP_2: return 'Jump 2';
       case this.SPEEDER_1: return 'Speeder 1';
       case this.SPEEDER_2: return 'Speeder 2';
+      case this.WHEEL_MODE: return 'Wheel Mode';
       case this.ARSENAL_2: return 'Arsenal 2';
       case this.SHARPSHOOTER_1: return 'Sharpshooter 1';
       case this.SHARPSHOOTER_2: return 'Sharpshooter 2';
@@ -89,6 +94,8 @@ const Keywords = Object.freeze({
       case this.COVER_2: return 'Cover 2';
       case this.SHIELDED_1: return 'Shielded 1';
       case this.SHIELDED_2: return 'Shielded 2';
+      case this.SHIELDED_3: return 'Shielded 3';
+      case this.SHIELDED_4: return 'Shielded 4';
       case this.INSPIRE_1: return 'Inspire 1';
       case this.INSPIRE_2: return 'Inspire 2';
       case this.TACTICAL_1: return 'Tactical 1';
@@ -104,6 +111,7 @@ const Keywords = Object.freeze({
       case this.GUARDIAN_2: return 'Guardian 2';
       case this.GUARDIAN_3: return 'Guardian 3';
       case this.MASTER_OF_THE_FORCE_1: return 'Master of the Force 1';
+      case this.SORESU_MASTERY: return 'Soresu Mastery';
       case this.GENERATOR_1: return 'Generator 1';
       case this.RELIABLE_1: return 'Reliable 1';
       
@@ -129,6 +137,9 @@ const Keywords = Object.freeze({
       case this.SPEEDER_2:
         return `This unit must make a compulsory free move action at the start of its activation. This move ignores terrain ${keyword.split('_')[1]} or lower, and does not reduce the number of actions available to the unit.`;
       
+      case this.WHEEL_MODE:
+        return 'At the start of this unit’s activation, it can enter Wheel Mode and increase its speed to 3 as an action. If it does, until it spends an action to exit Wheel mode, it gains Cover 2 and cannot attack or flip active shield tokens.'
+
       case this.RELENTLESS:
         return "After this unit performs a move action, it may perform a free attack action. If it does, it may not take another attack action during its Activation, but can take other actions.";
       
@@ -176,6 +187,8 @@ const Keywords = Object.freeze({
       
       case this.SHIELDED_1:
       case this.SHIELDED_2:
+      case this.SHIELDED_3:
+      case this.SHIELDED_4:
         return `This unit has ${keyword.split('_')[1]} shield token(s).`;
         
       // Command Keywords
@@ -225,6 +238,9 @@ const Keywords = Object.freeze({
       case this.MASTER_OF_THE_FORCE_1:
         return "At the end of this unit's activation, it may ready up to 1 exhausted Force upgrade cards.";
         
+      case this.SORESU_MASTERY:
+        return "While this unit is defending or using Guardian X, if it spends a dodge token, it gains Surge To Defence and the attacker suffers one wound for each surge result rolled.";
+
       // Special Keywords
       case this.GENERATOR_1:
         return "During the End Phase, flip 1 inactive shield token.";
@@ -251,7 +267,7 @@ const Keywords = Object.freeze({
     return {
       movement: [
         this.JUMP_1, this.JUMP_2, this.SCALE, this.SPEEDER_1, 
-        this.SPEEDER_2, this.RELENTLESS, this.SCOUT_1, this.SCOUT_2
+        this.SPEEDER_2, this.RELENTLESS, this.SCOUT_1, this.SCOUT_2, this.WHEEL_MODE
       ],
       attack: [
         this.ARSENAL_2, this.SHARPSHOOTER_1, this.SHARPSHOOTER_2, 
@@ -260,7 +276,7 @@ const Keywords = Object.freeze({
       defense: [
         this.ARMOR_1, this.ARMOR_2, this.ARMOR_3, this.IMPERVIOUS, 
         this.IMMUNE_PIERCE, this.DEFLECT, this.BLOCK, this.COVER_1, 
-        this.COVER_2, this.SHIELDED_1, this.SHIELDED_2
+        this.COVER_2, this.SHIELDED_1, this.SHIELDED_2, this.SHIELDED_3, this.SHIELDED_4
       ],
       command: [
         this.INSPIRE_1, this.INSPIRE_2, this.TACTICAL_1, this.TACTICAL_2, 
@@ -271,7 +287,7 @@ const Keywords = Object.freeze({
       ],
       force: [
         this.CHARGE, this.GUARDIAN_1, this.GUARDIAN_2, this.GUARDIAN_3, 
-        this.JEDI_HUNTER, this.MASTER_OF_THE_FORCE_1
+        this.JEDI_HUNTER, this.MASTER_OF_THE_FORCE_1, this.SORESU_MASTERY
       ],
       special: [
         this.GENERATOR_1, this.RELIABLE_1, this.SENTINEL, this.UNSTOPPABLE, this.FIRE_SUPPORT
