@@ -44,6 +44,7 @@ const Keywords = Object.freeze({
   // AI Keywords
   AI_ATTACK: 'ai_attack',
   AI_MOVE: 'ai_move',
+  AI_MOVE_ATTACK: 'ai_move_attack',
   SWARM_INSTINCT_ATTACK: 'swarm_instinct_attack',
   SWARM_INSTINCT_MOVE: 'swarm_instinct_move',
   
@@ -96,6 +97,7 @@ const Keywords = Object.freeze({
       case this.TARGET_2: return 'Target 2';
       case this.AI_ATTACK: return 'AI: Attack';
       case this.AI_MOVE: return 'AI: Move';
+      case this.AI_MOVE_ATTACK: return 'AI: Move, Attack';
       case this.SWARM_INSTINCT_ATTACK: return 'Swarm Instinct: Attack';
       case this.SWARM_INSTINCT_MOVE: return 'Swarm Instinct: Move';
       case this.GUARDIAN_1: return 'Guardian 1';
@@ -199,6 +201,9 @@ const Keywords = Object.freeze({
       case this.AI_MOVE:
         return "During the Perform Actions step of this unit's activation, it must perform a move action if it does not have a faceup order token.";
       
+      case this.AI_MOVE_ATTACK:
+        return "During the Perform Actions step of this unit's activation, it must perform an attack or move action if it does not have a faceup order token.";
+
       case this.SWARM_INSTINCT_ATTACK:
         return "During the Perform Actions step of this unit's activation, it must perform an attack action if it does not have a faceup order token.";
       
@@ -262,7 +267,7 @@ const Keywords = Object.freeze({
         this.TARGET_1, this.TARGET_2, this.COORDINATE
       ],
       ai: [
-        this.AI_ATTACK, this.AI_MOVE, this.SWARM_INSTINCT_ATTACK, this.SWARM_INSTINCT_MOVE
+        this.AI_ATTACK, this.AI_MOVE, this.AI_MOVE_ATTACK, this.SWARM_INSTINCT_ATTACK, this.SWARM_INSTINCT_MOVE
       ],
       force: [
         this.CHARGE, this.GUARDIAN_1, this.GUARDIAN_2, this.GUARDIAN_3, 
