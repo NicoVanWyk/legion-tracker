@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/legion-tracker/static/css/main.c270639e.css",
-    "main.js": "/legion-tracker/static/js/main.4d040a5e.js",
+    "main.js": "/legion-tracker/static/js/main.c5425a12.js",
     "static/media/bootstrap-icons.woff?": "/legion-tracker/static/media/bootstrap-icons.1295669cd4e305c97f2c.woff",
     "static/media/bootstrap-icons.woff2?": "/legion-tracker/static/media/bootstrap-icons.92ea18a81d737146ff04.woff2",
     "static/media/republic-default.png": "/legion-tracker/static/media/republic-default.b9fc2862f324743cb59e.png",
@@ -16,10 +16,10 @@
     "static/media/SPHA-T Symbol.png": "/legion-tracker/static/media/SPHA-T Symbol.f7113e9288705c5d11c8.png",
     "index.html": "/legion-tracker/index.html",
     "main.c270639e.css.map": "/legion-tracker/static/css/main.c270639e.css.map",
-    "main.4d040a5e.js.map": "/legion-tracker/static/js/main.4d040a5e.js.map"
+    "main.c5425a12.js.map": "/legion-tracker/static/js/main.c5425a12.js.map"
   },
   "entrypoints": [
     "static/css/main.c270639e.css",
-    "static/js/main.4d040a5e.js"
+    "static/js/main.c5425a12.js"
   ]
 }
