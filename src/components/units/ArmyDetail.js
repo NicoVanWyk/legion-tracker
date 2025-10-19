@@ -13,11 +13,14 @@ import WeaponKeywords from '../../enums/WeaponKeywords';
 import WeaponRanges from '../../enums/WeaponRanges';
 import AttackDice from '../../enums/AttackDice';
 import LoadingSpinner from '../layout/LoadingSpinner';
+import ExportButton from '../common/ExportButton';
+import ExportUtils from '../../utils/ExportUtils';
 
 const ArmyDetail = ({ armyId }) => {
   const [army, setArmy] = useState(null);
   const [unitDetails, setUnitDetails] = useState([]);
   const [upgrades, setUpgrades] = useState([]);
+  const [abilities, setAbilities] = useState([]);
   const [customKeywords, setCustomKeywords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -76,6 +79,16 @@ const ArmyDetail = ({ armyId }) => {
           }));
           setUpgrades(upgradesList);
           
+          // Fetch all abilities
+          const abilitiesRef = collection(db, 'users', currentUser.uid, 'abilities');
+          const abilitiesSnapshot = await getDocs(abilitiesRef);
+          const abilitiesList = abilitiesSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          setAbilities(abilitiesList);
+          
+          // Fetch unit details
           for (const unitId of unitIds) {
             const unitRef = doc(db, 'users', currentUser.uid, 'units', unitId);
             const unitDoc = await getDoc(unitRef);
@@ -155,6 +168,24 @@ const ArmyDetail = ({ armyId }) => {
 
   const startBattle = () => {
     navigate(`/battles/create?armyId=${armyId}`);
+  };
+
+  // Handle exporting the army
+  const handleExportArmy = () => {
+    if (!army) return;
+    
+    // Use ExportUtils to generate text content
+    const armyText = ExportUtils.exportArmy(
+      army, 
+      unitDetails, 
+      customKeywords, 
+      upgrades, 
+      abilities,
+      customUnitTypes
+    );
+    
+    // Download the file
+    ExportUtils.downloadTextFile(armyText, `${army.name.replace(/\s+/g, '_')}_army.txt`);
   };
 
   const getTypeDisplayName = (type) => {
@@ -307,8 +338,13 @@ const ArmyDetail = ({ armyId }) => {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2>{army.name}</h2>
         <div>
+          <ExportButton 
+            className="me-2" 
+            onExport={handleExportArmy}
+            text="Export Army"
+          />
           <Button variant="outline-primary" onClick={printArmy} className="me-2">
-            Print
+            <i className="bi bi-printer"></i> Print
           </Button>
           <Button variant="outline-success" onClick={startBattle} className="me-2">
             Start Battle

@@ -1,3 +1,4 @@
+// src/components/units/UnitDetail.js
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Badge, Button, Alert, ListGroup, Accordion, Tab, Tabs } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
@@ -14,6 +15,8 @@ import AttackDice from '../../enums/AttackDice';
 import WeaponKeywords from '../../enums/WeaponKeywords';
 import LoadingSpinner from '../layout/LoadingSpinner';
 import UnitCard from './UnitCard';
+import ExportButton from '../common/ExportButton';
+import ExportUtils from '../../utils/ExportUtils';
 
 const UnitDetail = ({ unitId }) => {
     const [unit, setUnit] = useState(null);
@@ -102,9 +105,7 @@ const UnitDetail = ({ unitId }) => {
             return customKeyword ? (
                 <>
                     {customKeyword.name}
-                    <span className="ms-1" title="Custom Keyword">
-                ★
-            </span>
+                    <span className="ms-1" title="Custom Keyword">★</span>
                 </>
             ) : (
                 keyword
@@ -141,6 +142,17 @@ const UnitDetail = ({ unitId }) => {
     };
 
     const cancelDelete = () => setConfirmDelete(false);
+
+    // Handle exporting the unit
+    const handleExportUnit = () => {
+        if (!unit) return;
+        
+        // Use ExportUtils to generate text content
+        const unitText = ExportUtils.exportUnit(unit, customKeywords, upgrades, abilities, customUnitTypes);
+        
+        // Download the file
+        ExportUtils.downloadTextFile(unitText, `${unit.name.replace(/\s+/g, '_')}_unit.txt`);
+    };
 
     // Get all keywords including those from upgrades
     const getAllKeywords = () => {
@@ -312,6 +324,11 @@ const UnitDetail = ({ unitId }) => {
                             )}
                         </h2>
                         <div>
+                            <ExportButton 
+                                className="me-2" 
+                                onExport={handleExportUnit}
+                                text="Export Unit"
+                            />
                             <Button variant="outline-secondary" onClick={printUnitCard} className="me-2">
                                 <i className="bi bi-printer"></i> Print Card
                             </Button>
@@ -636,6 +653,12 @@ const UnitDetail = ({ unitId }) => {
                                                 customUnitTypes={customUnitTypes}
                                             />
                                             <div className="text-center mt-4">
+                                                <ExportButton 
+                                                    className="me-2"
+                                                    variant="primary" 
+                                                    onExport={handleExportUnit}
+                                                    text="Export Unit"
+                                                />
                                                 <Button variant="outline-secondary" onClick={printUnitCard}>
                                                     <i className="bi bi-printer"></i> Print Card
                                                 </Button>
