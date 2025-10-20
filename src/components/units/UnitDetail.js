@@ -183,7 +183,7 @@ const UnitDetail = ({ unitId }) => {
             courage: unit.isVehicle ? 0 : (unit.courage !== undefined ? unit.courage : 1),
             resilience: unit.isVehicle ? (unit.resilience !== undefined ? unit.resilience : 0) : 0,
             speed: unit.speed || 2,
-            modelCount: unit.currentModelCount || 1,
+            modelCount: unit.minModelCount || 1,
             totalPoints: unit.points || 0,
             surgeAttack: unit.surgeAttack || false,
             surgeDefense: unit.surgeDefense || false
@@ -416,8 +416,8 @@ const UnitDetail = ({ unitId }) => {
                                         <Col md={6}>
                                             <p>
                                                 <strong>Model Count:</strong> Min: {unit.minModelCount || 1} | Current:{' '}
-                                                {unit.currentModelCount || 1}
-                                                {modifiedStats.modelCount !== unit.currentModelCount && (
+                                                {unit.minModelCount || 1}
+                                                {modifiedStats.modelCount !== unit.minModelCount && (
                                                     <span className="text-primary"> → {modifiedStats.modelCount}</span>
                                                 )}
                                             </p>

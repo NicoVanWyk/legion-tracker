@@ -9,6 +9,8 @@ const Keywords = Object.freeze({
   RELENTLESS: 'relentless',
   SCOUT_1: 'scout_1',
   SCOUT_2: 'scout_2',
+  SCOUTING_PARTY_1: 'scouting_party_1',
+  SCOUTING_PARTY_2: 'scouting_party_2',
   WHEEL_MODE: 'wheel_mode',
   
   // Attack Keywords
@@ -146,6 +148,10 @@ const Keywords = Object.freeze({
       case this.SCOUT_1:
       case this.SCOUT_2:
         return `After setup, this unit can perform a speed-${keyword.split('_')[1]} move.`;
+
+      case this.SCOUTING_PARTY_1:
+      case this.SCOUTING_PARTY_2:
+        return `After a unit with the Scouting Party ${keyword.split('_')[2]} keyword uses the Scout keyword, it may choose up to ${keyword.split('_')[2]} friendly trooper units at range 1–2 that have not performed a move using the Scout keyword. Each chosen unit may perform a move with a speed equal to x, where x is the Scout x value of the unit with the Scouting Party keyword.`;
         
       // Attack Keywords
       case this.ARSENAL_2:
@@ -267,7 +273,8 @@ const Keywords = Object.freeze({
     return {
       movement: [
         this.JUMP_1, this.JUMP_2, this.SCALE, this.SPEEDER_1, 
-        this.SPEEDER_2, this.RELENTLESS, this.SCOUT_1, this.SCOUT_2, this.WHEEL_MODE
+        this.SPEEDER_2, this.RELENTLESS, this.SCOUT_1, this.SCOUT_2, this.WHEEL_MODE,
+        this.SCOUTING_PARTY_1, this.SCOUTING_PARTY_2
       ],
       attack: [
         this.ARSENAL_2, this.SHARPSHOOTER_1, this.SHARPSHOOTER_2, 
