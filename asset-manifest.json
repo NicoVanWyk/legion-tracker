@@ -1,7 +1,10 @@
 {
   "files": {
-    "main.css": "/legion-tracker/static/css/main.c270639e.css",
-    "main.js": "/legion-tracker/static/js/main.b46778d7.js",
+    "main.css": "/legion-tracker/static/css/main.3b9a3650.css",
+    "main.js": "/legion-tracker/static/js/main.328cb069.js",
+    "static/js/239.12504d40.chunk.js": "/legion-tracker/static/js/239.12504d40.chunk.js",
+    "static/js/977.00a8671b.chunk.js": "/legion-tracker/static/js/977.00a8671b.chunk.js",
+    "static/js/455.dd983f3e.chunk.js": "/legion-tracker/static/js/455.dd983f3e.chunk.js",
     "static/media/bootstrap-icons.woff?": "/legion-tracker/static/media/bootstrap-icons.1295669cd4e305c97f2c.woff",
     "static/media/bootstrap-icons.woff2?": "/legion-tracker/static/media/bootstrap-icons.92ea18a81d737146ff04.woff2",
     "static/media/republic-default.png": "/legion-tracker/static/media/republic-default.b9fc2862f324743cb59e.png",
@@ -15,11 +18,14 @@
     "static/media/Shockwave Stormbringer.png": "/legion-tracker/static/media/Shockwave Stormbringer.7a22c8d3591845b8236b.png",
     "static/media/SPHA-T Symbol.png": "/legion-tracker/static/media/SPHA-T Symbol.f7113e9288705c5d11c8.png",
     "index.html": "/legion-tracker/index.html",
-    "main.c270639e.css.map": "/legion-tracker/static/css/main.c270639e.css.map",
-    "main.b46778d7.js.map": "/legion-tracker/static/js/main.b46778d7.js.map"
+    "main.3b9a3650.css.map": "/legion-tracker/static/css/main.3b9a3650.css.map",
+    "main.328cb069.js.map": "/legion-tracker/static/js/main.328cb069.js.map",
+    "239.12504d40.chunk.js.map": "/legion-tracker/static/js/239.12504d40.chunk.js.map",
+    "977.00a8671b.chunk.js.map": "/legion-tracker/static/js/977.00a8671b.chunk.js.map",
+    "455.dd983f3e.chunk.js.map": "/legion-tracker/static/js/455.dd983f3e.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.c270639e.css",
-    "static/js/main.b46778d7.js"
+    "static/css/main.3b9a3650.css",
+    "static/js/main.328cb069.js"
   ]
 }
