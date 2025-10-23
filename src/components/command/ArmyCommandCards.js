@@ -22,6 +22,7 @@ const ArmyCommandCards = () => {
     const [availableCards, setAvailableCards] = useState([]);
     const [selectedCards, setSelectedCards] = useState([]);
     const [commanderNames, setCommanderNames] = useState([]);
+    const [searchTerm, setSearchTerm] = useState(''); // Added missing state variable
 
     const MAX_CARDS = 7; // Maximum allowed command cards per army
 
@@ -186,6 +187,16 @@ const ArmyCommandCards = () => {
         }
     };
 
+    // Filter available cards based on search term
+    const filteredAvailableCards = availableCards.filter(card => {
+        if (!searchTerm) return true;
+
+        return (
+            card.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (card.description && card.description.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+    });
+
     if (loading) {
         return <LoadingSpinner text="Loading army command cards..." />;
     }
@@ -332,11 +343,12 @@ const ArmyCommandCards = () => {
                                     type="text"
                                     placeholder="Search available cards..."
                                     onChange={(e) => setSearchTerm(e.target.value)}
+                                    value={searchTerm}
                                 />
                             </Form.Group>
 
                             <ListGroup>
-                                {availableCards.map(card => {
+                                {filteredAvailableCards.map(card => {
                                     // Skip cards that are already selected
                                     if (selectedCards.includes(card.id)) {
                                         return null;

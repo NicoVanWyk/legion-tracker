@@ -1,4 +1,4 @@
-// src/App.js (Complete Fixed Version)
+// src/App.js (Complete Updated Version)
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Container } from 'react-bootstrap';
@@ -24,6 +24,7 @@ import Battles from './pages/Battles';
 import ReferencePage from './pages/ReferencePage';
 import ProfilePage from './pages/ProfilePage';
 import NotFound from './pages/NotFound';
+import CommandCards from './pages/CommandCards';
 
 // Custom Keywords
 import CustomKeywordList from './components/custom/CustomKeywordList';
@@ -40,6 +41,9 @@ import AbilityForm from './components/abilities/AbilityForm';
 // Upgrades
 import UpgradeCardList from './components/upgrades/UpgradeCardList';
 import UpgradeCardForm from './components/upgrades/UpgradeCardForm';
+
+// Command Cards
+import ArmyCommandCards from './components/command/ArmyCommandCards';
 
 // Import Bootstrap CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -83,6 +87,12 @@ function App() {
                                 <Route path="/armies/:armyId" element={<Armies />} />
                                 <Route path="/armies/create" element={<Armies />} />
                                 <Route path="/armies/edit/:armyId" element={<Armies />} />
+                                <Route path="/armies/:armyId/command-cards" element={<ArmyCommandCards />} />
+
+                                {/* Command Card Routes */}
+                                <Route path="/command-cards" element={<CommandCards />} />
+                                <Route path="/command-cards/create" element={<CommandCards />} />
+                                <Route path="/command-cards/edit/:cardId" element={<CommandCards />} />
 
                                 {/* Battle Routes */}
                                 <Route path="/battles" element={<Battles />} />
