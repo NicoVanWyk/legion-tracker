@@ -1,4 +1,4 @@
-// src/components/layout/Header.js (Updated with Reference Panel)
+// src/components/layout/Header.js (Updated with Command Cards)
 import React, { useState } from 'react';
 import logo from '../../assets/SWLegionLogo.png';
 import { Navbar, Nav, Container, Button, NavDropdown } from 'react-bootstrap';
@@ -49,6 +49,7 @@ const Header = () => {
                                         <NavDropdown.Divider />
                                         <NavDropdown.Item as={Link} to="/armies">My Armies</NavDropdown.Item>
                                         <NavDropdown.Item as={Link} to="/armies/create">Create Army</NavDropdown.Item>
+                                        <NavDropdown.Divider />
                                     </NavDropdown>
 
                                     <NavDropdown title="Customization" id="custom-dropdown">
@@ -62,7 +63,11 @@ const Header = () => {
                                             Custom Unit Types
                                         </NavDropdown.Item>
                                         <NavDropdown.Divider />
-                                        <NavDropdown.Header>Abilities & Upgrades</NavDropdown.Header>
+                                        <NavDropdown.Header>Cards & Abilities</NavDropdown.Header>
+                                        <NavDropdown.Item as={Link} to="/command-cards">
+                                            <i className="bi bi-card-heading me-2"></i>
+                                            Command Cards
+                                        </NavDropdown.Item>
                                         <NavDropdown.Item as={Link} to="/abilities">
                                             <i className="bi bi-stars me-2"></i>
                                             Abilities
@@ -140,7 +145,7 @@ const Header = () => {
             </Navbar>
 
             {/* Reference Panel - Accessible from anywhere */}
-            <ReferencePanel 
+            <ReferencePanel
                 show={showReferencePanel}
                 onHide={() => setShowReferencePanel(false)}
             />
