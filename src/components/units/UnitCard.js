@@ -167,8 +167,9 @@ const UnitCard = ({ unit, customUnitTypes }) => {
         unit.upgradeSlots?.forEach(slot => {
             slot.equippedUpgrades?.forEach(upgradeId => {
                 const upgrade = upgrades.find(u => u.id === upgradeId);
-                if (upgrade?.effects?.statModifiers) {
-                    const mods = upgrade.effects.statModifiers;
+                const effects = upgrade?.effects || {};
+                if (effects.statModifiers) {
+                    const mods = effects.statModifiers;
 
                     // Store which upgrade modified what stat for displaying tooltips
                     if (mods.wounds) {
@@ -205,12 +206,12 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                 }
 
                 // Track model count changes
-                if (upgrade.effects?.modelCountChange) {
-                    stats.modelCount += upgrade.effects.modelCountChange;
+                if (typeof effects.modelCountChange === 'number') {
+                    stats.modelCount += effects.modelCountChange;
                     stats.upgrades.push({
                         stat: 'modelCount',
                         name: upgrade.name,
-                        value: upgrade.effects.modelCountChange
+                        value: effects.modelCountChange
                     });
                 }
             });
@@ -387,12 +388,12 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                                             }
                                         >
                                             <div className="me-2">
-                        <span className="text-primary">
-                          {totalPoints} pts
-                          <small className="ms-1">
-                            <i className="bi bi-info-circle-fill"></i>
-                          </small>
-                        </span>
+                                                <span className="text-light">
+                                                {totalPoints} pts
+                                                <small className="ms-1">
+                                                    <i className="bi bi-info-circle-fill"></i>
+                                                </small>
+                                                </span>
                                             </div>
                                         </OverlayTrigger>
                                     ) : (
@@ -638,12 +639,12 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                                             }
                                         >
                                             <div className="me-2">
-                        <span className="text-primary">
-                          {totalPoints} pts
-                          <small className="ms-1">
-                            <i className="bi bi-info-circle-fill"></i>
-                          </small>
-                        </span>
+                                                <span className="text-light">
+                                                {totalPoints} pts
+                                                <small className="ms-1">
+                                                    <i className="bi bi-info-circle-fill"></i>
+                                                </small>
+                                                </span>
                                             </div>
                                         </OverlayTrigger>
                                     ) : (
@@ -704,50 +705,68 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                                                     {upgrade.description && (
                                                         <div className="small text-muted">{upgrade.description}</div>
                                                     )}
-                                                    {upgrade.effects && (
-                                                        <div className="small mt-1">
-                                                            {upgrade.effects.statModifiers && Object.entries(upgrade.effects.statModifiers)
-                                                                .filter(([key, value]) => value !== undefined && value !== null && value !== 0)
+                                                    {upgrade.effects && (() => {
+                                                        const effects = upgrade.effects || {};
+                                                        const mods = effects.statModifiers || {};
+
+                                                        return (
+                                                            <div className="small mt-1">
+                                                            {/* Stat Modifiers */}
+                                                            {Object.entries(mods)
+                                                                .filter(([_, value]) => value !== undefined && value !== null && value !== 0)
                                                                 .map(([key, value], idx) => {
-                                                                    // Format stat modifier for display
-                                                                    let statName;
-                                                                    switch(key) {
-                                                                        case 'wounds': statName = 'Wounds'; break;
-                                                                        case 'courage': statName = unit.isVehicle ? 'Resilience' : 'Courage'; break;
-                                                                        case 'resilience': statName = 'Resilience'; break;
-                                                                        case 'speed': statName = 'Speed'; break;
-                                                                        case 'surgeAttack': statName = 'Surge Attack'; break;
-                                                                        case 'surgeDefense': statName = 'Surge Defense'; break;
-                                                                        default: statName = key.charAt(0).toUpperCase() + key.slice(1);
-                                                                    }
+                                                                let statName;
+                                                                switch (key) {
+                                                                    case 'wounds': statName = 'Wounds'; break;
+                                                                    case 'courage': statName = unit.isVehicle ? 'Resilience' : 'Courage'; break;
+                                                                    case 'resilience': statName = 'Resilience'; break;
+                                                                    case 'speed': statName = 'Speed'; break;
+                                                                    case 'surgeAttack': statName = 'Surge Attack'; break;
+                                                                    case 'surgeDefense': statName = 'Surge Defense'; break;
+                                                                    default: statName = key.charAt(0).toUpperCase() + key.slice(1);
+                                                                }
 
-                                                                    // For boolean values like surges
-                                                                    if (typeof value === 'boolean') {
-                                                                        return <Badge key={idx} bg="info" className="me-1 mb-1">Adds {statName}</Badge>;
-                                                                    }
+                                                                // Boolean values like surges
+                                                                if (typeof value === 'boolean') {
+                                                                    return (
+                                                                    <Badge key={idx} bg="info" className="me-1 mb-1">
+                                                                        Adds {statName}
+                                                                    </Badge>
+                                                                    );
+                                                                }
 
-                                                                    // For numeric values
-                                                                    const prefix = value > 0 ? '+' : '';
-                                                                    return <Badge key={idx} bg="info" className="me-1 mb-1">{statName} {prefix}{value}</Badge>;
-                                                                })
-                                                            }
-                                                            {upgrade.effects.modelCountChange && (
+                                                                // Numeric values
+                                                                const prefix = value > 0 ? '+' : '';
+                                                                return (
+                                                                    <Badge key={idx} bg="info" className="me-1 mb-1">
+                                                                    {statName} {prefix}{value}
+                                                                    </Badge>
+                                                                );
+                                                                })}
+
+                                                            {/* Model Count Change */}
+                                                            {typeof effects.modelCountChange === 'number' && effects.modelCountChange !== 0 && (
                                                                 <Badge bg="info" className="me-1 mb-1">
-                                                                    Models {upgrade.effects.modelCountChange > 0 ? '+' : ''}{upgrade.effects.modelCountChange}
+                                                                Models {effects.modelCountChange > 0 ? '+' : ''}{effects.modelCountChange}
                                                                 </Badge>
                                                             )}
-                                                            {upgrade.effects.addKeywords?.length > 0 && (
+
+                                                            {/* Added Keywords */}
+                                                            {Array.isArray(effects.addKeywords) && effects.addKeywords.length > 0 && (
                                                                 <Badge bg="info" className="me-1 mb-1">
-                                                                    Adds {upgrade.effects.addKeywords.length} Keyword{upgrade.effects.addKeywords.length !== 1 ? 's' : ''}
+                                                                Adds {effects.addKeywords.length} Keyword{effects.addKeywords.length !== 1 ? 's' : ''}
                                                                 </Badge>
                                                             )}
-                                                            {upgrade.effects.addWeapons?.length > 0 && (
+
+                                                            {/* Added Weapons */}
+                                                            {Array.isArray(effects.addWeapons) && effects.addWeapons.length > 0 && (
                                                                 <Badge bg="info" className="me-1 mb-1">
-                                                                    Adds {upgrade.effects.addWeapons.length} Weapon{upgrade.effects.addWeapons.length !== 1 ? 's' : ''}
+                                                                Adds {effects.addWeapons.length} Weapon{effects.addWeapons.length !== 1 ? 's' : ''}
                                                                 </Badge>
                                                             )}
-                                                        </div>
-                                                    )}
+                                                            </div>
+                                                        );
+                                                        })()}
                                                 </li>
                                             ))}
                                         </ul>

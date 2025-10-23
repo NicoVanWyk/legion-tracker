@@ -17,6 +17,7 @@ import LoadingSpinner from '../layout/LoadingSpinner';
 import UnitCard from './UnitCard';
 import ExportButton from '../common/ExportButton';
 import ExportUtils from '../../utils/ExportUtils';
+import { exportToPDF } from '../../utils/exportToPDF';
 
 const UnitDetail = ({ unitId }) => {
     const [unit, setUnit] = useState(null);
@@ -648,17 +649,16 @@ const UnitDetail = ({ unitId }) => {
                                 <Card.Body>
                                     <Row>
                                         <Col lg={8} className="mx-auto">
-                                            <UnitCard 
-                                                unit={unit} 
-                                                customUnitTypes={customUnitTypes}
-                                            />
-                                            <div className="text-center mt-4">
-                                                <ExportButton 
-                                                    className="me-2"
-                                                    variant="primary" 
-                                                    onExport={handleExportUnit}
-                                                    text="Export Unit"
+                                            <div id="exportArea" className="export-container">
+                                                <UnitCard 
+                                                    unit={unit} 
+                                                    customUnitTypes={customUnitTypes}
                                                 />
+                                            </div>
+                                            <div className="text-center mt-4">
+                                                <Button onClick={() => exportToPDF("exportArea", "Legion_Report.pdf")}>
+                                                    Export as PDF
+                                                </Button>
                                                 <Button variant="outline-secondary" onClick={printUnitCard}>
                                                     <i className="bi bi-printer"></i> Print Card
                                                 </Button>
