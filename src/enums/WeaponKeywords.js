@@ -82,6 +82,9 @@ const WeaponKeywords = Object.freeze({
   
   // Reconfigure
   RECONFIGURE: 'reconfigure',
+
+  // Unique
+  EXTRACT: 'extract',
   
   // Strafe
   STRAFE: 'strafe',
@@ -147,6 +150,7 @@ const WeaponKeywords = Object.freeze({
       case this.TOW_CABLE: return 'Tow Cable';
       case this.CUMBERSOME: return 'Cumbersome';
       case this.RECONFIGURE: return 'Reconfigure';
+      case this.EXTRACT: return 'Extract';
       case this.STRAFE: return 'Strafe';
       
       default: return keyword.split('_').map(word => 
@@ -252,7 +256,10 @@ const WeaponKeywords = Object.freeze({
       
       case this.RECONFIGURE:
         return 'As a free action, this weapon may switch between different configurations with different weapon profiles.';
-      
+            
+      case this.EXTRACT:
+        return 'If this unit defeats an enemy mini using a melee attack, it gains 1 Extraction Token. If this unit defeats an enemy mini using a ranged attack, roll a white defense dice - on a Block result, this unit gains 1 Extraction Token. Droids and Vehicles do not generate extraction tokens.'
+
       case this.STRAFE:
         return 'After you perform an attack, you may perform a speed-1 move. This move does not trigger abilities.';
       
@@ -275,7 +282,7 @@ const WeaponKeywords = Object.freeze({
       arm: [this.ARM_1, this.ARM_2],
       fixed: [this.FIXED_FRONT, this.FIXED_SIDES, this.FIXED_REAR],
       special: [this.BLAST, this.SUPPRESSIVE, this.SPRAY, this.HIGH_VELOCITY, 
-                this.SCATTER, this.TOW_CABLE, this.STRAFE],
+                this.SCATTER, this.TOW_CABLE, this.STRAFE, this.EXTRACT],
       usage: [this.EXHAUST, this.CYCLE, this.LIMITED, this.VERSATILE, 
               this.CUMBERSOME, this.RECONFIGURE]
     };
@@ -298,7 +305,7 @@ const WeaponKeywords = Object.freeze({
       this.SPRAY, this.HIGH_VELOCITY,
       this.EXHAUST, this.CYCLE, this.LIMITED, this.VERSATILE,
       this.SCATTER, this.TOW_CABLE, this.CUMBERSOME, 
-      this.RECONFIGURE, this.STRAFE
+      this.RECONFIGURE, this.STRAFE, this.EXTRACT
     ];
   }
 });
