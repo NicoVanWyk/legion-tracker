@@ -43,6 +43,8 @@ const Keywords = Object.freeze({
   IMMUNE_DEFLECT: 'immune_deflect',
   IMMUNE_ENEMY_EFFECTS: 'immune_enemy_effects',
   DEFLECT: 'deflect',
+  DEFEND_1: 'defend_1',
+  DEFEND_2: 'defend_2',
   BLOCK: 'block',
   COVER_1: 'cover_1',
   COVER_2: 'cover_2',
@@ -129,6 +131,10 @@ const Keywords = Object.freeze({
   ADVANCED_TARGETING_2: 'advanced_targeting_2',
   TAKE_COVER_1: 'take_cover_1',
   TAKE_COVER_2: 'take_cover_2',
+  TREAT_1_CAPACITY_1: 'treat_1_capacity_1',
+  TREAT_2_CAPACITY_1: 'treat_2_capacity_1',
+  TREAT_1_CAPACITY_2: 'treat_1_capacity_2',
+  TREAT_2_CAPACITY_2: 'treat_2_capacity_2',
   
   // For display purposes
   getDisplayName: function(keyword) {
@@ -173,6 +179,8 @@ const Keywords = Object.freeze({
       case this.INSPIRE_2: return 'Inspire 2';
       case this.TACTICAL_1: return 'Tactical 1';
       case this.TACTICAL_2: return 'Tactical 2';
+      case this.DEFEND_1: return 'Defend 1';
+      case this.DEFEND_2: return 'Defend 2';
       case this.TARGET_1: return 'Target 1';
       case this.TARGET_2: return 'Target 2';
       case this.COORDINATE_DROID_TROOPER: return 'Coordinate: Droid Trooper';
@@ -219,6 +227,10 @@ const Keywords = Object.freeze({
       case this.SCOUTING_PARTY_2: return 'Scouting Party 2';
       case this.SCOUT_1: return 'Scout 1';
       case this.SCOUT_2: return 'Scout 2';
+      case this.TREAT_1_CAPACITY_1: return 'Treat 1 Capacity 1';
+      case this.TREAT_1_CAPACITY_2: return 'Treat 1 Capacity 2';
+      case this.TREAT_2_CAPACITY_1: return 'Treat 2 Capacity 1';
+      case this.TREAT_2_CAPACITY_2: return 'Treat 2 Capacity 2';
       
       default:
         return keyword.split('_').map(word => 
@@ -326,8 +338,12 @@ const Keywords = Object.freeze({
       
       case this.DEFLECT:
         return "While this unit is defending, if it spends a dodge token, it gains Surge To Deflect. Additionally, if the attack is ranged, the attacker suffers one wound for each surge result rolled by this unit during the \"Roll Defense Dice\" step.";
-      
-      case this.BLOCK:
+
+      case this.DEFEND_1:
+      case this.DEFEND_2:
+        return `If this unit was issued an order, it gains ${keyword.split('_')[1]} dodge tokens.`;
+
+        case this.BLOCK:
         return "If this unit blocks and it spends a dodge token, its Surge Chart gains Surge to Defence.";
       
       case this.COVER_1:
@@ -459,6 +475,12 @@ const Keywords = Object.freeze({
       case this.TRANSPORT_2:
       case this.TRANSPORT_3:
         return `This unit can transport up to ${keyword.split('_')[1]} trooper unit(s).`;
+
+      case this.TREAT_1_CAPACITY_1:
+      case this.TREAT_1_CAPACITY_2:
+      case this.TREAT_2_CAPACITY_1:
+      case this.TREAT_2_CAPACITY_2:
+        return `As a free action, you may restore ${keyword.split('_')[1]} wounds to target unit. You may only do this until you have restored an amount of wounds equal to or exceeding ${keyword.split('_')[2]}.`;
       
       case this.OPEN_TRANSPORT:
         return "Units embarked on this transport may perform attacks as if they were not embarked.";
@@ -547,7 +569,7 @@ const Keywords = Object.freeze({
         this.DEFLECT, this.BLOCK, this.COVER_1, this.COVER_2, 
         this.SHIELDED_1, this.SHIELDED_2, this.SHIELDED_3, this.SHIELDED_4,
         this.DANGER_SENSE_1, this.DANGER_SENSE_2, this.DANGER_SENSE_3,
-        this.INCONSPICUOUS, this.LOW_PROFILE
+        this.INCONSPICUOUS, this.LOW_PROFILE, this.DEFEND_1, this.DEFEND_2
       ],
       command: [
         this.INSPIRE_1, this.INSPIRE_2, this.TACTICAL_1, this.TACTICAL_2, 
@@ -574,7 +596,8 @@ const Keywords = Object.freeze({
         this.DEMORALIZE_1, this.DEMORALIZE_2, this.REINFORCEMENTS, this.LOADOUT,
         this.LEADER, this.AID, this.INCOGNITO, this.WE_RE_NOT_REGS,
         this.ADVANCED_TARGETING_1, this.ADVANCED_TARGETING_2, this.TAKE_COVER_1,
-        this.TAKE_COVER_2
+        this.TAKE_COVER_2, this.TREAT_1_CAPACITY_1, this.TREAT_1_CAPACITY_2,
+        this.TREAT_2_CAPACITY_1, this.TREAT_2_CAPACITY_2
       ]
     };
   },
