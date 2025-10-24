@@ -67,6 +67,7 @@ const Keywords = Object.freeze({
   TARGET_2: 'target_2',
   COORDINATE: 'coordinate',
   COORDINATE_DROID_TROOPER: 'coordinate_droid_trooper',
+  COORDINATE_CLONE_TROOPER: 'coordinate_clone_trooper',
   EXEMPLAR: 'exemplar',
   ENTOURAGE: 'entourage',
   OBSERVE_1: 'observe_1',
@@ -186,6 +187,7 @@ const Keywords = Object.freeze({
       case this.TARGET_1: return 'Target 1';
       case this.TARGET_2: return 'Target 2';
       case this.COORDINATE_DROID_TROOPER: return 'Coordinate: Droid Trooper';
+      case this.COORDINATE_CLONE_TROOPER: return 'Coordinate: Clone Trooper';
       case this.OBSERVE_1: return 'Observe 1';
       case this.OBSERVE_2: return 'Observe 2';
       case this.SPOTTER_1: return 'Spotter 1';
@@ -393,6 +395,9 @@ const Keywords = Object.freeze({
       case this.COORDINATE_DROID_TROOPER:
         return "After this unit is issued an order, it may issue an order to a friendly Droid Trooper unit at range 1.";
       
+      case this.COORDINATE_CLONE_TROOPER:
+        return "After this unit is issued an order, it may issue an order to a friendly Clone Trooper unit at range 1.";
+
       case this.EXEMPLAR:
         return "Friendly units at range 1-2 and in line of sight can spend your Aim, Dodge, and Standby tokens.";
       
@@ -585,7 +590,8 @@ const Keywords = Object.freeze({
         this.INSPIRE_1, this.INSPIRE_2, this.TACTICAL_1, this.TACTICAL_2, 
         this.TARGET_1, this.TARGET_2, this.COORDINATE, this.COORDINATE_DROID_TROOPER,
         this.EXEMPLAR, this.ENTOURAGE, this.OBSERVE_1, this.OBSERVE_2,
-        this.SPOTTER_1, this.SPOTTER_2, this.PULLING_THE_STRINGS, this.DIRECT_VEHICLE
+        this.SPOTTER_1, this.SPOTTER_2, this.PULLING_THE_STRINGS, this.DIRECT_VEHICLE,
+        this.COORDINATE_CLONE_TROOPER
       ],
       ai: [
         this.AI_ATTACK, this.AI_MOVE, this.AI_MOVE_ATTACK, 
