@@ -7,10 +7,12 @@ import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import Factions from '../../enums/Factions';
 import LoadingSpinner from '../layout/LoadingSpinner';
+import ArmyPointsCalculator from '../../utils/ArmyPointsCalculator';
 
 const ArmyList = () => {
     const [armies, setArmies] = useState([]);
     const [units, setUnits] = useState([]);
+    const [upgrades, setUpgrades] = useState([]);
     const [customUnitTypes, setCustomUnitTypes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -51,6 +53,15 @@ const ArmyList = () => {
                 }));
                 setUnits(unitsList);
 
+                // Fetch all upgrades
+                const upgradesRef = collection(db, 'users', currentUser.uid, 'upgradeCards');
+                const upgradesSnapshot = await getDocs(upgradesRef);
+                const upgradesList = upgradesSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                setUpgrades(upgradesList);
+
                 // Fetch custom unit types
                 const typesRef = collection(db, 'users', currentUser.uid, 'customUnitTypes');
                 const typesSnapshot = await getDocs(typesRef);
@@ -84,6 +95,16 @@ const ArmyList = () => {
 
         // If not a custom type, just return the type
         return type;
+    };
+
+    // Calculate the actual total points for an army
+    const calculateArmyPoints = (army) => {
+        if (!army?.units?.length) return 0;
+        
+        // Get all units in this army
+        const armyUnits = units.filter(unit => army.units.includes(unit.id));
+        
+        return ArmyPointsCalculator.calculateArmyPoints(armyUnits, upgrades);
     };
 
     // Get unit types for an army
@@ -226,6 +247,9 @@ const ArmyList = () => {
                     {filteredArmies.map(army => {
                         // Get unit types for this army
                         const armyUnitTypes = getArmyUnitTypes(army);
+                        
+                        // Calculate actual points including upgrades
+                        const calculatedPoints = calculateArmyPoints(army);
 
                         return (
                             <Col key={army.id} md={6} lg={4} className="mb-4">
@@ -245,7 +269,12 @@ const ArmyList = () => {
 
                                     <Card.Body>
                                         <div className="mb-2">
-                                            <strong>Points:</strong> {army.totalPoints || 0}
+                                            <strong>Points:</strong> {calculatedPoints}
+                                            {calculatedPoints !== army.totalPoints && (
+                                                <span className="text-primary ms-1" title="Includes upgrade costs">
+                                                    (Base: {army.totalPoints || 0})
+                                                </span>
+                                            )}
                                         </div>
 
                                         <div className="mb-2">

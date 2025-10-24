@@ -18,6 +18,7 @@ import ExportButton from '../common/ExportButton';
 import ExportUtils from '../../utils/ExportUtils';
 import CommandCardValidator from '../../utils/CommandCardValidator';
 import KeywordUtils from '../../utils/KeywordUtils';
+import ArmyPointsCalculator from '../../utils/ArmyPointsCalculator';
 
 const ArmyDetail = ({ armyId }) => {
     const [army, setArmy] = useState(null);
@@ -245,6 +246,12 @@ const ArmyDetail = ({ armyId }) => {
 
     const startBattle = () => {
         navigate(`/battles/create?armyId=${armyId}`);
+    };
+
+    // Calculate the total points for this army including upgrades
+    const calculateTotalPoints = () => {
+        if (!unitDetails || unitDetails.length === 0) return 0;
+        return ArmyPointsCalculator.calculateArmyPoints(unitDetails, upgrades);
     };
 
     // Handle exporting the army
@@ -620,7 +627,12 @@ const ArmyDetail = ({ armyId }) => {
                                 <Col md={6}>
                                     <p>
                                         <strong>Total Points:</strong><br />
-                                        {army.totalPoints || 0}
+                                        {calculateTotalPoints()} pts
+                                        {calculateTotalPoints() !== army.totalPoints && (
+                                            <span className="text-danger ms-2" title="Different from base value">
+                                                (Base: {army.totalPoints || 0} pts)
+                                            </span>
+                                        )}
                                     </p>
                                 </Col>
                             </Row>
@@ -690,7 +702,14 @@ const ArmyDetail = ({ armyId }) => {
                                             )}
                                             {getTypeDisplayName(unit.type)}
                                         </td>
-                                        <td>{unit.points || 0}</td>
+                                        <td>
+                                            {ArmyPointsCalculator.calculateUnitPoints(unit, upgrades)}
+                                            {ArmyPointsCalculator.calculateUnitPoints(unit, upgrades) !== unit.points && (
+                                                <span className="text-primary ms-1" title="Includes upgrade costs">
+                                                    ({unit.points})
+                                                </span>
+                                            )}
+                                        </td>
                                         <td>{unit.wounds || 1}</td>
                                         <td className="small text-nowrap">
                                             {unit.isVehicle ? (
@@ -752,7 +771,14 @@ const ArmyDetail = ({ armyId }) => {
                                             <Card.Header>
                                                 <div className="d-flex justify-content-between align-items-center">
                                                     <span className="fw-bold">{unit.name}</span>
-                                                    <span>{unit.points || 0} pts</span>
+                                                    <span>
+                                                        {ArmyPointsCalculator.calculateUnitPoints(unit, upgrades)} pts
+                                                        {ArmyPointsCalculator.calculateUnitPoints(unit, upgrades) !== unit.points && (
+                                                            <span className="text-primary ms-1" title="Includes upgrade costs">
+                                                                ({unit.points})
+                                                            </span>
+                                                        )}
+                                                    </span>
                                                 </div>
                                             </Card.Header>
                                             <Card.Body className="p-3">
@@ -765,8 +791,8 @@ const ArmyDetail = ({ armyId }) => {
                                                     )}
                                                     {unit.speed || 2}S /
                                                     <span className={DefenseDice.getColorClass(unit.defense)}>
-                            {unit.defense === DefenseDice.WHITE ? 'W' : 'R'}
-                          </span> Defense
+                                                        {unit.defense === DefenseDice.WHITE ? 'W' : 'R'}
+                                                    </span> Defense
                                                 </div>
 
                                                 {/* Keywords (including from upgrades) */}

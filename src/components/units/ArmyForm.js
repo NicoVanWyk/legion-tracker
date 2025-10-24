@@ -9,6 +9,7 @@ import Factions from '../../enums/Factions';
 import UnitTypes from '../../enums/UnitTypes';
 import CommandCards from '../../enums/CommandCards';
 import LoadingSpinner from '../layout/LoadingSpinner';
+import ArmyPointsCalculator from '../../utils/ArmyPointsCalculator';
 
 const ArmyForm = () => {
     const { armyId } = useParams();
@@ -18,6 +19,7 @@ const ArmyForm = () => {
     const [loadingArmy, setLoadingArmy] = useState(!!armyId);
     const [loadingUnits, setLoadingUnits] = useState(true);
     const [customUnitTypes, setCustomUnitTypes] = useState([]);
+    const [upgrades, setUpgrades] = useState([]);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
@@ -62,6 +64,15 @@ const ArmyForm = () => {
                             commandCards: armyData.commandCards || [], // Load command cards
                         });
 
+                        // Fetch upgrades
+                        const upgradesRef = collection(db, 'users', currentUser.uid, 'upgradeCards');
+                        const upgradesSnapshot = await getDocs(upgradesRef);
+                        const upgradesList = upgradesSnapshot.docs.map(doc => ({
+                            id: doc.id,
+                            ...doc.data()
+                        }));
+                        setUpgrades(upgradesList);
+
                         // Fetch selected units' details
                         const unitIds = armyData.units || [];
                         const unitDetails = [];
@@ -79,6 +90,15 @@ const ArmyForm = () => {
                         }
 
                         setSelectedUnits(unitDetails);
+
+                        // Recalculate total points based on units and upgrades
+                        const calculatedPoints = ArmyPointsCalculator.calculateArmyPoints(unitDetails, upgradesList);
+                        if (calculatedPoints !== armyData.totalPoints) {
+                            setFormData(prev => ({
+                                ...prev,
+                                totalPoints: calculatedPoints
+                            }));
+                        }
                     } else {
                         setError('Army not found');
                     }
@@ -119,6 +139,17 @@ const ArmyForm = () => {
                 setLoadingUnits(true);
 
                 if (!currentUser) return;
+
+                // Fetch all upgrades if not already loaded
+                if (upgrades.length === 0) {
+                    const upgradesRef = collection(db, 'users', currentUser.uid, 'upgradeCards');
+                    const upgradesSnapshot = await getDocs(upgradesRef);
+                    const upgradesList = upgradesSnapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    setUpgrades(upgradesList);
+                }
 
                 // Create a reference to the user's units collection
                 const unitsRef = collection(db, 'users', currentUser.uid, 'units');
@@ -170,7 +201,7 @@ const ArmyForm = () => {
         };
 
         fetchUnits();
-    }, [currentUser, formData.faction, customUnitTypes]);
+    }, [currentUser, formData.faction, customUnitTypes, upgrades.length]);
 
     const getTypeDisplayName = (type) => {
         // First check if it's a system unit type
@@ -213,11 +244,14 @@ const ArmyForm = () => {
             return;
         }
 
+        // Calculate unit points including upgrades
+        const unitPoints = ArmyPointsCalculator.calculateUnitPoints(unit, upgrades);
+
         // Add unit to the army
         setFormData(prev => ({
             ...prev,
             units: [...prev.units, unit.id],
-            totalPoints: prev.totalPoints + (unit.points || 0)
+            totalPoints: prev.totalPoints + unitPoints
         }));
 
         // Add unit to the selected units
@@ -231,11 +265,14 @@ const ArmyForm = () => {
 
         if (!unit) return;
 
+        // Calculate unit points including upgrades
+        const unitPoints = ArmyPointsCalculator.calculateUnitPoints(unit, upgrades);
+
         // Remove unit from the army
         setFormData(prev => ({
             ...prev,
             units: prev.units.filter(id => id !== unitId),
-            totalPoints: prev.totalPoints - (unit.points || 0)
+            totalPoints: prev.totalPoints - unitPoints
         }));
 
         // Remove unit from the selected units
@@ -435,8 +472,8 @@ const ArmyForm = () => {
                                     <div className="d-flex justify-content-between align-items-center mb-2">
                                         <h5>Selected Units ({selectedUnits.length})</h5>
                                         <span className="fw-bold">
-                      Total Points: {formData.totalPoints}
-                    </span>
+                                            Total Points: {formData.totalPoints}
+                                        </span>
                                     </div>
 
                                     {/* Unit type counts */}
@@ -470,7 +507,13 @@ const ArmyForm = () => {
                                                     <div>
                                                         <div className="fw-bold">{unit.name}</div>
                                                         <div className="small text-muted">
-                                                            {getTypeDisplayName(unit.type)} • {unit.points || 0} points
+                                                            {getTypeDisplayName(unit.type)} • 
+                                                            {ArmyPointsCalculator.calculateUnitPoints(unit, upgrades)} points
+                                                            {ArmyPointsCalculator.calculateUnitPoints(unit, upgrades) !== unit.points && (
+                                                                <span className="ms-1 text-primary" title="Includes upgrade costs">
+                                                                    (Base: {unit.points})
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <Button
@@ -491,9 +534,9 @@ const ArmyForm = () => {
                             {formData.units.length > 0 && (
                                 <Alert variant="info" className="mt-3">
                                     <div className="d-flex justify-content-between align-items-center">
-                    <span>
-                      <strong>Command Cards:</strong> {formData.commandCards?.length || 0}/7
-                    </span>
+                                        <span>
+                                            <strong>Command Cards:</strong> {formData.commandCards?.length || 0}/7
+                                        </span>
                                         {armyId ? (
                                             <Button
                                                 as={Link}
@@ -562,7 +605,12 @@ const ArmyForm = () => {
                                                         <div>
                                                             <div className="fw-bold">{unit.name}</div>
                                                             <div className="small text-muted">
-                                                                {unit.points || 0} points
+                                                                {ArmyPointsCalculator.calculateUnitPoints(unit, upgrades)} points
+                                                                {ArmyPointsCalculator.calculateUnitPoints(unit, upgrades) !== unit.points && (
+                                                                    <span className="ms-1 text-primary" title="Includes upgrade costs">
+                                                                        (Base: {unit.points})
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <Button
