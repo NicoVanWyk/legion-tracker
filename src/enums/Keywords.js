@@ -102,7 +102,8 @@ const Keywords = Object.freeze({
   SENTINEL: 'sentinel',
   UNSTOPPABLE: 'unstoppable',
   FIRE_SUPPORT: 'fire_support',
-  INDEPENDENT: 'independent',
+  INDEPENDENT_AIM_DODGE: 'independent_aim_dodge',
+  INDEPENDENT_RECOVER: 'independent_recover',
   DETACHMENT: 'detachment',
   ASSOCIATE: 'associate',
   CLAIM: 'claim',
@@ -138,6 +139,8 @@ const Keywords = Object.freeze({
   TREAT_2_CAPACITY_1: 'treat_2_capacity_1',
   TREAT_1_CAPACITY_2: 'treat_1_capacity_2',
   TREAT_2_CAPACITY_2: 'treat_2_capacity_2',
+  COMPLETE_THE_MISSION: 'complete_the_mission',
+  INFILTRATE: 'infiltrate',
   
   // For display purposes
   getDisplayName: function(keyword) {
@@ -237,6 +240,10 @@ const Keywords = Object.freeze({
       case this.TREAT_2_CAPACITY_1: return 'Treat 2 Capacity 1';
       case this.TREAT_2_CAPACITY_2: return 'Treat 2 Capacity 2';
       case this.DIRECT_VEHICLE: return 'Direct: Vehicle';
+      case this.COMPLETE_THE_MISSION: return 'Complete The Mission';
+      case this.INFILTRATE: return 'Infiltrate';
+      case this.INDEPENDENT_AIM_DODGE: return 'Independent: Aim, Dodge';
+      case this.INDEPENDENT_RECOVER: return 'Independent: Recover';
       
       default:
         return keyword.split('_').map(word => 
@@ -401,6 +408,9 @@ const Keywords = Object.freeze({
       case this.EXEMPLAR:
         return "Friendly units at range 1-2 and in line of sight can spend your Aim, Dodge, and Standby tokens.";
       
+      case this.INFILTRATE:
+        return "At the start of an undeployed unit with the Infiltrate keyword’s activation, it may deploy by placing the unit leader of that unit within friendly territory. Then the remaining miniatures in that unit are placed in cohesion with their unit leader and within friendly territory. Miniatures cannot overlap impassable terrain when they are placed using Infiltrate."
+
       case this.ENTOURAGE:
         return "When building an army, you may include specific units that would otherwise not be eligible.";
       
@@ -474,8 +484,11 @@ const Keywords = Object.freeze({
       case this.FIRE_SUPPORT:
         return "When another friendly unit performs a ranged attack, if you have a faceup order token, each mini in your unit may add an eligible weapon to the attack pool. If you do, flip your order token facedown. Limit 1 Fire Support per attack pool.";
       
-      case this.INDEPENDENT:
+      case this.INDEPENDENT_AIM_DODGE:
         return "If this unit does not have a faceup order token, it gains 1 aim and 1 dodge token.";
+
+      case this.INDEPENDENT_RECOVER:
+        return "If this unit does not have a faceup order token, it may spend a free action to take the Recover action."
       
       case this.DETACHMENT:
         return "When building your army, this unit does not count toward the rank requirements of your army.";
@@ -485,6 +498,9 @@ const Keywords = Object.freeze({
       
       case this.CLAIM:
         return "This unit can claim objective tokens.";
+
+      case this.COMPLETE_THE_MISSION:
+        return "During Setup, for each friendly unit with the Complete the Mission keyword, place a friendly priority mission token on the battlefield within contested territory. While a unit with the Complete the Mission keyword is at range 1 of a friendly priority mission token, that unit gains Surge To Defense. When a unit with the Complete the Mission keyword attacks an enemy unit at range 1 of a friendly priority mission token, the attacking unit’s attack pool gains the Critical 2 keyword.";
       
       case this.TRANSPORT_1:
       case this.TRANSPORT_2:
@@ -591,7 +607,7 @@ const Keywords = Object.freeze({
         this.TARGET_1, this.TARGET_2, this.COORDINATE, this.COORDINATE_DROID_TROOPER,
         this.EXEMPLAR, this.ENTOURAGE, this.OBSERVE_1, this.OBSERVE_2,
         this.SPOTTER_1, this.SPOTTER_2, this.PULLING_THE_STRINGS, this.DIRECT_VEHICLE,
-        this.COORDINATE_CLONE_TROOPER
+        this.COORDINATE_CLONE_TROOPER, this.INFILTRATE
       ],
       ai: [
         this.AI_ATTACK, this.AI_MOVE, this.AI_MOVE_ATTACK, 
@@ -604,7 +620,7 @@ const Keywords = Object.freeze({
       ],
       special: [
         this.GENERATOR_1, this.RELIABLE_1, this.SENTINEL, this.UNSTOPPABLE, 
-        this.FIRE_SUPPORT, this.INDEPENDENT, this.DETACHMENT, this.ASSOCIATE,
+        this.FIRE_SUPPORT, this.INDEPENDENT_AIM_DODGE, this.DETACHMENT, this.ASSOCIATE,
         this.CLAIM, this.TRANSPORT_1, this.TRANSPORT_2, this.TRANSPORT_3,
         this.OPEN_TRANSPORT, this.BOUNTY, this.DAUNTLESS, this.DISCIPLINED_1,
         this.DISCIPLINED_2, this.INDOMITABLE, this.ENRAGE_1, this.ENRAGE_2,
@@ -613,7 +629,8 @@ const Keywords = Object.freeze({
         this.LEADER, this.AID, this.INCOGNITO, this.WE_RE_NOT_REGS,
         this.ADVANCED_TARGETING_1, this.ADVANCED_TARGETING_2, this.TAKE_COVER_1,
         this.TAKE_COVER_2, this.TREAT_1_CAPACITY_1, this.TREAT_1_CAPACITY_2,
-        this.TREAT_2_CAPACITY_1, this.TREAT_2_CAPACITY_2
+        this.TREAT_2_CAPACITY_1, this.TREAT_2_CAPACITY_2, this.COMPLETE_THE_MISSION,
+        this.INDEPENDENT_RECOVER
       ]
     };
   },
