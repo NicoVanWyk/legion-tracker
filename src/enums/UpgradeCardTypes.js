@@ -74,7 +74,7 @@ const UpgradeCardTypes = {
       training: 'success',
       generator: 'info',
       armament: 'danger',
-      specialist: 'purple'
+      specialist: 'info'
     };
     return colors[type] || 'secondary';
   },
