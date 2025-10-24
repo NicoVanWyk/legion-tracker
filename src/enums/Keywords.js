@@ -74,6 +74,7 @@ const Keywords = Object.freeze({
   SPOTTER_1: 'spotter_1',
   SPOTTER_2: 'spotter_2',
   PULLING_THE_STRINGS: 'pulling_the_strings',
+  DIRECT_VEHICLE: 'direct_vehicle',
   
   // AI Keywords
   AI_ATTACK: 'ai_attack',
@@ -233,6 +234,7 @@ const Keywords = Object.freeze({
       case this.TREAT_1_CAPACITY_2: return 'Treat 1 Capacity 2';
       case this.TREAT_2_CAPACITY_1: return 'Treat 2 Capacity 1';
       case this.TREAT_2_CAPACITY_2: return 'Treat 2 Capacity 2';
+      case this.DIRECT_VEHICLE: return 'Direct: Vehicle';
       
       default:
         return keyword.split('_').map(word => 
@@ -294,6 +296,9 @@ const Keywords = Object.freeze({
       
       case this.PIVOT:
         return "This unit may pivot up to 360° when performing a pivot action.";
+        
+      case this.DIRECT_VEHICLE:
+        return "During the Issue Orders step of the Command Phase, a unit with the Direct: Vehicle keyword may issue an Order to an allied unit within range 1-2 that is a vehicle.";
         
       // Attack Keywords
       case this.ARSENAL_2:
@@ -580,7 +585,7 @@ const Keywords = Object.freeze({
         this.INSPIRE_1, this.INSPIRE_2, this.TACTICAL_1, this.TACTICAL_2, 
         this.TARGET_1, this.TARGET_2, this.COORDINATE, this.COORDINATE_DROID_TROOPER,
         this.EXEMPLAR, this.ENTOURAGE, this.OBSERVE_1, this.OBSERVE_2,
-        this.SPOTTER_1, this.SPOTTER_2, this.PULLING_THE_STRINGS
+        this.SPOTTER_1, this.SPOTTER_2, this.PULLING_THE_STRINGS, this.DIRECT_VEHICLE
       ],
       ai: [
         this.AI_ATTACK, this.AI_MOVE, this.AI_MOVE_ATTACK, 
