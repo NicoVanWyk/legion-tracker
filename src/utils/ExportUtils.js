@@ -7,6 +7,7 @@ import WeaponRanges from '../enums/WeaponRanges';
 import AttackDice from '../enums/AttackDice';
 import WeaponKeywords from '../enums/WeaponKeywords';
 import UpgradeCardTypes from '../enums/UpgradeCardTypes';
+import KeywordUtils from './KeywordUtils';
 
 /**
  * Utility for exporting unit and army data to text files
@@ -55,25 +56,30 @@ export default class ExportUtils {
     exportText += `Defense: ${unit.defense === 'white' ? 'White' : 'Red'}\n`;
     exportText += `Models: ${unit.minModelCount || 1} (min) / ${unit.currentModelCount || 1} (current)\n`;
     exportText += `Surge Tokens: ${unit.surgeAttack ? 'Attack' : 'No Attack'}, ${unit.surgeDefense ? 'Defense' : 'No Defense'}\n\n`;
-    
-    // KEYWORDS
-    const allKeywords = this.getAllKeywords(unit, customKeywords, upgrades);
-    if (allKeywords.length > 0) {
+
+   // KEYWORDS
+  const allKeywords = this.getAllKeywords(unit, customKeywords, upgrades);
+  if (allKeywords.length > 0) {
       exportText += `KEYWORDS:\n`;
       exportText += `--------------------------------------------\n`;
-      
+
+      // Use the processed keywords directly
       allKeywords.forEach(keyword => {
-        let keywordName = this.getKeywordDisplayName(keyword, customKeywords);
-        
-        // Add indicator for keywords from upgrades
-        const isBaseKeyword = unit.keywords?.includes(keyword);
-        keywordName = isBaseKeyword ? keywordName : `${keywordName} (from upgrade)`;
-        
-        exportText += `- ${keywordName}\n`;
+          let keywordName = this.getKeywordDisplayName(keyword, customKeywords);
+
+          // Check if base keyword exists in the unit's keywords
+          const baseKeyword = KeywordUtils.getKeywordBase(keyword);
+          const isBaseKeyword = unit.keywords?.some(k =>
+              KeywordUtils.getKeywordBase(k) === baseKeyword
+          );
+
+          keywordName = isBaseKeyword ? keywordName : `${keywordName} (from upgrade)`;
+
+          exportText += `- ${keywordName}\n`;
       });
-      
+
       exportText += `\n`;
-    }
+  }
     
     // WEAPONS
     const weapons = this.getAllWeapons(unit, upgrades);
@@ -322,22 +328,10 @@ export default class ExportUtils {
    * Gets all keywords including those from upgrades
    */
   static getAllKeywords(unit, customKeywords = [], upgrades = []) {
-    if (!unit) return [];
-    
-    let allKeywords = [...(unit.keywords || [])];
-    
-    // Add keywords from equipped upgrades
-    unit.upgradeSlots?.forEach(slot => {
-      slot.equippedUpgrades?.forEach(upgradeId => {
-        const upgrade = upgrades.find(u => u.id === upgradeId);
-        if (upgrade?.effects?.addKeywords?.length > 0) {
-          allKeywords = [...allKeywords, ...upgrade.effects.addKeywords];
-        }
-      });
-    });
-    
-    // Remove duplicates
-    return [...new Set(allKeywords)];
+      if (!unit) return [];
+
+      // Use KeywordUtils to get all keywords with stacking applied
+      return KeywordUtils.getAllKeywords(unit, upgrades);
   }
   
   /**

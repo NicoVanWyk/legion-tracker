@@ -1,4 +1,3 @@
-// src/components/units/UnitDetail.js
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Badge, Button, Alert, ListGroup, Accordion, Tab, Tabs } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
@@ -18,6 +17,7 @@ import UnitCard from './UnitCard';
 import ExportButton from '../common/ExportButton';
 import ExportUtils from '../../utils/ExportUtils';
 import { exportToPDF } from '../../utils/exportToPDF';
+import KeywordUtils from '../../utils/KeywordUtils';
 
 const UnitDetail = ({ unitId }) => {
     const [unit, setUnit] = useState(null);
@@ -155,24 +155,10 @@ const UnitDetail = ({ unitId }) => {
         ExportUtils.downloadTextFile(unitText, `${unit.name.replace(/\s+/g, '_')}_unit.txt`);
     };
 
-    // Get all keywords including those from upgrades
+    // Replace the existing getAllKeywords function with:
     const getAllKeywords = () => {
         if (!unit) return [];
-
-        let allKeywords = [...(unit.keywords || [])];
-
-        // Add keywords from equipped upgrades
-        unit.upgradeSlots?.forEach(slot => {
-            slot.equippedUpgrades?.forEach(upgradeId => {
-                const upgrade = upgrades.find(u => u.id === upgradeId);
-                if (upgrade?.effects?.addKeywords?.length > 0) {
-                    allKeywords = [...allKeywords, ...upgrade.effects.addKeywords];
-                }
-            });
-        });
-
-        // Remove duplicates
-        return [...new Set(allKeywords)];
+        return KeywordUtils.getAllKeywords(unit, upgrades);
     };
 
     const calculateModifiedStats = () => {

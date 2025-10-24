@@ -1,4 +1,4 @@
-// src/components/units/UnitList.js
+// src/components/units/UnitList.js - Updated with export button
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Badge, Alert, Row, Col, Form } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
@@ -9,6 +9,8 @@ import UnitTypes from '../../enums/UnitTypes';
 import Factions from '../../enums/Factions';
 import Keywords from '../../enums/Keywords';
 import LoadingSpinner from '../layout/LoadingSpinner';
+import KeywordUtils from '../../utils/KeywordUtils';
+import ExportUtils from '../../utils/ExportUtils';
 
 const UnitList = () => {
     const [units, setUnits] = useState([]);
@@ -21,6 +23,7 @@ const UnitList = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterFaction, setFilterFaction] = useState('all');
     const [filterType, setFilterType] = useState('all');
+    const [abilities, setAbilities] = useState([]);
     const { currentUser } = useAuth();
     const navigate = useNavigate();
 
@@ -39,7 +42,7 @@ const UnitList = () => {
 
         try {
             setLoading(true);
-            
+
             // Fetch units
             const unitsRef = collection(db, 'users', currentUser.uid, 'units');
             const unitsQuery = query(unitsRef, orderBy('name', 'asc'));
@@ -48,7 +51,7 @@ const UnitList = () => {
                 id: doc.id,
                 ...doc.data()
             }));
-            
+
             // Fetch upgrades (needed for keyword effects)
             const upgradesRef = collection(db, 'users', currentUser.uid, 'upgradeCards');
             const upgradesSnapshot = await getDocs(upgradesRef);
@@ -56,7 +59,7 @@ const UnitList = () => {
                 id: doc.id,
                 ...doc.data()
             }));
-            
+
             // Fetch custom keywords
             const keywordsRef = collection(db, 'users', currentUser.uid, 'customKeywords');
             const keywordsSnapshot = await getDocs(keywordsRef);
@@ -72,11 +75,20 @@ const UnitList = () => {
                 id: doc.id,
                 ...doc.data()
             }));
-            
+
+            // Fetch abilities
+            const abilitiesRef = collection(db, 'users', currentUser.uid, 'abilities');
+            const abilitiesSnapshot = await getDocs(abilitiesRef);
+            const abilitiesList = abilitiesSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+
             setUnits(unitsList);
             setUpgrades(upgradesList);
             setCustomKeywords(keywordsList);
             setCustomUnitTypes(typesList);
+            setAbilities(abilitiesList);
             setError('');
         } catch (err) {
             console.error('Error fetching data:', err);
@@ -99,7 +111,7 @@ const UnitList = () => {
 
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
-            filtered = filtered.filter(u => 
+            filtered = filtered.filter(u =>
                 u.name.toLowerCase().includes(term) ||
                 u.notes?.toLowerCase().includes(term) ||
                 // Also search in keywords
@@ -110,24 +122,9 @@ const UnitList = () => {
         setFilteredUnits(filtered);
     };
 
-    // Get all keywords including those from upgrades
+    // Get all keywords including those from upgrades, with stacking applied
     const getAllKeywords = (unit) => {
-        if (!unit) return [];
-
-        let allKeywords = [...(unit.keywords || [])];
-
-        // Add keywords from equipped upgrades
-        unit.upgradeSlots?.forEach(slot => {
-            slot.equippedUpgrades?.forEach(upgradeId => {
-                const upgrade = upgrades.find(u => u.id === upgradeId);
-                if (upgrade?.effects?.addKeywords?.length > 0) {
-                    allKeywords = [...allKeywords, ...upgrade.effects.addKeywords];
-                }
-            });
-        });
-
-        // Remove duplicates
-        return [...new Set(allKeywords)];
+        return KeywordUtils.getAllKeywords(unit, upgrades);
     };
 
     const getKeywordDisplay = (keyword) => {
@@ -149,7 +146,7 @@ const UnitList = () => {
 
     const getTotalPoints = (unit) => {
         let total = unit.points || 0;
-        
+
         // Add points from equipped upgrades
         unit.upgradeSlots?.forEach(slot => {
             slot.equippedUpgrades?.forEach(upgradeId => {
@@ -157,8 +154,36 @@ const UnitList = () => {
                 if (upgrade) total += upgrade.pointsCost || 0;
             });
         });
-        
+
         return total;
+    };
+
+    // Handle exporting a unit directly from the list
+    const handleExportUnit = (unit) => {
+        if (!unit) return;
+
+        // Get the unit's equipped upgrades and abilities
+        const unitUpgrades = upgrades.filter(upgrade =>
+            unit.upgradeSlots?.some(slot =>
+                slot.equippedUpgrades?.includes(upgrade.id)
+            )
+        );
+
+        const unitAbilities = abilities.filter(ability =>
+            unit.abilities?.includes(ability.id)
+        );
+
+        // Use ExportUtils to generate text content
+        const unitText = ExportUtils.exportUnit(
+            unit,
+            customKeywords,
+            unitUpgrades,
+            unitAbilities,
+            customUnitTypes
+        );
+
+        // Download the file
+        ExportUtils.downloadTextFile(unitText, `${unit.name.replace(/\s+/g, '_')}_unit.txt`);
     };
 
     if (loading) {
@@ -244,7 +269,7 @@ const UnitList = () => {
                     <Row xs={1} md={2} lg={3} className="g-4">
                         {filteredUnits.map(unit => (
                             <Col key={unit.id}>
-                                <Card 
+                                <Card
                                     className={`h-100 faction-${unit.faction}-border`}
                                     onClick={() => navigate(`/units/${unit.id}`)}
                                     style={{ cursor: 'pointer' }}
@@ -301,13 +326,24 @@ const UnitList = () => {
                                                     )}
                                                     {unit.upgradeSlots?.some(slot => slot.equippedUpgrades?.length > 0) && (
                                                         <Badge bg="info" className="me-1">
-                                                            {unit.upgradeSlots.reduce((total, slot) => 
+                                                            {unit.upgradeSlots.reduce((total, slot) =>
                                                                 total + (slot.equippedUpgrades?.length || 0), 0)
                                                             } upgrades
                                                         </Badge>
                                                     )}
                                                 </div>
                                                 <div className="d-flex">
+                                                    <Button
+                                                        variant="outline-secondary"
+                                                        size="sm"
+                                                        className="me-2"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleExportUnit(unit);
+                                                        }}
+                                                    >
+                                                        <i className="bi bi-download"></i> Export
+                                                    </Button>
                                                     <Button
                                                         variant="outline-primary"
                                                         size="sm"

@@ -10,6 +10,7 @@ import Keywords from '../../enums/Keywords';
 import WeaponRanges from '../../enums/WeaponRanges';
 import AttackDice from '../../enums/AttackDice';
 import WeaponKeywords from '../../enums/WeaponKeywords';
+import KeywordUtils from '../../utils/KeywordUtils';
 
 const UnitCard = ({ unit, customUnitTypes }) => {
     const [flipped, setFlipped] = useState(false);
@@ -86,24 +87,10 @@ const UnitCard = ({ unit, customUnitTypes }) => {
 
     if (!unit) return null;
 
-    // Function to get all keywords including those from upgrades
+    // Function to get all keywords including those from upgrades, with stacking
     const getAllKeywords = () => {
         if (!unit) return [];
-
-        let allKeywords = [...(unit.keywords || [])];
-
-        // Add keywords from equipped upgrades
-        unit.upgradeSlots?.forEach(slot => {
-            slot.equippedUpgrades?.forEach(upgradeId => {
-                const upgrade = upgrades.find(u => u.id === upgradeId);
-                if (upgrade?.effects?.addKeywords?.length > 0) {
-                    allKeywords = [...allKeywords, ...upgrade.effects.addKeywords];
-                }
-            });
-        });
-
-        // Remove duplicates
-        return [...new Set(allKeywords)];
+        return KeywordUtils.getAllKeywords(unit, upgrades);
     };
 
     // Get all weapons including those from upgrades

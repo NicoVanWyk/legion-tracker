@@ -17,6 +17,7 @@ import LoadingSpinner from '../layout/LoadingSpinner';
 import ExportButton from '../common/ExportButton';
 import ExportUtils from '../../utils/ExportUtils';
 import CommandCardValidator from '../../utils/CommandCardValidator';
+import KeywordUtils from '../../utils/KeywordUtils';
 
 const ArmyDetail = ({ armyId }) => {
     const [army, setArmy] = useState(null);
@@ -310,21 +311,7 @@ const ArmyDetail = ({ armyId }) => {
     // Get all keywords including those from upgrades
     const getAllKeywords = (unit) => {
         if (!unit) return [];
-
-        let allKeywords = [...(unit.keywords || [])];
-
-        // Add keywords from equipped upgrades
-        unit.upgradeSlots?.forEach(slot => {
-            slot.equippedUpgrades?.forEach(upgradeId => {
-                const upgrade = upgrades.find(u => u.id === upgradeId);
-                if (upgrade?.effects?.addKeywords?.length > 0) {
-                    allKeywords = [...allKeywords, ...upgrade.effects.addKeywords];
-                }
-            });
-        });
-
-        // Remove duplicates
-        return [...new Set(allKeywords)];
+        return KeywordUtils.getAllKeywords(unit, upgrades);
     };
 
     // Get all equipped upgrades for a unit

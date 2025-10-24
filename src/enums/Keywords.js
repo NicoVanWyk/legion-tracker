@@ -92,6 +92,7 @@ const Keywords = Object.freeze({
   SORESU_MASTERY: 'soresu_mastery',
   MAKASHI_MASTERY: 'makashi_mastery',
   JARKAI_MASTERY: 'jarkai_mastery',
+  JUYO_MASTERY: 'juyo_mastery',
   
   // Special Keywords
   GENERATOR_1: 'generator_1',
@@ -202,6 +203,7 @@ const Keywords = Object.freeze({
       case this.SORESU_MASTERY: return 'Soresu Mastery';
       case this.MAKASHI_MASTERY: return 'Makashi Mastery';
       case this.JARKAI_MASTERY: return 'Jar\'Kai Mastery';
+      case this.JUYO_MASTERY: return 'Juyo Mastery';
       case this.GENERATOR_1: return 'Generator 1';
       case this.RELIABLE_1: return 'Reliable 1';
       case this.FIRE_SUPPORT: return 'Fire Support';
@@ -443,6 +445,9 @@ const Keywords = Object.freeze({
       case this.JARKAI_MASTERY:
         return "While performing a melee attack, you may spend 1 aim token to add 1 additional die to your attack pool.";
 
+      case this.JUYO_MASTERY:
+        return "While this unit is wounded, it can perform 1 additional action during its activation. It is limited to 2 move actions each activation.";
+
       // Special Keywords
       case this.GENERATOR_1:
         return "During the End Phase, flip 1 inactive shield token.";
@@ -584,7 +589,7 @@ const Keywords = Object.freeze({
       force: [
         this.CHARGE, this.GUARDIAN_1, this.GUARDIAN_2, this.GUARDIAN_3, 
         this.JEDI_HUNTER, this.MASTER_OF_THE_FORCE_1, this.SORESU_MASTERY,
-        this.MAKASHI_MASTERY, this.JARKAI_MASTERY
+        this.MAKASHI_MASTERY, this.JARKAI_MASTERY, this.JUYO_MASTERY
       ],
       special: [
         this.GENERATOR_1, this.RELIABLE_1, this.SENTINEL, this.UNSTOPPABLE, 
