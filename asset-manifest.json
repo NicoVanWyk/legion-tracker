@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/legion-tracker/static/css/main.3b9a3650.css",
-    "main.js": "/legion-tracker/static/js/main.f172f575.js",
+    "main.js": "/legion-tracker/static/js/main.42270f21.js",
     "static/js/239.12504d40.chunk.js": "/legion-tracker/static/js/239.12504d40.chunk.js",
     "static/js/977.00a8671b.chunk.js": "/legion-tracker/static/js/977.00a8671b.chunk.js",
     "static/js/455.dd983f3e.chunk.js": "/legion-tracker/static/js/455.dd983f3e.chunk.js",
@@ -19,13 +19,13 @@
     "static/media/SPHA-T Symbol.png": "/legion-tracker/static/media/SPHA-T Symbol.f7113e9288705c5d11c8.png",
     "index.html": "/legion-tracker/index.html",
     "main.3b9a3650.css.map": "/legion-tracker/static/css/main.3b9a3650.css.map",
-    "main.f172f575.js.map": "/legion-tracker/static/js/main.f172f575.js.map",
+    "main.42270f21.js.map": "/legion-tracker/static/js/main.42270f21.js.map",
     "239.12504d40.chunk.js.map": "/legion-tracker/static/js/239.12504d40.chunk.js.map",
     "977.00a8671b.chunk.js.map": "/legion-tracker/static/js/977.00a8671b.chunk.js.map",
     "455.dd983f3e.chunk.js.map": "/legion-tracker/static/js/455.dd983f3e.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.3b9a3650.css",
-    "static/js/main.f172f575.js"
+    "static/js/main.42270f21.js"
   ]
 }
