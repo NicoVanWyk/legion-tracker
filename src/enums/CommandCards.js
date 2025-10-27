@@ -143,7 +143,7 @@ const CommandCards = Object.freeze({
             case this.SUPREME_COMMANDER:
             case this.TRAINED_IN_YOUR_JEDI_ARTS:
             case this.WIPE_THEM_OUT:
-                return 'General Grievous';
+                return 'General Grievous - The Jedi Slayer';
 
             default:
                 return null;

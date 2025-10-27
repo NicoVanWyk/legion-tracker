@@ -57,7 +57,7 @@ const ArmyCommandCards = () => {
                         if (unitDoc.exists()) {
                             const unitData = unitDoc.data();
                             // For simplicity, treat all Command and Operative units as potential commanders
-                            if (unitData.type === 'COMMAND' || unitData.type === 'OPERATIVE') {
+                            if (unitData.type === 'command' || unitData.type === 'operative') {
                                 commanderUnits.push(unitData.name);
                             }
                         }

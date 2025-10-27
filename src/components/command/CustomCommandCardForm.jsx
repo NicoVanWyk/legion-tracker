@@ -76,7 +76,7 @@ const CustomCommandCardForm = () => {
             // Filter for units that can be commanders (for simplicity, all Command and Operative types)
             const commanderUnits = unitsSnapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() }))
-                .filter(unit => unit.type === 'COMMAND' || unit.type === 'OPERATIVE');
+                .filter(unit => unit.type === 'command' || unit.type === 'operative');
 
             setCommanders(commanderUnits);
         } catch (err) {
