@@ -92,11 +92,11 @@ const ArmyForm = () => {
                         setSelectedUnits(unitDetails);
 
                         // Recalculate total points based on units and upgrades
-                        const calculatedPoints = ArmyPointsCalculator.calculateArmyPoints(unitDetails, upgradesList);
-                        if (calculatedPoints !== armyData.totalPoints) {
+                        const basePoints = unitDetails.reduce((sum, unit) => sum + (unit.points || 0), 0);
+                        if (basePoints !== armyData.totalPoints) {
                             setFormData(prev => ({
                                 ...prev,
-                                totalPoints: calculatedPoints
+                                totalPoints: basePoints
                             }));
                         }
                     } else {
@@ -245,7 +245,7 @@ const ArmyForm = () => {
         }
 
         // Calculate unit points including upgrades
-        const unitPoints = ArmyPointsCalculator.calculateUnitPoints(unit, upgrades);
+        const unitPoints = unit.points || 0;
 
         // Add unit to the army
         setFormData(prev => ({
@@ -266,7 +266,7 @@ const ArmyForm = () => {
         if (!unit) return;
 
         // Calculate unit points including upgrades
-        const unitPoints = ArmyPointsCalculator.calculateUnitPoints(unit, upgrades);
+        const unitPoints = unit.points || 0;
 
         // Remove unit from the army
         setFormData(prev => ({
