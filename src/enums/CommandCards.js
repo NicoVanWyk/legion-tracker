@@ -11,8 +11,6 @@ const CommandCards = Object.freeze({
     // ===== Republic Command Cards =====
     // Generic Republic Cards
     ATTACK_OF_THE_CLONES: 'attack_of_the_clones',
-    TRAINED_FOR_WAR: 'trained_for_war',
-    SOMEONE_ELSE_WILL_DO_THE_JOB: 'someone_else_will_do_the_job',
     SYNCHRONISED_OFFENSIVE: 'synchronised_offensive',
     AIR_SUPPORT: 'air_support',
 
@@ -29,35 +27,11 @@ const CommandCards = Object.freeze({
     // ===== Separatist Command Cards =====
     // Generic Separatist Cards
     ROGER_ROGER: 'roger_roger',
-    MECHANIZED_WARFARE: 'mechanized_warfare',
 
     // General Grievous Cards (Core Set)
     TRAINED_IN_YOUR_JEDI_ARTS: 'trained_in_your_jedi_arts',
     SUPREME_COMMANDER: 'supreme_commander',
     CRUSH_THEM: 'crush_them',
-    WIPE_THEM_OUT: 'wipe_them_out',
-
-    // ===== Imperial Command Cards =====
-    // Generic Imperial Cards
-    IMPERIAL_DISCIPLINE: 'imperial_discipline',
-    COORDINATED_FIRE: 'coordinated_fire',
-    PINNED_DOWN: 'pinned_down',
-
-    // Darth Vader Cards
-    IMPLACABLE: 'implacable',
-    NEW_WAYS_TO_MOTIVATE_THEM: 'new_ways_to_motivate_them',
-    MASTER_OF_EVIL: 'master_of_evil',
-
-    // ===== Rebel Command Cards =====
-    // Generic Rebel Cards
-    REBEL_YELL: 'rebel_yell',
-    TURNING_THE_TIDE: 'turning_the_tide',
-    COVERING_FIRE: 'covering_fire',
-
-    // Luke Skywalker Cards
-    SON_OF_SKYWALKER: 'son_of_skywalker',
-    MY_ALLY_IS_THE_FORCE: 'my_ally_is_the_force',
-    RETURN_OF_THE_JEDI: 'return_of_the_jedi',
 
     // Function to get display name
     getDisplayName: function(id) {
@@ -72,8 +46,6 @@ const CommandCards = Object.freeze({
 
             // Republic Cards
             case this.ATTACK_OF_THE_CLONES: return 'Attack of the Clones';
-            case this.TRAINED_FOR_WAR: return 'Trained for War';
-            case this.SOMEONE_ELSE_WILL_DO_THE_JOB: return 'Someone Else Will Do the Job';
             case this.SYNCHRONISED_OFFENSIVE: return 'Synchronised Offensive';
             case this.AIR_SUPPORT: return 'Air Support';
 
@@ -89,33 +61,11 @@ const CommandCards = Object.freeze({
 
             // Separatist Cards
             case this.ROGER_ROGER: return 'Roger Roger';
-            case this.MECHANIZED_WARFARE: return 'Mechanized Warfare';
 
             // General Grievous Cards
             case this.TRAINED_IN_YOUR_JEDI_ARTS: return 'Trained in Your Jedi Arts';
             case this.SUPREME_COMMANDER: return 'Supreme Commander';
             case this.CRUSH_THEM: return 'Crush Them!';
-            case this.WIPE_THEM_OUT: return 'Wipe Them Out';
-
-            // Imperial Cards
-            case this.IMPERIAL_DISCIPLINE: return 'Imperial Discipline';
-            case this.COORDINATED_FIRE: return 'Coordinated Fire';
-            case this.PINNED_DOWN: return 'Pinned Down';
-
-            // Darth Vader Cards
-            case this.IMPLACABLE: return 'Implacable';
-            case this.NEW_WAYS_TO_MOTIVATE_THEM: return 'New Ways to Motivate Them';
-            case this.MASTER_OF_EVIL: return 'Master of Evil';
-
-            // Rebel Cards
-            case this.REBEL_YELL: return 'Rebel Yell';
-            case this.TURNING_THE_TIDE: return 'Turning the Tide';
-            case this.COVERING_FIRE: return 'Covering Fire';
-
-            // Luke Skywalker Cards
-            case this.SON_OF_SKYWALKER: return 'Son of Skywalker';
-            case this.MY_ALLY_IS_THE_FORCE: return 'My Ally Is the Force';
-            case this.RETURN_OF_THE_JEDI: return 'Return of the Jedi';
 
             default:
                 return id.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
@@ -128,46 +78,30 @@ const CommandCards = Object.freeze({
             // 1-Pip Cards
             case this.AMBUSH:
             case this.SYNCHRONISED_OFFENSIVE:
-            case this.GENERAL_KENOBI:
             case this.HELLO_THERE:
             case this.BRING_IT_DOWN:
             case this.TRAINED_IN_YOUR_JEDI_ARTS:
-            case this.ROGER_ROGER:
-            case this.IMPERIAL_DISCIPLINE:
-            case this.IMPLACABLE:
-            case this.REBEL_YELL:
-            case this.SON_OF_SKYWALKER:
                 return 1;
 
             // 2-Pip Cards
             case this.PUSH:
             case this.AIR_SUPPORT:
-            case this.TRAINED_FOR_WAR:
             case this.KNOWLEDGE_AND_DEFENSE:
             case this.HAVE_I_EVER_LET_YOU_DOWN:
             case this.SUPREME_COMMANDER:
-            case this.MECHANIZED_WARFARE:
-            case this.COORDINATED_FIRE:
-            case this.NEW_WAYS_TO_MOTIVATE_THEM:
-            case this.TURNING_THE_TIDE:
-            case this.MY_ALLY_IS_THE_FORCE:
                 return 2;
 
             // 3-Pip Cards
+            case this.ROGER_ROGER:
+            case this.GENERAL_KENOBI:
             case this.ASSAULT:
             case this.ATTACK_OF_THE_CLONES:
             case this.COMBINED_ARMS:
             case this.CRUSH_THEM:
-            case this.WIPE_THEM_OUT:
-            case this.PINNED_DOWN:
-            case this.MASTER_OF_EVIL:
-            case this.COVERING_FIRE:
-            case this.RETURN_OF_THE_JEDI:
                 return 3;
 
             // 4-Pip Cards
             case this.STANDING_ORDERS:
-            case this.SOMEONE_ELSE_WILL_DO_THE_JOB:
                 return 4;
 
             default:
@@ -194,20 +128,7 @@ const CommandCards = Object.freeze({
             case this.TRAINED_IN_YOUR_JEDI_ARTS:
             case this.SUPREME_COMMANDER:
             case this.CRUSH_THEM:
-            case this.WIPE_THEM_OUT:
                 return 'General Grievous - The Jedi Slayer';
-
-            // Darth Vader Cards
-            case this.IMPLACABLE:
-            case this.NEW_WAYS_TO_MOTIVATE_THEM:
-            case this.MASTER_OF_EVIL:
-                return 'Darth Vader';
-
-            // Luke Skywalker Cards
-            case this.SON_OF_SKYWALKER:
-            case this.MY_ALLY_IS_THE_FORCE:
-            case this.RETURN_OF_THE_JEDI:
-                return 'Luke Skywalker';
 
             default:
                 return null;
@@ -222,29 +143,16 @@ const CommandCards = Object.freeze({
         }
 
         // Republic Cards
-        if ([this.ATTACK_OF_THE_CLONES, this.TRAINED_FOR_WAR, this.SOMEONE_ELSE_WILL_DO_THE_JOB,
-            this.SYNCHRONISED_OFFENSIVE, this.AIR_SUPPORT,
+        if ([this.ATTACK_OF_THE_CLONES, this.SYNCHRONISED_OFFENSIVE, this.AIR_SUPPORT,
             this.GENERAL_KENOBI, this.KNOWLEDGE_AND_DEFENSE, this.HELLO_THERE,
             this.BRING_IT_DOWN, this.HAVE_I_EVER_LET_YOU_DOWN, this.COMBINED_ARMS].includes(id)) {
             return Factions.REPUBLIC;
         }
 
         // Separatist Cards
-        if ([this.ROGER_ROGER, this.MECHANIZED_WARFARE,
-            this.TRAINED_IN_YOUR_JEDI_ARTS, this.SUPREME_COMMANDER, this.CRUSH_THEM, this.WIPE_THEM_OUT].includes(id)) {
+        if ([this.ROGER_ROGER, this.TRAINED_IN_YOUR_JEDI_ARTS, this.SUPREME_COMMANDER, 
+            this.CRUSH_THEM, this.WIPE_THEM_OUT].includes(id)) {
             return Factions.SEPARATIST;
-        }
-
-        // Imperial Cards
-        if ([this.IMPERIAL_DISCIPLINE, this.COORDINATED_FIRE, this.PINNED_DOWN,
-            this.IMPLACABLE, this.NEW_WAYS_TO_MOTIVATE_THEM, this.MASTER_OF_EVIL].includes(id)) {
-            return Factions.EMPIRE;
-        }
-
-        // Rebel Cards
-        if ([this.REBEL_YELL, this.TURNING_THE_TIDE, this.COVERING_FIRE,
-            this.SON_OF_SKYWALKER, this.MY_ALLY_IS_THE_FORCE, this.RETURN_OF_THE_JEDI].includes(id)) {
-            return Factions.REBEL;
         }
 
         return null;
@@ -255,89 +163,49 @@ const CommandCards = Object.freeze({
         switch (id) {
             // Universal Cards
             case this.AMBUSH:
-                return "After issuing orders, shuffle the order pool.";
+                return "1 Unit.";
             case this.ASSAULT:
-                return "Each trooper unit that is issued an order gains 1 dodge token.";
+                return "3 Units.";
             case this.PUSH:
-                return "Any unit can be issued an order, regardless of range.";
+                return "2 Units.";
             case this.STANDING_ORDERS:
-                return "Gain an additional command action during the Command Phase.";
+                return "1 Unit.";
 
             // Republic Cards
             case this.ATTACK_OF_THE_CLONES:
-                return "When a trooper unit is issued an order, it gains 1 aim token and 1 dodge token.";
-            case this.TRAINED_FOR_WAR:
-                return "When activating a clone trooper unit, it may perform a free aim action.";
-            case this.SOMEONE_ELSE_WILL_DO_THE_JOB:
-                return "When a clone trooper unit suffers wounds, you may transfer up to 2 wounds to another friendly clone trooper unit within range 1-2.";
+                return "3 Clone Troopers.";
             case this.SYNCHRONISED_OFFENSIVE:
-                return "Placeholder description for Synchronised Offensive.";
+                return "1 Vehicle.";
             case this.AIR_SUPPORT:
-                return "Placeholder description for Air Support.";
+                return "1 Commander or Heavy Unit. Once this round, at the end of the activation of a friendly Commander clone trooper unit or friendly FIELD COMMANDER unit, it may perform an attack using the following weapon: Air Support; Range 4+; 1 Red Dice, 2 Black Dice; Beam 2, Immune: Deflect.";
 
             // Obi-Wan Kenobi Cards
-            case this.GENERAL_KENOBI:
-                return "Obi-Wan Kenobi gains Jump 2 and may perform a free move action.";
             case this.KNOWLEDGE_AND_DEFENSE:
-                return "When Obi-Wan Kenobi or a friendly trooper unit at range 1-2 of him is defending against a ranged attack, the attacker cannot resolve critical hits.";
+                return "2 Troopers. Obi-Wan Kenobi gains 1 dodge token for each other friendly trooper unit at range 1. Obi-Wan Kenobi can use Guardian during a melee attack.";
             case this.HELLO_THERE:
-                return "Place Obi-Wan Kenobi anywhere on the battlefield beyond range 3 of all enemy units. He gains 2 suppression tokens.";
-
+                return "1 Obi-Wan Kenobi. Obi-Wan Kenobi gains Nimble. At the start of the Activation Phase, Obi-Wan Kenobi gains 1 aim, 1 dodge, 1 standby, or 1 surge token for each enemy unit at range 1-2.";
+            case this.GENERAL_KENOBI: 
+                return "1 Obi-Wan Kenobi & 2 Units. When Obi-Wan Kenobi issues an order to a unit, that unit gains 1 surge token for each other friendly unit at range 1 of it."
+                
             // Clone Commander Cody Cards
             case this.BRING_IT_DOWN:
-                return "Placeholder description for Bring It Down!";
+                return "1 Clone Commander Cody.  During his activation, Clone Commander Cody may perform his Exhaust actions up to 2 times. When a friendly unit declares an attack against an enemy unit that has an observation token, you may spend the token. If you do, the attack gains Suppressive if the enemy unit is a trooper unit, and Impact 1 if the enemy unit is a vehicle unit.";
             case this.HAVE_I_EVER_LET_YOU_DOWN:
-                return "Placeholder description for Have I Ever Let You Down?";
+                return "1 Clone Commander Cody & 1 Trooper. While a unit that was issued an order by this card is at Range 1 of Clone Commander Cody and suffers wounds from an enemy attack, after the attack is resolved, if Clone Commander Cody is at Range 4 and has LOS to the enemy unit, he may perform an attack against that unit.";
             case this.COMBINED_ARMS:
-                return "Placeholder description for Combined Arms.";
+                return "2 Troopers & 2 Vehicles. During his activation, Clone Commander Cody may perform his Exhaust actions up to 2 times. When a friendly vehicle unit declares an attack against an enemy unit that has an observation token, they may spend the token. If they do, after the attack a friendly Clone Trooper unit at Range 1 of that vehicle may perform a speed-1 move.";
 
             // Separatist Cards
             case this.ROGER_ROGER:
-                return "When a droid trooper unit is issued an order, it may perform a free attack action.";
-            case this.MECHANIZED_WARFARE:
-                return "Vehicle units gain Surge to Hit for their next attack.";
+                return "3 Droid Troopers. ";
 
             // General Grievous Cards
             case this.TRAINED_IN_YOUR_JEDI_ARTS:
-                return "When General Grievous performs an attack targeting a unit with a Force upgrade, he gains Lethal 2.";
+                return "1 General Grievous. General Grievous gains Disengage and 1 dodge token. At the end of his activation he may perform an attack against each enemy unit at range 1 using the following weapon: Trained in Your Jedi Arts; Range 1; 1 Red Dice, 2 Black Dice, 1 White Dice; Suppressive, Versatile.";
             case this.SUPREME_COMMANDER:
-                return "General Grievous gains 1 aim token and 1 dodge token. He may perform up to 2 attack actions during his activation.";
+                return "2 Troopers. General Grievous gains 1 surge token for each friendly trooper unit at range 1. While another friendly trooper unit has a faceup order token, it gains Guardian 2 and can use Guardian during a melee attack.";
             case this.CRUSH_THEM:
-                return "When an enemy unit within range 1-2 of General Grievous activates, it gains 1 suppression token.";
-            case this.WIPE_THEM_OUT:
-                return "Up to 3 droid trooper units at range 1-3 of General Grievous may perform a free move action.";
-
-            // Imperial Cards
-            case this.IMPERIAL_DISCIPLINE:
-                return "When an Imperial trooper unit is issued an order, it may remove 1 suppression token.";
-            case this.COORDINATED_FIRE:
-                return "Choose up to 2 friendly units. Until the end of the round, while these units are attacking the same enemy unit, they gain Precise 1.";
-            case this.PINNED_DOWN:
-                return "Choose an enemy unit. That unit gains 2 suppression tokens and cannot remove suppression tokens during its next activation.";
-
-            // Darth Vader Cards
-            case this.IMPLACABLE:
-                return "Placeholder description for Implacable.";
-            case this.NEW_WAYS_TO_MOTIVATE_THEM:
-                return "Placeholder description for New Ways to Motivate Them.";
-            case this.MASTER_OF_EVIL:
-                return "Placeholder description for Master of Evil.";
-
-            // Rebel Cards
-            case this.REBEL_YELL:
-                return "Each Rebel trooper unit that is issued an order may perform a free move action immediately.";
-            case this.TURNING_THE_TIDE:
-                return "Choose a friendly unit that has 1 or more wound tokens. That unit gains Inspire 2 until the end of the round.";
-            case this.COVERING_FIRE:
-                return "When a Rebel trooper unit with a faceup order token activates, all other friendly units within range 1 gain a dodge token.";
-
-            // Luke Skywalker Cards
-            case this.SON_OF_SKYWALKER:
-                return "Placeholder description for Son of Skywalker.";
-            case this.MY_ALLY_IS_THE_FORCE:
-                return "Placeholder description for My Ally Is the Force.";
-            case this.RETURN_OF_THE_JEDI:
-                return "Placeholder description for Return of the Jedi.";
+                return "1 General Grievous & 2 Units. When General Grievous issues an order to a unit, that unit gains 1 surge token for each defeated enemy unit.";
 
             default:
                 return "No description available.";
@@ -356,8 +224,6 @@ const CommandCards = Object.freeze({
             case Factions.REPUBLIC:
                 factionCards = [
                     this.ATTACK_OF_THE_CLONES,
-                    this.TRAINED_FOR_WAR,
-                    this.SOMEONE_ELSE_WILL_DO_THE_JOB,
                     this.SYNCHRONISED_OFFENSIVE,
                     this.AIR_SUPPORT,
                     this.GENERAL_KENOBI,
@@ -371,31 +237,17 @@ const CommandCards = Object.freeze({
             case Factions.SEPARATIST:
                 factionCards = [
                     this.ROGER_ROGER,
-                    this.MECHANIZED_WARFARE,
                     this.TRAINED_IN_YOUR_JEDI_ARTS,
                     this.SUPREME_COMMANDER,
                     this.CRUSH_THEM,
-                    this.WIPE_THEM_OUT
                 ];
                 break;
             case Factions.EMPIRE:
                 factionCards = [
-                    this.IMPERIAL_DISCIPLINE,
-                    this.COORDINATED_FIRE,
-                    this.PINNED_DOWN,
-                    this.IMPLACABLE,
-                    this.NEW_WAYS_TO_MOTIVATE_THEM,
-                    this.MASTER_OF_EVIL
                 ];
                 break;
             case Factions.REBEL:
                 factionCards = [
-                    this.REBEL_YELL,
-                    this.TURNING_THE_TIDE,
-                    this.COVERING_FIRE,
-                    this.SON_OF_SKYWALKER,
-                    this.MY_ALLY_IS_THE_FORCE,
-                    this.RETURN_OF_THE_JEDI
                 ];
                 break;
             default:
@@ -412,22 +264,13 @@ const CommandCards = Object.freeze({
             this.AMBUSH, this.ASSAULT, this.PUSH, this.STANDING_ORDERS,
 
             // Republic
-            this.ATTACK_OF_THE_CLONES, this.TRAINED_FOR_WAR, this.SOMEONE_ELSE_WILL_DO_THE_JOB,
-            this.SYNCHRONISED_OFFENSIVE, this.AIR_SUPPORT,
+            this.ATTACK_OF_THE_CLONES, this.SYNCHRONISED_OFFENSIVE, this.AIR_SUPPORT,
             this.GENERAL_KENOBI, this.KNOWLEDGE_AND_DEFENSE, this.HELLO_THERE,
             this.BRING_IT_DOWN, this.HAVE_I_EVER_LET_YOU_DOWN, this.COMBINED_ARMS,
 
             // Separatist
-            this.ROGER_ROGER, this.MECHANIZED_WARFARE,
-            this.TRAINED_IN_YOUR_JEDI_ARTS, this.SUPREME_COMMANDER, this.CRUSH_THEM, this.WIPE_THEM_OUT,
-
-            // Imperial
-            this.IMPERIAL_DISCIPLINE, this.COORDINATED_FIRE, this.PINNED_DOWN,
-            this.IMPLACABLE, this.NEW_WAYS_TO_MOTIVATE_THEM, this.MASTER_OF_EVIL,
-
-            // Rebel
-            this.REBEL_YELL, this.TURNING_THE_TIDE, this.COVERING_FIRE,
-            this.SON_OF_SKYWALKER, this.MY_ALLY_IS_THE_FORCE, this.RETURN_OF_THE_JEDI
+            this.ROGER_ROGER, this.TRAINED_IN_YOUR_JEDI_ARTS, this.SUPREME_COMMANDER, 
+            this.CRUSH_THEM,
         ];
     }
 });
