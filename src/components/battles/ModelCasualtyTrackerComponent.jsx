@@ -67,6 +67,22 @@ const ModelCasualtyTracker = ({ unit, upgrades = [], onUpdateModels }) => {
         onUpdateModels(updatedModels);
     };
 
+    const getAvailableWeaponsWithCounts = () => {
+    return models
+        .filter(m => m.isAlive)
+        .reduce((weapons, model) => {
+            model.weapons?.forEach(weapon => {
+                const existing = weapons.find(w => w.name === weapon.name);
+                if (existing) {
+                    existing.count++;
+                } else {
+                    weapons.push({ ...weapon, count: 1, source: model.source });
+                }
+            });
+            return weapons;
+        }, []);
+    };
+
     const killMultipleModels = (count) => {
         let remainingKills = count;
         const updatedModels = [...models];

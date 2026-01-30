@@ -14,6 +14,8 @@ import EndPhase from './EndPhase';
 import BattleControls from './BattleControls';
 import LoadingSpinner from '../layout/LoadingSpinner';
 import ReminderPanel from '../reminders/ReminderPanel';
+import { useIsMobile } from '../../hooks/useIsMobile';
+import MobileBattleTracker from './MobileBattleTracker';
 
 const BattleTracker = ({ battleId }) => {
     const navigate = useNavigate();
@@ -27,6 +29,7 @@ const BattleTracker = ({ battleId }) => {
     const [abilities, setAbilities] = useState([]);
     const [upgrades, setUpgrades] = useState([]);
     const [commandReminders, setCommandReminders] = useState([]);
+    const isMobile = useIsMobile();
 
     // Load battle data
     useEffect(() => {
@@ -415,6 +418,10 @@ const BattleTracker = ({ battleId }) => {
                 </div>
             </Alert>
         );
+    }
+
+    if (isMobile) {
+        return <MobileBattleTracker battleId={battleId} />;
     }
 
     // If battle is complete, show summary

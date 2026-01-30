@@ -49,6 +49,7 @@ import ArmyCommandCards from './components/command/ArmyCommandCards';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './index.css'; // Custom styles
+import './styles/mobile.css';
 
 function App() {
     return (
