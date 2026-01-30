@@ -386,6 +386,12 @@ const ArmyCommandCards = () => {
                                                         </div>
                                                     </div>
                                                 </div>
+                                                
+                                                <div>
+                                                    {card.description && (
+                                                        <p className="mt-1 mb-0 small">{card.description}</p>
+                                                    )}
+                                                </div>
 
                                                 {!isUsable && card.commander && (
                                                     <div className="text-danger small mt-1">
