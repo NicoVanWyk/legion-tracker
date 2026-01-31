@@ -11,6 +11,7 @@ import WeaponRanges from '../../enums/WeaponRanges';
 import AttackDice from '../../enums/AttackDice';
 import WeaponKeywords from '../../enums/WeaponKeywords';
 import KeywordUtils from '../../utils/KeywordUtils';
+import WeaponKeywordHelper from '../common/WeaponKeywordHelper';
 
 const UnitCard = ({ unit, customUnitTypes }) => {
     const [flipped, setFlipped] = useState(false);
@@ -549,26 +550,20 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                               }
                             </span>
                                                         <span className="ms-2">
-                              {weapon.dice?.[AttackDice.RED] > 0 &&
-                                  <span className="text-danger">{weapon.dice[AttackDice.RED]}R </span>
-                              }
+                                                            {weapon.dice?.[AttackDice.RED] > 0 &&
+                                                                <span className="text-danger">{weapon.dice[AttackDice.RED]}R </span>
+                                                            }
                                                             {weapon.dice?.[AttackDice.BLACK] > 0 &&
                                                                 <span>{weapon.dice[AttackDice.BLACK]}B </span>
                                                             }
                                                             {weapon.dice?.[AttackDice.WHITE] > 0 &&
                                                                 <span className="text-muted">{weapon.dice[AttackDice.WHITE]}W</span>
                                                             }
-                            </span>
+                                                        </span>
                                                     </div>
                                                     {weapon.keywords?.length > 0 && (
                                                         <div className="small">
-                                                            {weapon.keywords.map((kw, i) => (
-                                                                <span key={i} className="badge bg-light text-dark me-1 mb-1">
-                                  {WeaponKeywords.getDisplayName ?
-                                      WeaponKeywords.getDisplayName(kw) : kw
-                                  }
-                                </span>
-                                                            ))}
+                                                            <WeaponKeywordHelper keywords={weapon.keywords} variant="badge" />
                                                         </div>
                                                     )}
                                                 </li>

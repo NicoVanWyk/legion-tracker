@@ -5,6 +5,8 @@ import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import ReferenceCategories from '../../enums/ReferenceCategories';
+import WeaponKeywords from '../../enums/WeaponKeywords';
+import Keywords from '../../enums/Keywords';
 
 const ReferencePanel = ({ show, onHide }) => {
     const [references, setReferences] = useState([]);
@@ -57,6 +59,28 @@ const ReferencePanel = ({ show, onHide }) => {
                     });
                 });
             }
+
+            // Add weapon keywords as system references
+                const weaponKeywords = WeaponKeywords.getAllKeywordsFlat().map(keyword => ({
+                id: `weapon-${keyword}`,
+                term: WeaponKeywords.getDisplayName(keyword),
+                description: WeaponKeywords.getDescription(keyword),
+                category: ReferenceCategories.WEAPON_KEYWORD,
+                isSystem: true
+                }));
+
+                refsData.push(...weaponKeywords);
+
+                // Also add unit keywords
+                const unitKeywords = Keywords.getAllKeywordsFlat().map(keyword => ({
+                id: `unit-${keyword}`,
+                term: Keywords.getDisplayName(keyword),
+                description: Keywords.getDescription(keyword),
+                category: ReferenceCategories.KEYWORD,
+                isSystem: true
+                }));
+
+                refsData.push(...unitKeywords);
             
             // Sort all by term
             refsData.sort((a, b) => a.term.localeCompare(b.term));

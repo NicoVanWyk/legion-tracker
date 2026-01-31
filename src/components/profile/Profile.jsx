@@ -1,7 +1,7 @@
 // src/components/profile/Profile.jsx
 import React, { useState, useEffect } from 'react';
 import { Form, Button, Alert, Spinner, Card, Row, Col } from 'react-bootstrap';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, query, collection, where, getDocs } from 'firebase/firestore';
 import { updateProfile, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, auth, storage } from '../../firebase';
@@ -17,6 +17,7 @@ const Profile = () => {
         displayName: '',
         email: '',
         photoURL: '',
+        username: '',
         newPassword: '',
         confirmPassword: '',
         currentPassword: ''
@@ -43,6 +44,7 @@ const Profile = () => {
                         displayName: currentUser.displayName || '',
                         email: currentUser.email || '',
                         photoURL: currentUser.photoURL || '',
+                        username: userData.username || '',
                         newPassword: '',
                         confirmPassword: '',
                         currentPassword: ''
@@ -53,6 +55,7 @@ const Profile = () => {
                         displayName: currentUser.displayName || '',
                         email: currentUser.email || '',
                         photoURL: currentUser.photoURL || '',
+                        username: '',
                         createdAt: new Date()
                     });
 
@@ -60,6 +63,7 @@ const Profile = () => {
                         displayName: currentUser.displayName || '',
                         email: currentUser.email || '',
                         photoURL: currentUser.photoURL || '',
+                        username: '',
                         newPassword: '',
                         confirmPassword: '',
                         currentPassword: ''
@@ -102,10 +106,11 @@ const Profile = () => {
         // Check if anything changed
         const isDisplayNameChanged = userProfile.displayName !== currentUser.displayName;
         const isEmailChanged = userProfile.email !== currentUser.email;
+        const isUsernameChanged = userProfile.username !== (userProfile.originalUsername || '');
         const isPasswordChanged = userProfile.newPassword.length > 0;
         const isAvatarChanged = avatar !== null;
 
-        if (!isDisplayNameChanged && !isEmailChanged && !isPasswordChanged && !isAvatarChanged) {
+        if (!isDisplayNameChanged && !isEmailChanged && !isUsernameChanged && !isPasswordChanged && !isAvatarChanged) {
             setError('No changes to save.');
             return false;
         }
@@ -131,7 +136,35 @@ const Profile = () => {
             }
         }
 
+            // Validate username if changed
+            if (isUsernameChanged) {
+                if (userProfile.username.length < 3) {
+                    setError('Username must be at least 3 characters');
+                    return false;
+                }
+                if (!/^[a-zA-Z0-9_-]+$/.test(userProfile.username)) {
+                    setError('Username can only contain letters, numbers, underscores, and hyphens');
+                    return false;
+                }
+            }
+
         return true;
+    };
+
+    const checkUsernameAvailable = async (usernameToCheck, currentUsername) => {
+    if (usernameToCheck === currentUsername) return true; // No change
+    
+    try {
+            const q = query(
+                collection(db, 'users'),
+                where('username', '==', usernameToCheck.toLowerCase())
+            );
+            const snapshot = await getDocs(q);
+            return snapshot.empty;
+        } catch (err) {
+            console.error('Error checking username:', err);
+            return false;
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -142,6 +175,15 @@ const Profile = () => {
         setUpdating(true);
 
         try {
+            if (userProfile.username !== (userProfile.originalUsername || '')) {
+                const isAvailable = await checkUsernameAvailable(userProfile.username, userProfile.originalUsername);
+                if (!isAvailable) {
+                    setError('Username is already taken. Please choose another.');
+                    setUpdating(false);
+                    return;
+                }
+            }
+            
             // Update authentication profile
             const profileUpdates = {};
 
@@ -204,6 +246,10 @@ const Profile = () => {
             if (userProfile.displayName !== currentUser.displayName) {
                 profileUpdates.displayName = userProfile.displayName;
                 await updateProfile(auth.currentUser, { displayName: userProfile.displayName });
+            }
+
+            if (userProfile.username !== (userProfile.originalUsername || '')) {
+                profileUpdates.username = userProfile.username.toLowerCase();
             }
 
             // Update Firestore document
@@ -283,6 +329,22 @@ const Profile = () => {
                         value={userProfile.displayName}
                         onChange={handleChange}
                     />
+                </Form.Group>
+
+                <Form.Group controlId="username" className="mb-3">
+                    <Form.Label>Username</Form.Label>
+                    <Form.Control
+                        type="text" 
+                        name="username"
+                        value={userProfile.username}
+                        onChange={handleChange}
+                        placeholder="Choose a unique username for friends to find you"
+                        pattern="[a-zA-Z0-9_-]+"
+                        title="Username can only contain letters, numbers, underscores, and hyphens"
+                    />
+                    <Form.Text className="text-muted">
+                        Used for friend invitations and multiplayer battles. Letters, numbers, underscores, and hyphens only.
+                    </Form.Text>
                 </Form.Group>
 
                 <Form.Group controlId="email" className="mb-3">

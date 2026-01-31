@@ -42,8 +42,13 @@ import AbilityForm from './components/abilities/AbilityForm';
 import UpgradeCardList from './components/upgrades/UpgradeCardList';
 import UpgradeCardForm from './components/upgrades/UpgradeCardForm';
 
+// Social
+import SocialPage from './components/social/SocialPage';
+
 // Command Cards
 import ArmyCommandCards from './components/command/ArmyCommandCards';
+import BattleEditForm from './components/battles/BattleEditForm';
+import SharedBattleTracker from './components/battles/SharedBattleTracker';
 
 // Import Bootstrap CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -95,11 +100,15 @@ function App() {
                                 <Route path="/command-cards/create" element={<CommandCards />} />
                                 <Route path="/command-cards/edit/:cardId" element={<CommandCards />} />
 
+                                {/* Social Routes */}
+                                <Route path="/social" element={<SocialPage />} />
+
                                 {/* Battle Routes */}
                                 <Route path="/battles" element={<Battles />} />
                                 <Route path="/battles/:battleId" element={<Battles />} />
+                                <Route path="/battles/:battleId/edit" element={<BattleEditForm />} />
                                 <Route path="/battles/create" element={<Battles />} />
-                                <Route path="/battles/edit/:battleId" element={<Battles />} />
+                                <Route path="/shared-battles/:battleId" element={<SharedBattleTracker />} />
 
                                 {/* Abilities Routes */}
                                 <Route path="/abilities" element={<AbilityList />} />

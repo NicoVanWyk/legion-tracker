@@ -7,6 +7,8 @@ import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import ReferenceCategories from '../../enums/ReferenceCategories';
 import SearchBar from '../common/SearchBar';
+import WeaponKeywords from '../../enums/WeaponKeywords';
+import Keywords from '../../enums/Keywords';
 
 const ReferenceList = () => {
   const [references, setReferences] = useState([]);
@@ -36,6 +38,18 @@ const ReferenceList = () => {
           id: doc.id,
           ...doc.data()
         }));
+
+        // Also fetch weapon keywords as references
+        const weaponKeywords = WeaponKeywords.getAllKeywordsFlat().map(keyword => ({
+          id: `weapon-${keyword}`,
+          term: WeaponKeywords.getDisplayName(keyword),
+          description: WeaponKeywords.getDescription(keyword),
+          category: ReferenceCategories.WEAPON_KEYWORD,
+          isSystem: true,
+          isWeaponKeyword: true
+        }));
+
+        refsData.push(...weaponKeywords);
         
         // If user is authenticated, also get their custom references
         if (currentUser) {

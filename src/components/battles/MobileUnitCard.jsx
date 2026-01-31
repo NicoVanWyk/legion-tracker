@@ -6,6 +6,7 @@ import WeaponKeywords from '../../enums/WeaponKeywords';
 import WeaponRanges from '../../enums/WeaponRanges';
 import AttackDice from '../../enums/AttackDice';
 import DefenseDice from '../../enums/DefenseDice';
+import WeaponKeywordHelper from '../common/WeaponKeywordHelper';
 
 const MobileUnitCard = ({ unit, onUpdate, canEdit = false }) => {
     const [showWeapons, setShowWeapons] = useState(false);
@@ -294,12 +295,7 @@ const MobileUnitCard = ({ unit, onUpdate, canEdit = false }) => {
                                     </div>
                                     {weapon.keywords?.length > 0 && (
                                         <div className="small mt-1">
-                                            {weapon.keywords.map((kw, i) => (
-                                                <Badge key={i} bg="light" text="dark" className="me-1">
-                                                    {WeaponKeywords.getDisplayName ? 
-                                                        WeaponKeywords.getDisplayName(kw) : kw}
-                                                </Badge>
-                                            ))}
+                                            <WeaponKeywordHelper keywords={weapon.keywords} variant="badge" />
                                         </div>
                                     )}
                                 </ListGroup.Item>

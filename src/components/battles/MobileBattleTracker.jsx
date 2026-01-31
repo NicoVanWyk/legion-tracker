@@ -317,21 +317,23 @@ const MobileBattleTracker = ({ battleId }) => {
             </div>
 
             {/* Bottom Action Bar */}
-            <div className="fixed-bottom bg-light p-2 border-top d-flex justify-content-around">
+            <div className="fixed-bottom bg-light p-3 border-top d-flex justify-content-between align-items-center">
                 <Button 
-                    variant="outline-primary" 
-                    size="sm"
+                    variant="primary" 
                     onClick={() => setShowReference(true)}
+                    className="d-flex align-items-center"
                 >
-                    <i className="bi bi-book"></i> Rules
+                    <i className="bi bi-book-fill me-2"></i> 
+                    Weapon Rules
                 </Button>
-                <Button 
-                    variant="outline-secondary" 
-                    size="sm"
-                    onClick={() => navigate('/battles')}
-                >
-                    <i className="bi bi-arrow-left"></i> Exit
-                </Button>
+                <div className="d-flex gap-2">
+                    <Button 
+                        variant="outline-secondary" 
+                        onClick={() => navigate('/battles')}
+                    >
+                        <i className="bi bi-arrow-left"></i>
+                    </Button>
+                </div>
             </div>
 
             {/* Quick Reference Drawer */}

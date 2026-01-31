@@ -83,6 +83,8 @@ const Header = () => {
                                         <NavDropdown.Item as={Link} to="/battles/create">Start New Battle</NavDropdown.Item>
                                     </NavDropdown>
 
+                                    <Nav.Link as={Link} to="/social">Social</Nav.Link>
+
                                     <Nav.Link as={Link} to="/references">Reference</Nav.Link>
                                 </>
                             )}
