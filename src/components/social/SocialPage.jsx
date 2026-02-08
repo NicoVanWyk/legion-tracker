@@ -6,6 +6,7 @@ import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../layout/LoadingSpinner';
+import { getDoc } from 'firebase/firestore';
 
 const SocialPage = () => {
     const navigate = useNavigate();
@@ -32,6 +33,23 @@ const SocialPage = () => {
     const [selectedArmy, setSelectedArmy] = useState('');
     const [inviteMessage, setInviteMessage] = useState('');
     const [sending, setSending] = useState(false);
+
+    // Enhanced battle invitation modal with army sharing
+    const [allowArmySharing, setAllowArmySharing] = useState(false);
+
+    // Enhanced accept battle invitation with army selection modal
+    const [showAcceptModal, setShowAcceptModal] = useState(false);
+    const [selectedInvitation, setSelectedInvitation] = useState(null);
+    const [selectedGuestArmy, setSelectedGuestArmy] = useState('');
+    const [useSharedArmy, setUseSharedArmy] = useState(false);
+
+    // Open accept modal
+    const openAcceptModal = (invitation) => {
+        setSelectedInvitation(invitation);
+        setSelectedGuestArmy('');
+        setUseSharedArmy(false);
+        setShowAcceptModal(true);
+    };
 
     // Real-time listeners
     useEffect(() => {
@@ -245,6 +263,18 @@ const SocialPage = () => {
         try {
             setSending(true);
             
+            // Get the selected army data if sharing is enabled
+            let sharedArmyData = null;
+            if (allowArmySharing) {
+                const armyDoc = await getDoc(doc(db, 'users', currentUser.uid, 'armies', selectedArmy));
+                if (armyDoc.exists()) {
+                    sharedArmyData = {
+                        id: armyDoc.id,
+                        ...armyDoc.data()
+                    };
+                }
+            }
+
             // Create shared battle
             const battleData = {
                 participants: {
@@ -270,10 +300,9 @@ const SocialPage = () => {
                 createdAt: serverTimestamp(),
                 status: 'pending'
             };
-
             const battleRef = await addDoc(collection(db, 'shared-battles'), battleData);
-
-            // Create battle invitation
+            
+            // Create battle invitation with army sharing option
             await addDoc(collection(db, 'battle-invitations'), {
                 fromUserId: currentUser.uid,
                 fromUsername: currentUser.displayName || currentUser.email,
@@ -281,17 +310,18 @@ const SocialPage = () => {
                 toUsername: selectedFriend.username,
                 battleId: battleRef.id,
                 hostArmyId: selectedArmy,
+                allowArmySharing: allowArmySharing,
+                sharedArmy: sharedArmyData, // Include army data if sharing
                 message: inviteMessage || 'Join me for a Star Wars Legion battle!',
                 status: 'pending',
                 createdAt: serverTimestamp(),
-                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
             });
 
             setSuccess(`Battle invitation sent to ${selectedFriend.username}!`);
             setShowInviteModal(false);
-            setSelectedFriend(null);
-            setSelectedArmy('');
-            setInviteMessage('');
+            resetInviteForm();
+            
         } catch (err) {
             setError('Failed to send battle invitation');
         } finally {
@@ -299,20 +329,45 @@ const SocialPage = () => {
         }
     };
 
+    const resetInviteForm = () => {
+        setSelectedFriend(null);
+        setSelectedArmy('');
+        setInviteMessage('');
+        setAllowArmySharing(false);
+    };
+
     // Accept battle invitation
-    const acceptBattleInvitation = async (invitation) => {
-        try {
-            // Update shared battle with guest army
-            const selectedGuestArmy = armies[0]?.id; // For demo, select first army
+    const acceptBattleInvitation = async () => {
+        if (!selectedInvitation) return;
+        
+        let armyToUse = '';
+        let armyData = null;
+        
+        if (useSharedArmy && selectedInvitation.sharedArmy) {
+            armyToUse = selectedInvitation.sharedArmy.id;
+            armyData = selectedInvitation.sharedArmy;
+        } else {
             if (!selectedGuestArmy) {
-                setError('You need to create an army first');
+                setError('Please select an army');
                 return;
             }
+            armyToUse = selectedGuestArmy;
+            
+            // Get user's own army data
+            const armyDoc = await getDoc(doc(db, 'users', currentUser.uid, 'armies', selectedGuestArmy));
+            if (armyDoc.exists()) {
+                armyData = { id: armyDoc.id, ...armyDoc.data() };
+            }
+        }
 
-            await updateDoc(doc(db, 'shared-battles', invitation.battleId), {
+        try {
+            // Update shared battle with guest army
+            await updateDoc(doc(db, 'shared-battles', selectedInvitation.battleId), {
                 [`participants.${currentUser.uid}`]: {
                     role: 'red',
-                    armyId: selectedGuestArmy,
+                    armyId: armyToUse,
+                    armyData: armyData,
+                    isSharedArmy: useSharedArmy,
                     username: currentUser.displayName || currentUser.email,
                     userId: currentUser.uid
                 },
@@ -321,14 +376,17 @@ const SocialPage = () => {
             });
 
             // Update invitation status
-            await updateDoc(doc(db, 'battle-invitations', invitation.id), {
+            await updateDoc(doc(db, 'battle-invitations', selectedInvitation.id), {
                 status: 'accepted',
-                guestArmyId: selectedGuestArmy
+                guestArmyId: armyToUse,
+                usedSharedArmy: useSharedArmy
             });
 
             setSuccess('Battle invitation accepted! Navigating to battle...');
+            setShowAcceptModal(false);
+            
             setTimeout(() => {
-                navigate(`/shared-battles/${invitation.battleId}`);
+                navigate(`/shared-battles/${selectedInvitation.battleId}`);
             }, 1500);
         } catch (err) {
             setError('Failed to accept battle invitation');
@@ -532,6 +590,11 @@ const SocialPage = () => {
                                             <div>
                                                 <strong>{invitation.fromUsername}</strong> invited you to battle
                                                 <div className="small text-muted">{invitation.message}</div>
+                                                {invitation.allowArmySharing && (
+                                                    <div className="small text-success">
+                                                        <i className="fas fa-share"></i> Army sharing enabled
+                                                    </div>
+                                                )}
                                                 <div className="small text-muted">
                                                     {invitation.createdAt?.toDate().toLocaleDateString()}
                                                 </div>
@@ -540,7 +603,7 @@ const SocialPage = () => {
                                                 <Button 
                                                     size="sm" 
                                                     variant="success"
-                                                    onClick={() => acceptBattleInvitation(invitation)}
+                                                    onClick={() => openAcceptModal(invitation)}
                                                 >
                                                     Accept
                                                 </Button>
@@ -562,7 +625,7 @@ const SocialPage = () => {
             </Tabs>
 
             {/* Battle Invitation Modal */}
-            <Modal show={showInviteModal} onHide={() => setShowInviteModal(false)} centered>
+            <Modal show={showInviteModal} onHide={() => setShowInviteModal(false)} centered size="lg">
                 <Modal.Header closeButton>
                     <Modal.Title>Invite {selectedFriend?.username} to Battle</Modal.Title>
                 </Modal.Header>
@@ -587,6 +650,24 @@ const SocialPage = () => {
                         )}
                     </Form.Group>
 
+                    {/* Army Sharing Option */}
+                    <Form.Group className="mb-3">
+                        <Form.Check 
+                            type="checkbox"
+                            id="allowArmySharing"
+                            label="Allow friend to use this army"
+                            checked={allowArmySharing}
+                            onChange={(e) => setAllowArmySharing(e.target.checked)}
+                            disabled={!selectedArmy}
+                        />
+                        <Form.Text className="text-muted">
+                            {allowArmySharing 
+                                ? "Your friend will be able to select and use your army for this battle (read-only)"
+                                : "Your friend will need to use one of their own armies"
+                            }
+                        </Form.Text>
+                    </Form.Group>
+
                     <Form.Group className="mb-3">
                         <Form.Label>Message (Optional)</Form.Label>
                         <Form.Control
@@ -608,6 +689,90 @@ const SocialPage = () => {
                         disabled={sending || !selectedArmy}
                     >
                         {sending ? 'Sending...' : 'Send Invitation'}
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+
+            <Modal show={showAcceptModal} onHide={() => setShowAcceptModal(false)} centered size="lg">
+                <Modal.Header closeButton>
+                    <Modal.Title>Accept Battle Invitation</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <div className="mb-3">
+                        <h6>{selectedInvitation?.fromUsername} invited you to battle!</h6>
+                        <p className="text-muted">{selectedInvitation?.message}</p>
+                    </div>
+
+                    <Form.Group className="mb-3">
+                        <Form.Label>Choose Your Army</Form.Label>
+                        
+                        {/* Option to use shared army if available */}
+                        {selectedInvitation?.allowArmySharing && selectedInvitation?.sharedArmy && (
+                            <div className="mb-3 p-3 border rounded bg-light">
+                                <Form.Check 
+                                    type="radio"
+                                    name="armyChoice"
+                                    id="useSharedArmy"
+                                    label={`Use ${selectedInvitation.fromUsername}'s army: "${selectedInvitation.sharedArmy.name}" (${selectedInvitation.sharedArmy.totalPoints || 0} pts)`}
+                                    checked={useSharedArmy}
+                                    onChange={() => {
+                                        setUseSharedArmy(true);
+                                        setSelectedGuestArmy('');
+                                    }}
+                                />
+                                <Form.Text className="text-muted d-block mt-1">
+                                    You'll be able to view and use this army (read-only)
+                                </Form.Text>
+                            </div>
+                        )}
+
+                        {/* Option to use own armies */}
+                        <div className="mb-2">
+                            <Form.Check 
+                                type="radio"
+                                name="armyChoice"
+                                id="useOwnArmy"
+                                label="Use one of my armies:"
+                                checked={!useSharedArmy}
+                                onChange={() => {
+                                    setUseSharedArmy(false);
+                                    setSelectedGuestArmy('');
+                                }}
+                            />
+                        </div>
+
+                        {!useSharedArmy && (
+                            <Form.Select
+                                value={selectedGuestArmy}
+                                onChange={(e) => setSelectedGuestArmy(e.target.value)}
+                                disabled={useSharedArmy}
+                            >
+                                <option value="">Choose your army...</option>
+                                {armies.map(army => (
+                                    <option key={army.id} value={army.id}>
+                                        {army.name} ({army.totalPoints || 0} pts)
+                                    </option>
+                                ))}
+                            </Form.Select>
+                        )}
+                        
+                        {armies.length === 0 && !useSharedArmy && (
+                            <Form.Text className="text-warning">
+                                You need to create an army to join this battle.
+                            </Form.Text>
+                        )}
+                    </Form.Group>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowAcceptModal(false)}>
+                        Cancel
+                    </Button>
+                    <Button 
+                        variant="success" 
+                        onClick={acceptBattleInvitation}
+                        disabled={!useSharedArmy && !selectedGuestArmy}
+                    >
+                        Accept & Join Battle
                     </Button>
                 </Modal.Footer>
             </Modal>
