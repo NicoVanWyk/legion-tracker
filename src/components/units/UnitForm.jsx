@@ -16,8 +16,10 @@ import LoadingSpinner from '../layout/LoadingSpinner';
 import UpgradeCardSelector from '../upgrades/UpgradeCardSelector';
 import AbilitySelector from '../abilities/AbilitySelector';
 import UnitCard from './UnitCard';
+import { useGameSystem } from '../../contexts/GameSystemContext';
 
 const UnitForm = () => {
+    const { currentSystem } = useGameSystem();
     const { unitId } = useParams();
     const navigate = useNavigate();
     const { currentUser } = useAuth();
@@ -254,6 +256,7 @@ const UnitForm = () => {
             setLoading(true);
             const dataToSave = {
                 ...formData,
+                gameSystem: currentSystem,
                 totalPoints: calculateTotalPoints(),
                 updatedAt: serverTimestamp(),
                 userId: currentUser.uid

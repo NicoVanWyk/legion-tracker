@@ -5,8 +5,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { collection, doc, addDoc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGameSystem } from '../../contexts/GameSystemContext';
 
 const CustomKeywordForm = () => {
+    const { currentSystem } = useGameSystem();
     const { keywordId } = useParams();
     const navigate = useNavigate();
     const { currentUser } = useAuth();
@@ -105,6 +107,7 @@ const CustomKeywordForm = () => {
                 description: formData.description.trim(),
                 timing: formData.timing.trim(),
                 examples: filteredExamples,
+                gameSystem: currentSystem,
                 lastUpdated: serverTimestamp(),
                 userId: currentUser.uid
             };

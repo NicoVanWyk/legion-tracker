@@ -1,10 +1,11 @@
 // src/components/reference/ReferenceList.jsx
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Badge, Button, Form, InputGroup, Spinner, Alert } from 'react-bootstrap';
+import { Row, Col, Card, Badge, Button, Form, Spinner, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGameSystem } from '../../contexts/GameSystemContext';
 import ReferenceCategories from '../../enums/ReferenceCategories';
 import SearchBar from '../common/SearchBar';
 import WeaponKeywords from '../../enums/WeaponKeywords';
@@ -18,28 +19,27 @@ const ReferenceList = () => {
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const { currentUser } = useAuth();
+  const { currentSystem } = useGameSystem();
 
   useEffect(() => {
     const fetchReferences = async () => {
       try {
         setLoading(true);
         
-        // Base reference collection query - includes system references
         let refsQuery = query(
-          collection(db, 'references'), 
+          collection(db, 'references'),
+          where('gameSystem', '==', currentSystem),
           orderBy('term', 'asc')
         );
         
-        // Execute the query
         const querySnapshot = await getDocs(refsQuery);
         
-        // Map through the documents
         const refsData = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
 
-        // Also fetch weapon keywords as references
+        // Add weapon keywords as references
         const weaponKeywords = WeaponKeywords.getAllKeywordsFlat().map(keyword => ({
           id: `weapon-${keyword}`,
           term: WeaponKeywords.getDisplayName(keyword),
@@ -51,25 +51,23 @@ const ReferenceList = () => {
 
         refsData.push(...weaponKeywords);
         
-        // If user is authenticated, also get their custom references
         if (currentUser) {
           const userRefsQuery = query(
             collection(db, 'users', currentUser.uid, 'references'),
+            where('gameSystem', '==', currentSystem),
             orderBy('term', 'asc')
           );
           
           const userQuerySnapshot = await getDocs(userRefsQuery);
           
-          // Add user custom references to the list
           userQuerySnapshot.docs.forEach(doc => {
             refsData.push({
               id: doc.id,
               ...doc.data(),
-              isCustom: true // Flag to identify custom references
+              isCustom: true
             });
           });
           
-          // Sort all references by term
           refsData.sort((a, b) => a.term.localeCompare(b.term));
         }
         
@@ -85,10 +83,9 @@ const ReferenceList = () => {
     };
 
     fetchReferences();
-  }, [currentUser]);
+  }, [currentUser, currentSystem]);
 
   useEffect(() => {
-    // Filter references based on category and search term
     let result = references;
     
     if (activeCategory !== 'all') {
@@ -115,7 +112,6 @@ const ReferenceList = () => {
     setSearchTerm('');
   };
 
-  // Format references into a grid of cards
   const renderReferenceGrid = () => {
     return (
       <Row className="reference-grid">

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGameSystem } from '../../contexts/GameSystemContext';
 import Factions from '../../enums/Factions';
 import LoadingSpinner from '../layout/LoadingSpinner';
 import ArmyPointsCalculator from '../../utils/ArmyPointsCalculator';
@@ -19,22 +20,20 @@ const ArmyList = () => {
     const [filterFaction, setFilterFaction] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const { currentUser } = useAuth();
+    const { currentSystem } = useGameSystem();
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
 
-                // Create a reference to the user's armies collection
                 const armiesRef = collection(db, 'users', currentUser.uid, 'armies');
-
-                // Create a query against the collection
-                const q = query(armiesRef);
-
-                // Execute the query
+                const q = query(
+                    armiesRef,
+                    where('gameSystem', '==', currentSystem)
+                );
                 const querySnapshot = await getDocs(q);
 
-                // Map through the documents
                 const armiesList = querySnapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data(),
@@ -44,7 +43,6 @@ const ArmyList = () => {
 
                 setArmies(armiesList);
 
-                // Fetch all units (to get their types)
                 const unitsRef = collection(db, 'users', currentUser.uid, 'units');
                 const unitsSnapshot = await getDocs(unitsRef);
                 const unitsList = unitsSnapshot.docs.map(doc => ({
@@ -53,7 +51,6 @@ const ArmyList = () => {
                 }));
                 setUnits(unitsList);
 
-                // Fetch all upgrades
                 const upgradesRef = collection(db, 'users', currentUser.uid, 'upgradeCards');
                 const upgradesSnapshot = await getDocs(upgradesRef);
                 const upgradesList = upgradesSnapshot.docs.map(doc => ({
@@ -62,7 +59,6 @@ const ArmyList = () => {
                 }));
                 setUpgrades(upgradesList);
 
-                // Fetch custom unit types
                 const typesRef = collection(db, 'users', currentUser.uid, 'customUnitTypes');
                 const typesSnapshot = await getDocs(typesRef);
                 const typesList = typesSnapshot.docs.map(doc => ({
@@ -83,38 +79,26 @@ const ArmyList = () => {
         if (currentUser) {
             fetchData();
         }
-    }, [currentUser]);
+    }, [currentUser, currentSystem]);
 
-    // Get unit type display name
     const getTypeDisplayName = (type) => {
-        // Check for custom unit type
         const customType = customUnitTypes.find(t => t.name === type);
         if (customType) {
             return customType.displayName || customType.name;
         }
-
-        // If not a custom type, just return the type
         return type;
     };
 
-    // Calculate the actual total points for an army
     const calculateArmyPoints = (army) => {
         if (!army?.units?.length) return 0;
-        
-        // Get all units in this army
         const armyUnits = units.filter(unit => army.units.includes(unit.id));
-        
         return ArmyPointsCalculator.calculateArmyPoints(armyUnits, upgrades);
     };
 
-    // Get unit types for an army
     const getArmyUnitTypes = (army) => {
         if (!army?.units?.length) return [];
 
-        // Get all units in this army
         const armyUnits = units.filter(unit => army.units.includes(unit.id));
-
-        // Count each unit type
         const typeCounts = {};
 
         armyUnits.forEach(unit => {
@@ -131,18 +115,13 @@ const ArmyList = () => {
         }));
     };
 
-    // Apply filters
     const filteredArmies = armies.filter(army => {
-        // Filter by faction
         if (filterFaction !== 'all' && army.faction !== filterFaction) {
             return false;
         }
-
-        // Filter by search term
         if (searchTerm && !army.name.toLowerCase().includes(searchTerm.toLowerCase())) {
             return false;
         }
-
         return true;
     });
 
@@ -245,10 +224,7 @@ const ArmyList = () => {
             ) : (
                 <Row>
                     {filteredArmies.map(army => {
-                        // Get unit types for this army
                         const armyUnitTypes = getArmyUnitTypes(army);
-                        
-                        // Calculate actual points including upgrades
                         const calculatedPoints = calculateArmyPoints(army);
 
                         return (
@@ -281,7 +257,6 @@ const ArmyList = () => {
                                             <strong>Units:</strong> {army.unitCount || 0}
                                         </div>
 
-                                        {/* Unit type composition */}
                                         {armyUnitTypes.length > 0 && (
                                             <div className="mb-3">
                                                 <strong>Composition:</strong>

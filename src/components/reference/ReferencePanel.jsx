@@ -1,9 +1,10 @@
 // src/components/reference/ReferencePanel.jsx
 import React, { useState, useEffect } from 'react';
-import { Card, Form, ListGroup, Badge, Collapse, Button, Offcanvas, Accordion, Alert, Spinner } from 'react-bootstrap';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { Card, Form, ListGroup, Badge, Button, Offcanvas, Accordion, Alert, Spinner } from 'react-bootstrap';
+import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGameSystem } from '../../contexts/GameSystemContext';
 import ReferenceCategories from '../../enums/ReferenceCategories';
 import WeaponKeywords from '../../enums/WeaponKeywords';
 import Keywords from '../../enums/Keywords';
@@ -17,12 +18,13 @@ const ReferencePanel = ({ show, onHide }) => {
     const [filterCategory, setFilterCategory] = useState('all');
     const [selectedReference, setSelectedReference] = useState(null);
     const { currentUser } = useAuth();
+    const { currentSystem } = useGameSystem();
 
     useEffect(() => {
         if (show) {
             fetchReferences();
         }
-    }, [show, currentUser]);
+    }, [show, currentUser, currentSystem]);
 
     useEffect(() => {
         filterReferencesList();
@@ -32,9 +34,9 @@ const ReferencePanel = ({ show, onHide }) => {
         try {
             setLoading(true);
             
-            // Fetch system references
             const systemQuery = query(
                 collection(db, 'references'),
+                where('gameSystem', '==', currentSystem),
                 orderBy('term', 'asc')
             );
             const systemSnapshot = await getDocs(systemQuery);
@@ -44,10 +46,10 @@ const ReferencePanel = ({ show, onHide }) => {
                 isSystem: true
             }));
             
-            // Fetch user custom references if logged in
             if (currentUser) {
                 const userQuery = query(
                     collection(db, 'users', currentUser.uid, 'references'),
+                    where('gameSystem', '==', currentSystem),
                     orderBy('term', 'asc')
                 );
                 const userSnapshot = await getDocs(userQuery);
@@ -60,29 +62,26 @@ const ReferencePanel = ({ show, onHide }) => {
                 });
             }
 
-            // Add weapon keywords as system references
-                const weaponKeywords = WeaponKeywords.getAllKeywordsFlat().map(keyword => ({
+            const weaponKeywords = WeaponKeywords.getAllKeywordsFlat().map(keyword => ({
                 id: `weapon-${keyword}`,
                 term: WeaponKeywords.getDisplayName(keyword),
                 description: WeaponKeywords.getDescription(keyword),
                 category: ReferenceCategories.WEAPON_KEYWORD,
                 isSystem: true
-                }));
+            }));
 
-                refsData.push(...weaponKeywords);
+            refsData.push(...weaponKeywords);
 
-                // Also add unit keywords
-                const unitKeywords = Keywords.getAllKeywordsFlat().map(keyword => ({
+            const unitKeywords = Keywords.getAllKeywordsFlat().map(keyword => ({
                 id: `unit-${keyword}`,
                 term: Keywords.getDisplayName(keyword),
                 description: Keywords.getDescription(keyword),
                 category: ReferenceCategories.KEYWORD,
                 isSystem: true
-                }));
+            }));
 
-                refsData.push(...unitKeywords);
+            refsData.push(...unitKeywords);
             
-            // Sort all by term
             refsData.sort((a, b) => a.term.localeCompare(b.term));
             
             setReferences(refsData);
@@ -151,7 +150,6 @@ const ReferencePanel = ({ show, onHide }) => {
                         <p className="mt-2">Loading references...</p>
                     </div>
                 ) : selectedReference ? (
-                    /* DETAIL VIEW */
                     <div className="reference-detail-view">
                         <Button 
                             variant="link" 
@@ -217,9 +215,7 @@ const ReferencePanel = ({ show, onHide }) => {
                         </Card>
                     </div>
                 ) : (
-                    /* LIST VIEW */
                     <div className="reference-list-view">
-                        {/* Search and Filter */}
                         <div className="mb-3">
                             <Form.Group className="mb-2">
                                 <Form.Control
@@ -257,12 +253,10 @@ const ReferencePanel = ({ show, onHide }) => {
                             )}
                         </div>
                         
-                        {/* Results Count */}
                         <div className="mb-2 text-muted small">
                             {filteredRefs.length} reference{filteredRefs.length !== 1 ? 's' : ''} found
                         </div>
                         
-                        {/* References List */}
                         {filteredRefs.length === 0 ? (
                             <Alert variant="info">
                                 No references found matching your search.
@@ -323,7 +317,6 @@ const ReferencePanel = ({ show, onHide }) => {
                     </div>
                 )}
                 
-                {/* Quick Actions */}
                 {!loading && !selectedReference && (
                     <div className="mt-4 pt-3 border-top">
                         <div className="d-grid gap-2">

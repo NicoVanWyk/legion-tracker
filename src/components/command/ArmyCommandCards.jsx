@@ -2,9 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Row, Col, Alert, ListGroup, Form, Badge } from 'react-bootstrap';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { doc, getDoc, updateDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGameSystem } from '../../contexts/GameSystemContext';
 import CommandCards from '../../enums/CommandCards';
 import Factions from '../../enums/Factions';
 import LoadingSpinner from '../layout/LoadingSpinner';
@@ -13,6 +14,7 @@ const ArmyCommandCards = () => {
     const { armyId } = useParams();
     const navigate = useNavigate();
     const { currentUser } = useAuth();
+    const { currentSystem } = useGameSystem();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
@@ -22,11 +24,10 @@ const ArmyCommandCards = () => {
     const [availableCards, setAvailableCards] = useState([]);
     const [selectedCards, setSelectedCards] = useState([]);
     const [commanderNames, setCommanderNames] = useState([]);
-    const [searchTerm, setSearchTerm] = useState(''); // Added missing state variable
+    const [searchTerm, setSearchTerm] = useState('');
 
-    const MAX_CARDS = 7; // Maximum allowed command cards per army
+    const MAX_CARDS = 7;
 
-    // Load army data and command cards
     useEffect(() => {
         if (!currentUser || !armyId) return;
 
@@ -34,7 +35,6 @@ const ArmyCommandCards = () => {
             try {
                 setLoading(true);
 
-                // 1. Fetch the army details
                 const armyRef = doc(db, 'users', currentUser.uid, 'armies', armyId);
                 const armyDoc = await getDoc(armyRef);
 
@@ -47,7 +47,6 @@ const ArmyCommandCards = () => {
                 const armyData = { id: armyDoc.id, ...armyDoc.data() };
                 setArmy(armyData);
 
-                // 2. Fetch commander names from units in this army
                 const commanderUnits = [];
                 if (armyData.units?.length > 0) {
                     for (const unitId of armyData.units) {
@@ -56,7 +55,6 @@ const ArmyCommandCards = () => {
 
                         if (unitDoc.exists()) {
                             const unitData = unitDoc.data();
-                            // For simplicity, treat all Command and Operative units as potential commanders
                             if (unitData.type === 'command' || unitData.type === 'operative') {
                                 commanderUnits.push(unitData.name);
                             }
@@ -65,7 +63,6 @@ const ArmyCommandCards = () => {
                 }
                 setCommanderNames(commanderUnits);
 
-                // 3. Get system cards available for this army's faction
                 const systemCardsList = CommandCards.getAvailableCardsForFaction(armyData.faction)
                     .map(cardId => ({
                         id: cardId,
@@ -77,33 +74,29 @@ const ArmyCommandCards = () => {
                         isSystem: true
                     }));
 
-                // 4. Get custom command cards from Firestore
                 const customCardsRef = collection(db, 'users', currentUser.uid, 'commandCards');
-                const customCardsSnapshot = await getDocs(customCardsRef);
+                const customCardsQuery = query(
+                    customCardsRef,
+                    where('gameSystem', '==', currentSystem)
+                );
+                const customCardsSnapshot = await getDocs(customCardsQuery);
 
                 const customCardsList = customCardsSnapshot.docs
                     .map(doc => ({ id: doc.id, ...doc.data() }))
                     .filter(card => {
-                        // Keep cards that are:
-                        // - Universal (null/empty faction) OR match the army's faction
-                        // - AND are either marked as universal for all armies OR have no specific army assigned
                         return (
                             (!card.faction || card.faction === '' || card.faction === armyData.faction) &&
                             (card.isUniversal || !card.armies || card.armies.length === 0 || card.armies.includes(armyId))
                         );
                     });
 
-                // 5. Combine both card lists and set them as available
                 const allAvailableCards = [...systemCardsList, ...customCardsList].sort((a, b) => {
-                    // Sort by pips first
                     if (a.pips !== b.pips) return a.pips - b.pips;
-                    // Then by name
                     return a.name.localeCompare(b.name);
                 });
 
                 setAvailableCards(allAvailableCards);
 
-                // 6. Set selected cards from army data
                 if (armyData.commandCards) {
                     setSelectedCards(armyData.commandCards);
                 }
@@ -116,14 +109,12 @@ const ArmyCommandCards = () => {
         };
 
         fetchArmyData();
-    }, [currentUser, armyId]);
+    }, [currentUser, armyId, currentSystem]);
 
     const isCardUsable = (card) => {
-        // Check if card requires a commander that's in the army
         if (card.commander && !commanderNames.includes(card.commander)) {
             return false;
         }
-
         return true;
     };
 
@@ -145,7 +136,6 @@ const ArmyCommandCards = () => {
             return;
         }
 
-        // Check if adding this card would exceed the pip count limits
         const card = availableCards.find(c => c.id === cardId);
         if (card) {
             const pipCount = getCardPipCount(card.pips);
@@ -169,15 +159,12 @@ const ArmyCommandCards = () => {
         try {
             setSaving(true);
 
-            // Update the army document with the selected command cards
             const armyRef = doc(db, 'users', currentUser.uid, 'armies', armyId);
             await updateDoc(armyRef, {
                 commandCards: selectedCards
             });
 
             setSuccess('Command cards saved successfully!');
-
-            // Clear success message after a few seconds
             setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
             console.error('Error saving command cards:', err);
@@ -187,10 +174,8 @@ const ArmyCommandCards = () => {
         }
     };
 
-    // Filter available cards based on search term
     const filteredAvailableCards = availableCards.filter(card => {
         if (!searchTerm) return true;
-
         return (
             card.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (card.description && card.description.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -349,7 +334,6 @@ const ArmyCommandCards = () => {
 
                             <ListGroup>
                                 {filteredAvailableCards.map(card => {
-                                    // Skip cards that are already selected
                                     if (selectedCards.includes(card.id)) {
                                         return null;
                                     }

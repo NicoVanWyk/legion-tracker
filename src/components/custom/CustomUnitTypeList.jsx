@@ -6,8 +6,11 @@ import { collection, query, orderBy, getDocs, deleteDoc, doc } from 'firebase/fi
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import LoadingSpinner from '../layout/LoadingSpinner';
+import { useGameSystem } from '../../contexts/GameSystemContext';
+import { where } from 'firebase/firestore';
 
 const CustomUnitTypeList = () => {
+    const { currentSystem } = useGameSystem();
     const [unitTypes, setUnitTypes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -16,7 +19,7 @@ const CustomUnitTypeList = () => {
 
     useEffect(() => {
         fetchUnitTypes();
-    }, [currentUser]);
+    }, [currentUser, currentSystem]);
 
     const fetchUnitTypes = async () => {
         if (!currentUser) {
@@ -30,7 +33,11 @@ const CustomUnitTypeList = () => {
             setError('');
             
             const typesRef = collection(db, 'users', currentUser.uid, 'customUnitTypes');
-            const q = query(typesRef, orderBy('sortOrder', 'asc'));
+            const q = query(
+                typesRef,
+                where('gameSystem', '==', currentSystem),
+                orderBy('sortOrder', 'asc')
+            );
             const querySnapshot = await getDocs(q);
 
             const typesList = querySnapshot.docs.map(doc => ({

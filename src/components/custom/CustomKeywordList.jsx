@@ -6,8 +6,11 @@ import { collection, query, orderBy, getDocs, deleteDoc, doc } from 'firebase/fi
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import LoadingSpinner from '../layout/LoadingSpinner';
+import { useGameSystem } from '../../contexts/GameSystemContext';
+import { where } from 'firebase/firestore';
 
 const CustomKeywordList = () => {
+    const { currentSystem } = useGameSystem();
     const [keywords, setKeywords] = useState([]);
     const [filteredKeywords, setFilteredKeywords] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -28,7 +31,7 @@ const CustomKeywordList = () => {
 
     useEffect(() => {
         fetchKeywords();
-    }, [currentUser]);
+    }, [currentUser, currentSystem]);
 
     useEffect(() => {
         filterKeywordsList();
@@ -40,7 +43,11 @@ const CustomKeywordList = () => {
         try {
             setLoading(true);
             const keywordsRef = collection(db, 'users', currentUser.uid, 'customKeywords');
-            const q = query(keywordsRef, orderBy('name', 'asc'));
+            const q = query(
+                keywordsRef,
+                where('gameSystem', '==', currentSystem),
+                orderBy('name', 'asc')
+            );
             const querySnapshot = await getDocs(q);
 
             const keywordsList = querySnapshot.docs.map(doc => ({

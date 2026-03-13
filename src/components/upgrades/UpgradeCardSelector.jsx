@@ -6,11 +6,13 @@ import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import UpgradeCardTypes from '../../enums/UpgradeCardTypes';
 import LoadingSpinner from '../layout/LoadingSpinner';
+import { useGameSystem } from '../../contexts/GameSystemContext';
 
 const ITEMS_PER_PAGE = 2;
 
 const UpgradeCardSelector = ({ upgradeType, selectedUpgrades = [], onChange, maxCount = 1 }) => {
     const [upgrades, setUpgrades] = useState([]);
+    const { currentSystem } = useGameSystem();
     const [filteredUpgrades, setFilteredUpgrades] = useState([]);
     const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_PAGE);
     const [loading, setLoading] = useState(true);
@@ -20,7 +22,7 @@ const UpgradeCardSelector = ({ upgradeType, selectedUpgrades = [], onChange, max
 
     useEffect(() => {
         fetchUpgrades();
-    }, [currentUser, upgradeType]);
+    }, [currentUser, upgradeType, currentSystem]); 
 
     useEffect(() => {
         filterUpgradesList();
@@ -35,6 +37,7 @@ const UpgradeCardSelector = ({ upgradeType, selectedUpgrades = [], onChange, max
             const upgradesRef = collection(db, 'users', currentUser.uid, 'upgradeCards');
             const q = query(
                 upgradesRef,
+                where('gameSystem', '==', currentSystem),
                 where('upgradeType', '==', upgradeType),
                 orderBy('pointsCost', 'asc')
             );

@@ -5,8 +5,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { collection, doc, addDoc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGameSystem } from '../../contexts/GameSystemContext';
 
 const CustomUnitTypeForm = () => {
+    const { currentSystem } = useGameSystem();
     const { typeId } = useParams();
     const navigate = useNavigate();
     const { currentUser } = useAuth();
@@ -92,6 +94,7 @@ const CustomUnitTypeForm = () => {
                 description: formData.description.trim(),
                 icon: formData.icon.trim(),
                 sortOrder: formData.sortOrder || 100,
+                gameSystem: currentSystem, 
                 lastUpdated: serverTimestamp(),
                 userId: currentUser.uid
             };

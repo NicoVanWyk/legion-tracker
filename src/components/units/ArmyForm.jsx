@@ -10,8 +10,10 @@ import UnitTypes from '../../enums/UnitTypes';
 import CommandCards from '../../enums/CommandCards';
 import LoadingSpinner from '../layout/LoadingSpinner';
 import ArmyPointsCalculator from '../../utils/ArmyPointsCalculator';
+import { useGameSystem } from '../../contexts/GameSystemContext';
 
 const ArmyForm = () => {
+    const { currentSystem } = useGameSystem();
     const { armyId } = useParams();
     const navigate = useNavigate();
     const { currentUser } = useAuth();
@@ -155,7 +157,11 @@ const ArmyForm = () => {
                 const unitsRef = collection(db, 'users', currentUser.uid, 'units');
 
                 // Create a query for units of the selected faction
-                const q = query(unitsRef, where('faction', '==', formData.faction));
+                const q = query(
+                    unitsRef, 
+                    where('faction', '==', formData.faction),
+                    where('gameSystem', '==', currentSystem) 
+                );
 
                 // Execute the query
                 const querySnapshot = await getDocs(q);
@@ -301,6 +307,7 @@ const ArmyForm = () => {
             // Prepare data
             const armyToSave = {
                 ...formData,
+                gameSystem: currentSystem, 
                 userId: currentUser.uid,
                 updatedAt: serverTimestamp()
             };

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { collection, query, where, getDocs, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGameSystem } from '../../contexts/GameSystemContext';
 import CommandCards from '../../enums/CommandCards';
 import Factions from '../../enums/Factions';
 import LoadingSpinner from '../layout/LoadingSpinner';
@@ -19,10 +20,11 @@ const CommandCardList = () => {
     const [filterPips, setFilterPips] = useState('all');
     const [activeTab, setActiveTab] = useState('all');
     const { currentUser } = useAuth();
+    const { currentSystem } = useGameSystem();
 
     useEffect(() => {
         fetchCommandCards();
-    }, [currentUser]);
+    }, [currentUser, currentSystem]);
 
     const fetchCommandCards = async () => {
         if (!currentUser) {
@@ -34,9 +36,12 @@ const CommandCardList = () => {
             setLoading(true);
             setError('');
 
-            // 1. Get custom command cards from Firestore
             const cardsRef = collection(db, 'users', currentUser.uid, 'commandCards');
-            const cardsSnapshot = await getDocs(cardsRef);
+            const cardsQuery = query(
+                cardsRef,
+                where('gameSystem', '==', currentSystem)
+            );
+            const cardsSnapshot = await getDocs(cardsQuery);
 
             const customCardsList = cardsSnapshot.docs.map(doc => ({
                 id: doc.id,
@@ -46,7 +51,6 @@ const CommandCardList = () => {
 
             setCustomCards(customCardsList);
 
-            // 2. Generate system cards from the CommandCards enum
             const systemCardsList = CommandCards.getAllSystemCards().map(cardId => ({
                 id: cardId,
                 name: CommandCards.getDisplayName(cardId),
@@ -74,7 +78,6 @@ const CommandCardList = () => {
 
         try {
             await deleteDoc(doc(db, 'users', currentUser.uid, 'commandCards', cardId));
-            // Refresh the list
             fetchCommandCards();
         } catch (err) {
             console.error('Error deleting command card:', err);
@@ -82,31 +85,24 @@ const CommandCardList = () => {
         }
     };
 
-    // Filter function
     const filterCards = (cards) => {
         return cards.filter(card => {
-            // Apply faction filter
             if (filterFaction !== 'all' && card.faction !== filterFaction) {
-                // Special case: universal cards (null faction) should be shown for all factions
                 if (card.faction !== null && card.faction !== '') {
                     return false;
                 }
             }
 
-            // Apply pips filter
             if (filterPips !== 'all' && card.pips !== parseInt(filterPips)) {
                 return false;
             }
 
-            // Apply search term
             if (searchTerm && !card.name.toLowerCase().includes(searchTerm.toLowerCase())) {
-                // Also check description
                 if (!card.description?.toLowerCase().includes(searchTerm.toLowerCase())) {
                     return false;
                 }
             }
 
-            // Apply tab filter
             if (activeTab === 'system' && card.type !== 'system') {
                 return false;
             }
@@ -118,14 +114,10 @@ const CommandCardList = () => {
         });
     };
 
-    // Get filtered cards based on all current filters
     const filteredCards = [...filterCards(systemCards), ...filterCards(customCards)].sort((a, b) => {
-        // Sort by pips first
         if (a.pips !== b.pips) {
             return a.pips - b.pips;
         }
-
-        // Then by name
         return a.name.localeCompare(b.name);
     });
 
@@ -308,7 +300,7 @@ const CommandCardList = () => {
             <Card.Footer>
                 <small className="text-muted">
                     Showing {filteredCards.length} cards ({systemCards.filter(card => filterCards([card]).length).length} system,
-                    {customCards.filter(card => filterCards([card]).length).length} custom)
+                    {' '}{customCards.filter(card => filterCards([card]).length).length} custom)
                 </small>
             </Card.Footer>
         </Card>

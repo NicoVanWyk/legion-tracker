@@ -6,8 +6,10 @@ import { collection, doc, addDoc, updateDoc, getDoc, serverTimestamp } from 'fir
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import ReminderTypes from '../../enums/ReminderTypes';
+import { useGameSystem } from '../../contexts/GameSystemContext';
 
 const AbilityForm = () => {
+    const { currentSystem } = useGameSystem();
     const { abilityId } = useParams();
     const navigate = useNavigate();
     const { currentUser } = useAuth();
@@ -113,6 +115,7 @@ const AbilityForm = () => {
                 rulesText: formData.rulesText.trim(),
                 timing: formData.timing,
                 reminders: formData.reminders,
+                gameSystem: currentSystem, 
                 lastUpdated: serverTimestamp(),
                 userId: currentUser.uid,
                 isCustom: true

@@ -7,8 +7,11 @@ import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import UpgradeCardTypes from '../../enums/UpgradeCardTypes';
 import LoadingSpinner from '../layout/LoadingSpinner';
+import { useGameSystem } from '../../contexts/GameSystemContext';
+import { where } from 'firebase/firestore';
 
 const UpgradeCardList = () => {
+    const { currentSystem } = useGameSystem();
     const [upgrades, setUpgrades] = useState([]);
     const [filteredUpgrades, setFilteredUpgrades] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -19,7 +22,7 @@ const UpgradeCardList = () => {
 
     useEffect(() => {
         fetchUpgrades();
-    }, [currentUser]);
+    }, [currentUser, currentSystem]);
 
     useEffect(() => {
         filterUpgradesList();
@@ -31,7 +34,11 @@ const UpgradeCardList = () => {
         try {
             setLoading(true);
             const upgradesRef = collection(db, 'users', currentUser.uid, 'upgradeCards');
-            const q = query(upgradesRef, orderBy('name', 'asc'));
+            const q = query(
+                upgradesRef, 
+                where('gameSystem', '==', currentSystem),
+                orderBy('name', 'asc')
+            );
             const snapshot = await getDocs(q);
 
             const upgradesList = snapshot.docs.map(doc => ({

@@ -11,6 +11,8 @@ import Keywords from '../../enums/Keywords';
 import LoadingSpinner from '../layout/LoadingSpinner';
 import KeywordUtils from '../../utils/KeywordUtils';
 import ExportUtils from '../../utils/ExportUtils';
+import { useGameSystem } from '../../contexts/GameSystemContext';
+import { where } from 'firebase/firestore';
 
 const UnitList = () => {
     const [units, setUnits] = useState([]);
@@ -25,12 +27,13 @@ const UnitList = () => {
     const [filterType, setFilterType] = useState('all');
     const [abilities, setAbilities] = useState([]);
     const { currentUser } = useAuth();
+    const { currentSystem } = useGameSystem();
     const navigate = useNavigate();
 
     // Fetch data on component mount
     useEffect(() => {
         fetchData();
-    }, [currentUser]);
+    }, [currentUser, currentSystem]); 
 
     // Filter units whenever filtering criteria changes
     useEffect(() => {
@@ -45,7 +48,11 @@ const UnitList = () => {
 
             // Fetch units
             const unitsRef = collection(db, 'users', currentUser.uid, 'units');
-            const unitsQuery = query(unitsRef, orderBy('name', 'asc'));
+            const unitsQuery = query(
+                unitsRef, 
+                where('gameSystem', '==', currentSystem),
+                orderBy('name', 'asc')
+            );
             const unitsSnapshot = await getDocs(unitsQuery);
             const unitsList = unitsSnapshot.docs.map(doc => ({
                 id: doc.id,

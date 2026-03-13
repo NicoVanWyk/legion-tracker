@@ -50,6 +50,8 @@ import ArmyCommandCards from './components/command/ArmyCommandCards';
 import BattleEditForm from './components/battles/BattleEditForm';
 import SharedBattleTracker from './components/battles/SharedBattleTracker';
 
+import { GameSystemProvider } from './contexts/GameSystemContext';
+
 // Import Bootstrap CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
@@ -60,90 +62,92 @@ function App() {
     return (
         <Router basename="/legion-tracker">
             <AuthProvider>
-                <div className="d-flex flex-column min-vh-100">
-                    <Header />
+                <GameSystemProvider>
+                    <div className="d-flex flex-column min-vh-100">
+                        <Header />
 
-                    <Container className="flex-grow-1 mb-4">
-                        <Routes>
-                            {/* Public Routes */}
-                            <Route path="/login" element={<Login />} />
-                            <Route path="/register" element={<Register />} />
-                            <Route path="/forgot-password" element={<ForgotPassword />} />
+                        <Container className="flex-grow-1 mb-4">
+                            <Routes>
+                                {/* Public Routes */}
+                                <Route path="/login" element={<Login />} />
+                                <Route path="/register" element={<Register />} />
+                                <Route path="/forgot-password" element={<ForgotPassword />} />
 
-                            {/* Private Routes */}
-                            <Route element={<PrivateRoute />}>
-                                {/* Units Routes */}
-                                <Route path="/units" element={<Units />} />
-                                <Route path="/units/:unitId" element={<Units />} />
-                                <Route path="/units/create" element={<Units />} />
-                                <Route path="/units/edit/:unitId" element={<Units />} />
+                                {/* Private Routes */}
+                                <Route element={<PrivateRoute />}>
+                                    {/* Units Routes */}
+                                    <Route path="/units" element={<Units />} />
+                                    <Route path="/units/:unitId" element={<Units />} />
+                                    <Route path="/units/create" element={<Units />} />
+                                    <Route path="/units/edit/:unitId" element={<Units />} />
 
-                                {/* Custom Keywords Routes */}
-                                <Route path="/units/keywords" element={<CustomKeywordList />} />
-                                <Route path="/units/keywords/create" element={<CustomKeywordForm />} />
-                                <Route path="/units/keywords/edit/:keywordId" element={<CustomKeywordForm />} />
+                                    {/* Custom Keywords Routes */}
+                                    <Route path="/units/keywords" element={<CustomKeywordList />} />
+                                    <Route path="/units/keywords/create" element={<CustomKeywordForm />} />
+                                    <Route path="/units/keywords/edit/:keywordId" element={<CustomKeywordForm />} />
 
-                                {/* Custom Unit Types Routes */}
-                                <Route path="/units/types" element={<CustomUnitTypeList />} />
-                                <Route path="/units/types/create" element={<CustomUnitTypeForm />} />
-                                <Route path="/units/types/edit/:typeId" element={<CustomUnitTypeForm />} />
+                                    {/* Custom Unit Types Routes */}
+                                    <Route path="/units/types" element={<CustomUnitTypeList />} />
+                                    <Route path="/units/types/create" element={<CustomUnitTypeForm />} />
+                                    <Route path="/units/types/edit/:typeId" element={<CustomUnitTypeForm />} />
 
-                                {/* Army Routes */}
-                                <Route path="/armies" element={<Armies />} />
-                                <Route path="/armies/:armyId" element={<Armies />} />
-                                <Route path="/armies/create" element={<Armies />} />
-                                <Route path="/armies/edit/:armyId" element={<Armies />} />
-                                <Route path="/armies/:armyId/command-cards" element={<ArmyCommandCards />} />
+                                    {/* Army Routes */}
+                                    <Route path="/armies" element={<Armies />} />
+                                    <Route path="/armies/:armyId" element={<Armies />} />
+                                    <Route path="/armies/create" element={<Armies />} />
+                                    <Route path="/armies/edit/:armyId" element={<Armies />} />
+                                    <Route path="/armies/:armyId/command-cards" element={<ArmyCommandCards />} />
 
-                                {/* Command Card Routes */}
-                                <Route path="/command-cards" element={<CommandCards />} />
-                                <Route path="/command-cards/create" element={<CommandCards />} />
-                                <Route path="/command-cards/edit/:cardId" element={<CommandCards />} />
+                                    {/* Command Card Routes */}
+                                    <Route path="/command-cards" element={<CommandCards />} />
+                                    <Route path="/command-cards/create" element={<CommandCards />} />
+                                    <Route path="/command-cards/edit/:cardId" element={<CommandCards />} />
 
-                                {/* Social Routes */}
-                                <Route path="/social" element={<SocialPage />} />
+                                    {/* Social Routes */}
+                                    <Route path="/social" element={<SocialPage />} />
 
-                                {/* Battle Routes */}
-                                <Route path="/battles" element={<Battles />} />
-                                <Route path="/battles/:battleId" element={<Battles />} />
-                                <Route path="/battles/:battleId/edit" element={<BattleEditForm />} />
-                                <Route path="/battles/create" element={<Battles />} />
-                                <Route path="/shared-battles/:battleId" element={<SharedBattleTracker />} />
+                                    {/* Battle Routes */}
+                                    <Route path="/battles" element={<Battles />} />
+                                    <Route path="/battles/:battleId" element={<Battles />} />
+                                    <Route path="/battles/:battleId/edit" element={<BattleEditForm />} />
+                                    <Route path="/battles/create" element={<Battles />} />
+                                    <Route path="/shared-battles/:battleId" element={<SharedBattleTracker />} />
 
-                                {/* Abilities Routes */}
-                                <Route path="/abilities" element={<AbilityList />} />
-                                <Route path="/abilities/create" element={<AbilityForm />} />
-                                <Route path="/abilities/edit/:abilityId" element={<AbilityForm />} />
+                                    {/* Abilities Routes */}
+                                    <Route path="/abilities" element={<AbilityList />} />
+                                    <Route path="/abilities/create" element={<AbilityForm />} />
+                                    <Route path="/abilities/edit/:abilityId" element={<AbilityForm />} />
 
-                                {/* Upgrade Cards Routes */}
-                                <Route path="/upgrades" element={<UpgradeCardList />} />
-                                <Route path="/upgrades/create" element={<UpgradeCardForm />} />
-                                <Route path="/upgrades/edit/:upgradeId" element={<UpgradeCardForm />} />
+                                    {/* Upgrade Cards Routes */}
+                                    <Route path="/upgrades" element={<UpgradeCardList />} />
+                                    <Route path="/upgrades/create" element={<UpgradeCardForm />} />
+                                    <Route path="/upgrades/edit/:upgradeId" element={<UpgradeCardForm />} />
 
-                                {/* References Creation/Edit Routes - MUST come before /references/:id */}
-                                <Route path="/references/create" element={<ReferencePage />} />
-                                <Route path="/references/edit/:id" element={<ReferencePage />} />
+                                    {/* References Creation/Edit Routes - MUST come before /references/:id */}
+                                    <Route path="/references/create" element={<ReferencePage />} />
+                                    <Route path="/references/edit/:id" element={<ReferencePage />} />
 
-                                {/* Profile Routes */}
-                                <Route path="/profile" element={<ProfilePage />} />
-                                <Route path="/profile/settings" element={<ProfilePage />} />
-                                <Route path="/profile/stats" element={<ProfilePage />} />
-                            </Route>
+                                    {/* Profile Routes */}
+                                    <Route path="/profile" element={<ProfilePage />} />
+                                    <Route path="/profile/settings" element={<ProfilePage />} />
+                                    <Route path="/profile/stats" element={<ProfilePage />} />
+                                </Route>
 
-                            {/* Reference Routes - Public Access for Viewing (AFTER private routes) */}
-                            <Route path="/references" element={<ReferencePage />} />
-                            <Route path="/references/:id" element={<ReferencePage />} />
+                                {/* Reference Routes - Public Access for Viewing (AFTER private routes) */}
+                                <Route path="/references" element={<ReferencePage />} />
+                                <Route path="/references/:id" element={<ReferencePage />} />
 
-                            {/* Home page is accessible to everyone */}
-                            <Route path="/" element={<Home />} />
+                                {/* Home page is accessible to everyone */}
+                                <Route path="/" element={<Home />} />
 
-                            {/* 404 Route */}
-                            <Route path="*" element={<NotFound />} />
-                        </Routes>
-                    </Container>
+                                {/* 404 Route */}
+                                <Route path="*" element={<NotFound />} />
+                            </Routes>
+                        </Container>
 
-                    <Footer />
-                </div>
+                        <Footer />
+                    </div>
+                </GameSystemProvider>
             </AuthProvider>
         </Router>
     );

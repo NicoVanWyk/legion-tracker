@@ -5,12 +5,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { collection, doc, addDoc, updateDoc, getDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGameSystem } from '../../contexts/GameSystemContext';
 import Factions from '../../enums/Factions';
 
 const CustomCommandCardForm = () => {
     const { cardId } = useParams();
     const navigate = useNavigate();
     const { currentUser } = useAuth();
+    const { currentSystem } = useGameSystem();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -19,25 +21,21 @@ const CustomCommandCardForm = () => {
     const [formData, setFormData] = useState({
         name: '',
         pips: 1,
-        faction: '',  // Empty string means universal
+        faction: '',
         description: '',
         effectText: '',
-        commander: '',  // Empty string means no specific commander required
-        isUniversal: false,  // Indicates if the card is available to all armies of the faction
+        commander: '',
+        isUniversal: false,
         imageUrl: ''
     });
 
-    // Fetch card data if editing
     useEffect(() => {
         if (cardId && currentUser) {
             fetchCommandCard();
         }
-
-        // Fetch commanders for the dropdown
         fetchCommanders();
     }, [cardId, currentUser]);
 
-    // Fetch existing command card data
     const fetchCommandCard = async () => {
         try {
             setLoading(true);
@@ -67,13 +65,11 @@ const CustomCommandCardForm = () => {
         }
     };
 
-    // Fetch commander units for the dropdown
     const fetchCommanders = async () => {
         try {
             const unitsRef = collection(db, 'users', currentUser.uid, 'units');
             const unitsSnapshot = await getDocs(unitsRef);
 
-            // Filter for units that can be commanders (for simplicity, all Command and Operative types)
             const commanderUnits = unitsSnapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() }))
                 .filter(unit => unit.type === 'command' || unit.type === 'operative');
@@ -84,17 +80,14 @@ const CustomCommandCardForm = () => {
         }
     };
 
-    // Handle form field changes
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-
         setFormData(prev => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
     };
 
-    // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -121,20 +114,19 @@ const CustomCommandCardForm = () => {
                 commander: formData.commander,
                 isUniversal: formData.isUniversal,
                 imageUrl: formData.imageUrl.trim(),
-                isSystem: false,  // Custom cards are never system cards
+                gameSystem: currentSystem,
+                isSystem: false,
                 lastUpdated: serverTimestamp(),
                 userId: currentUser.uid
             };
 
             if (cardId) {
-                // Update existing card
                 await updateDoc(
                     doc(db, 'users', currentUser.uid, 'commandCards', cardId),
                     cardData
                 );
                 setSuccess('Command card updated successfully!');
             } else {
-                // Create new card
                 cardData.createdAt = serverTimestamp();
                 await addDoc(
                     collection(db, 'users', currentUser.uid, 'commandCards'),
@@ -142,7 +134,6 @@ const CustomCommandCardForm = () => {
                 );
                 setSuccess('Command card created successfully!');
 
-                // Reset form
                 setFormData({
                     name: '',
                     pips: 1,
@@ -155,7 +146,6 @@ const CustomCommandCardForm = () => {
                 });
             }
 
-            // Navigate back to command cards list after a short delay
             setTimeout(() => {
                 navigate('/command-cards');
             }, 1500);

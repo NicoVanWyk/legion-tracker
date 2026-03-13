@@ -5,18 +5,21 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import Keywords from '../../enums/Keywords';
+import { useGameSystem } from '../../contexts/GameSystemContext';
+import { query, where } from 'firebase/firestore';
 
 const KeywordSelector = ({ selectedKeywords = [], onChange }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [customKeywords, setCustomKeywords] = useState([]);
     const [loading, setLoading] = useState(true);
     const { currentUser } = useAuth();
+    const { currentSystem } = useGameSystem();
 
     const keywordsByCategory = Keywords.getAllKeywords();
 
     useEffect(() => {
         fetchCustomKeywords();
-    }, [currentUser]);
+    }, [currentUser, currentSystem]);
 
     const fetchCustomKeywords = async () => {
         if (!currentUser) {
@@ -26,7 +29,11 @@ const KeywordSelector = ({ selectedKeywords = [], onChange }) => {
 
         try {
             const keywordsRef = collection(db, 'users', currentUser.uid, 'customKeywords');
-            const querySnapshot = await getDocs(keywordsRef);
+            const q = query(
+                keywordsRef,
+                where('gameSystem', '==', currentSystem)
+            );
+            const querySnapshot = await getDocs(q);
 
             const keywords = querySnapshot.docs.map(doc => ({
                 id: doc.id,

@@ -6,6 +6,7 @@ import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import ReminderTypes from '../../enums/ReminderTypes';
 import LoadingSpinner from '../layout/LoadingSpinner';
+import { useGameSystem } from '../../contexts/GameSystemContext'; 
 
 const AbilitySelector = ({ selectedAbilities = [], onChange }) => {
     const [abilities, setAbilities] = useState([]);
@@ -15,10 +16,11 @@ const AbilitySelector = ({ selectedAbilities = [], onChange }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterTiming, setFilterTiming] = useState('all');
     const { currentUser } = useAuth();
+    const { currentSystem } = useGameSystem();
 
     useEffect(() => {
         fetchAbilities();
-    }, [currentUser]);
+    }, [currentUser, currentSystem]);
 
     useEffect(() => {
         filterAbilitiesList();
@@ -30,7 +32,11 @@ const AbilitySelector = ({ selectedAbilities = [], onChange }) => {
         try {
             setLoading(true);
             const abilitiesRef = collection(db, 'users', currentUser.uid, 'abilities');
-            const q = query(abilitiesRef, orderBy('name', 'asc'));
+            const q = query(
+                abilitiesRef, 
+                where('gameSystem', '==', currentSystem),
+                orderBy('name', 'asc')
+            );
             const snapshot = await getDocs(q);
 
             const abilitiesList = snapshot.docs.map(doc => ({

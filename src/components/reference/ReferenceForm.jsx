@@ -5,12 +5,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { collection, doc, getDoc, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGameSystem } from '../../contexts/GameSystemContext';
 import ReferenceCategories from '../../enums/ReferenceCategories';
 
 const ReferenceForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { currentSystem } = useGameSystem();
   const [loading, setLoading] = useState(id ? true : false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -37,7 +39,6 @@ const ReferenceForm = () => {
           const refData = refDoc.data();
           setFormData({
             ...refData,
-            // Ensure we have the required fields even if they're missing in the data
             examples: refData.examples || [''],
             relatedTerms: refData.relatedTerms || []
           });
@@ -55,25 +56,21 @@ const ReferenceForm = () => {
     fetchReference();
   }, [id, currentUser]);
   
-  // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
-  // Handle example changes
   const handleExampleChange = (index, value) => {
     const updatedExamples = [...formData.examples];
     updatedExamples[index] = value;
     setFormData({ ...formData, examples: updatedExamples });
   };
   
-  // Add a new example field
   const addExample = () => {
     setFormData({ ...formData, examples: [...formData.examples, ''] });
   };
   
-  // Remove an example
   const removeExample = (index) => {
     const updatedExamples = formData.examples.filter((_, i) => i !== index);
     setFormData({ 
@@ -82,7 +79,6 @@ const ReferenceForm = () => {
     });
   };
   
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -90,7 +86,6 @@ const ReferenceForm = () => {
       setSaving(true);
       setError('');
       
-      // Validate required fields
       if (!formData.term.trim()) {
         throw new Error('Term is required');
       }
@@ -99,25 +94,22 @@ const ReferenceForm = () => {
         throw new Error('Description is required');
       }
       
-      // Filter out empty examples
       const filteredExamples = formData.examples.filter(ex => ex.trim() !== '');
       
-      // Prepare reference data
       const referenceData = {
         ...formData,
         examples: filteredExamples,
+        gameSystem: currentSystem,
         lastUpdated: serverTimestamp()
       };
       
       if (id) {
-        // Update existing reference
         await updateDoc(
           doc(db, 'users', currentUser.uid, 'references', id), 
           referenceData
         );
         setSuccess('Reference updated successfully!');
       } else {
-        // Create new reference
         referenceData.createdAt = serverTimestamp();
         referenceData.createdBy = currentUser.uid;
         
@@ -128,7 +120,6 @@ const ReferenceForm = () => {
         
         setSuccess('Reference created successfully!');
         
-        // Navigate to reference details after a short delay
         setTimeout(() => {
           navigate(`/references/${docRef.id}`);
         }, 1500);

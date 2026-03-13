@@ -13,6 +13,7 @@ import WeaponKeywords from '../../enums/WeaponKeywords';
 import Keywords from '../../enums/Keywords';
 import KeywordSelector from '../units/KeywordSelector';
 import { v4 as uuidv4 } from 'uuid';
+import { useGameSystem } from '../../contexts/GameSystemContext';
 
 // Child modal component
 const WeaponEditorModal = ({ show, onClose, onSave, weapon, setWeapon }) => {
@@ -177,6 +178,7 @@ const WeaponEditorModal = ({ show, onClose, onSave, weapon, setWeapon }) => {
 };
 
 const UpgradeCardForm = () => {
+    const { currentSystem } = useGameSystem();
     const { upgradeId } = useParams();
     const navigate = useNavigate();
     const { currentUser } = useAuth();
@@ -370,6 +372,7 @@ const UpgradeCardForm = () => {
             setLoading(true);
             const upgradeData = {
                 ...formData,
+                gameSystem: currentSystem, 
                 lastUpdated: serverTimestamp(),
                 userId: currentUser.uid,
                 isCustom: true,
