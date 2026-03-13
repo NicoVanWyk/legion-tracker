@@ -95,8 +95,18 @@ const WeaponSelector = ({ weapons = [], onChange }) => {
   };
 
   const handleWeaponChange = (e) => {
-    const { name, value } = e.target;
-    setCurrentWeapon((prev) => ({ ...prev, [name]: value }));
+    const {name, value} = e.target;
+
+    // Parse numeric fields for AoS weapons
+    if (currentSystem === GameSystems.AOS &&
+        ['range', 'attacks', 'toHit', 'toWound', 'rend', 'damage'].includes(name)) {
+      setCurrentWeapon((prev) => ({
+        ...prev,
+        [name]: value === '' ? 0 : parseInt(value, 10)
+      }));
+    } else {
+      setCurrentWeapon((prev) => ({...prev, [name]: value}));
+    }
   };
 
   const handleDiceChange = (diceType, value) => {
