@@ -1,7 +1,7 @@
 ﻿// src/components/abilities/AbilitySelector.jsx
 import React, { useState, useEffect } from 'react';
 import { Card, ListGroup, Form, InputGroup, Button, Alert, Badge } from 'react-bootstrap';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import ReminderTypes from '../../enums/ReminderTypes';
