@@ -1,13 +1,16 @@
-// src/components/layout/Header.js (Updated with Command Cards)
-import React, { useState } from 'react';
+// src/components/layout/Header.js
+import React, {useState} from 'react';
 import logo from '../../assets/SWLegionLogo.png';
-import { Navbar, Nav, Container, Button, NavDropdown } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import {Navbar, Nav, Container, Button, NavDropdown, Form} from 'react-bootstrap';
+import {Link, useNavigate} from 'react-router-dom';
+import {useAuth} from '../../contexts/AuthContext';
+import {useGameSystem} from '../../contexts/GameSystemContext';
+import GameSystems from '../../enums/GameSystems';
 import ReferencePanel from '../reference/ReferencePanel';
 
 const Header = () => {
-    const { currentUser, logout } = useAuth();
+    const {currentUser, logout} = useAuth();
+    const {currentSystem, switchGameSystem} = useGameSystem();
     const navigate = useNavigate();
     const [showReferencePanel, setShowReferencePanel] = useState(false);
 
@@ -35,7 +38,7 @@ const Header = () => {
                         SW Legion Tracker
                     </Navbar.Brand>
 
-                    <Navbar.Toggle aria-controls="basic-navbar-nav" />
+                    <Navbar.Toggle aria-controls="basic-navbar-nav"/>
 
                     <Navbar.Collapse id="basic-navbar-nav">
                         <Nav className="me-auto">
@@ -46,10 +49,10 @@ const Header = () => {
                                     <NavDropdown title="Units & Armies" id="units-dropdown">
                                         <NavDropdown.Item as={Link} to="/units">My Units</NavDropdown.Item>
                                         <NavDropdown.Item as={Link} to="/units/create">Create Unit</NavDropdown.Item>
-                                        <NavDropdown.Divider />
+                                        <NavDropdown.Divider/>
                                         <NavDropdown.Item as={Link} to="/armies">My Armies</NavDropdown.Item>
                                         <NavDropdown.Item as={Link} to="/armies/create">Create Army</NavDropdown.Item>
-                                        <NavDropdown.Divider />
+                                        <NavDropdown.Divider/>
                                     </NavDropdown>
 
                                     <NavDropdown title="Customization" id="custom-dropdown">
@@ -62,7 +65,7 @@ const Header = () => {
                                             <i className="bi bi-diagram-3-fill me-2"></i>
                                             Custom Unit Types
                                         </NavDropdown.Item>
-                                        <NavDropdown.Divider />
+                                        <NavDropdown.Divider/>
                                         <NavDropdown.Header>Cards & Abilities</NavDropdown.Header>
                                         <NavDropdown.Item as={Link} to="/command-cards">
                                             <i className="bi bi-card-heading me-2"></i>
@@ -80,7 +83,8 @@ const Header = () => {
 
                                     <NavDropdown title="Battles" id="battles-dropdown">
                                         <NavDropdown.Item as={Link} to="/battles">My Battles</NavDropdown.Item>
-                                        <NavDropdown.Item as={Link} to="/battles/create">Start New Battle</NavDropdown.Item>
+                                        <NavDropdown.Item as={Link} to="/battles/create">Start New
+                                            Battle</NavDropdown.Item>
                                     </NavDropdown>
 
                                     <Nav.Link as={Link} to="/social">Social</Nav.Link>
@@ -91,6 +95,20 @@ const Header = () => {
                         </Nav>
 
                         <Nav className="align-items-center">
+                            {/* Game System Selector */}
+                            {currentUser && (
+                                <Form.Select
+                                    value={currentSystem}
+                                    onChange={(e) => switchGameSystem(e.target.value)}
+                                    size="sm"
+                                    className="me-2"
+                                    style={{width: 'auto', minWidth: '150px'}}
+                                >
+                                    <option value={GameSystems.LEGION}>Star Wars Legion</option>
+                                    <option value={GameSystems.AOS}>Age of Sigmar</option>
+                                </Form.Select>
+                            )}
+
                             {/* Quick Reference Lookup Button */}
                             <Button
                                 variant="outline-light"
@@ -129,7 +147,7 @@ const Header = () => {
                                         <i className="bi bi-graph-up me-2"></i>
                                         Battle Statistics
                                     </NavDropdown.Item>
-                                    <NavDropdown.Divider />
+                                    <NavDropdown.Divider/>
                                     <NavDropdown.Item onClick={handleLogout}>
                                         <i className="bi bi-box-arrow-right me-2"></i>
                                         Logout
@@ -146,7 +164,6 @@ const Header = () => {
                 </Container>
             </Navbar>
 
-            {/* Reference Panel - Accessible from anywhere */}
             <ReferencePanel
                 show={showReferencePanel}
                 onHide={() => setShowReferencePanel(false)}

@@ -1,22 +1,25 @@
 // src/components/units/ArmyForm.js
-import React, { useState, useEffect } from 'react';
-import { Form, Button, Row, Col, Card, Alert, ListGroup, Badge } from 'react-bootstrap';
-import { useNavigate, useParams, Link } from 'react-router-dom';
-import { doc, collection, addDoc, updateDoc, getDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import { useAuth } from '../../contexts/AuthContext';
+import React, {useState, useEffect} from 'react';
+import {Form, Button, Row, Col, Card, Alert, ListGroup, Badge} from 'react-bootstrap';
+import {useNavigate, useParams, Link} from 'react-router-dom';
+import {doc, collection, addDoc, updateDoc, getDoc, getDocs, query, where, serverTimestamp} from 'firebase/firestore';
+import {db} from '../../firebase/config';
+import {useAuth} from '../../contexts/AuthContext';
 import Factions from '../../enums/Factions';
 import UnitTypes from '../../enums/UnitTypes';
 import CommandCards from '../../enums/CommandCards';
 import LoadingSpinner from '../layout/LoadingSpinner';
 import ArmyPointsCalculator from '../../utils/ArmyPointsCalculator';
-import { useGameSystem } from '../../contexts/GameSystemContext';
+import {useGameSystem} from '../../contexts/GameSystemContext';
+import AoSFactions from '../../enums/aos/AoSFactions';
+import AoSUnitTypes from '../../enums/aos/AoSUnitTypes';
+import GameSystems from '../../enums/GameSystems';
 
 const ArmyForm = () => {
-    const { currentSystem } = useGameSystem();
-    const { armyId } = useParams();
+    const {currentSystem} = useGameSystem();
+    const {armyId} = useParams();
     const navigate = useNavigate();
-    const { currentUser } = useAuth();
+    const {currentUser} = useAuth();
     const [loading, setLoading] = useState(false);
     const [loadingArmy, setLoadingArmy] = useState(!!armyId);
     const [loadingUnits, setLoadingUnits] = useState(true);
@@ -25,13 +28,17 @@ const ArmyForm = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
+    const FactionEnum = currentSystem === GameSystems.LEGION ? Factions : AoSFactions;
+    const TypeEnum = currentSystem === GameSystems.LEGION ? UnitTypes : AoSUnitTypes;
+    const defaultFaction = currentSystem === GameSystems.LEGION ? Factions.REPUBLIC : AoSFactions.STORMCAST_ETERNALS;
+
     // Form state
     const [formData, setFormData] = useState({
         name: '',
-        faction: Factions.REPUBLIC,
+        faction: defaultFaction,
         description: '',
-        units: [], // Array of unit IDs
-        commandCards: [], // Array of command card IDs
+        units: [],
+        commandCards: [],
         totalPoints: 0
     });
 
@@ -51,22 +58,17 @@ const ArmyForm = () => {
                 if (armyId && currentUser) {
                     setLoadingArmy(true);
 
-                    // Get reference to the army document
                     const armyRef = doc(db, 'users', currentUser.uid, 'armies', armyId);
-
-                    // Get the army data
                     const armyDoc = await getDoc(armyRef);
 
                     if (armyDoc.exists()) {
                         const armyData = armyDoc.data();
                         setFormData({
                             ...armyData,
-                            // Ensure we have the required fields even if they're missing in the data
                             units: armyData.units || [],
-                            commandCards: armyData.commandCards || [], // Load command cards
+                            commandCards: armyData.commandCards || [],
                         });
 
-                        // Fetch upgrades
                         const upgradesRef = collection(db, 'users', currentUser.uid, 'upgradeCards');
                         const upgradesSnapshot = await getDocs(upgradesRef);
                         const upgradesList = upgradesSnapshot.docs.map(doc => ({
@@ -75,7 +77,6 @@ const ArmyForm = () => {
                         }));
                         setUpgrades(upgradesList);
 
-                        // Fetch selected units' details
                         const unitIds = armyData.units || [];
                         const unitDetails = [];
 
@@ -93,7 +94,6 @@ const ArmyForm = () => {
 
                         setSelectedUnits(unitDetails);
 
-                        // Recalculate total points based on units and upgrades
                         const basePoints = unitDetails.reduce((sum, unit) => sum + (unit.points || 0), 0);
                         if (basePoints !== armyData.totalPoints) {
                             setFormData(prev => ({
@@ -124,7 +124,7 @@ const ArmyForm = () => {
             try {
                 const typesRef = collection(db, 'users', currentUser.uid, 'customUnitTypes');
                 const typesSnapshot = await getDocs(typesRef);
-                const typesList = typesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const typesList = typesSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 setCustomUnitTypes(typesList);
             } catch (err) {
                 console.error('Error fetching custom unit types:', err);
@@ -142,7 +142,6 @@ const ArmyForm = () => {
 
                 if (!currentUser) return;
 
-                // Fetch all upgrades if not already loaded
                 if (upgrades.length === 0) {
                     const upgradesRef = collection(db, 'users', currentUser.uid, 'upgradeCards');
                     const upgradesSnapshot = await getDocs(upgradesRef);
@@ -153,20 +152,15 @@ const ArmyForm = () => {
                     setUpgrades(upgradesList);
                 }
 
-                // Create a reference to the user's units collection
                 const unitsRef = collection(db, 'users', currentUser.uid, 'units');
-
-                // Create a query for units of the selected faction
                 const q = query(
-                    unitsRef, 
+                    unitsRef,
                     where('faction', '==', formData.faction),
-                    where('gameSystem', '==', currentSystem) 
+                    where('gameSystem', '==', currentSystem)
                 );
 
-                // Execute the query
                 const querySnapshot = await getDocs(q);
 
-                // Map through the documents
                 const unitsList = querySnapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
@@ -174,23 +168,32 @@ const ArmyForm = () => {
 
                 // Sort by unit type
                 unitsList.sort((a, b) => {
-                    // Order: Command, Corps, Special Forces, Support, Heavy, Operative, Auxiliary
-                    const typeOrder = {
-                        [UnitTypes.COMMAND]: 1,
-                        [UnitTypes.CORPS]: 2,
-                        [UnitTypes.SPECIAL_FORCES]: 3,
-                        [UnitTypes.SUPPORT]: 4,
-                        [UnitTypes.HEAVY]: 5,
-                        [UnitTypes.OPERATIVE]: 6,
-                        [UnitTypes.AUXILIARY]: 7
-                    };
+                    const typeOrder = {};
 
-                    // Add custom unit types to the ordering
+                    if (currentSystem === GameSystems.LEGION) {
+                        Object.assign(typeOrder, {
+                            [UnitTypes.COMMAND]: 1,
+                            [UnitTypes.CORPS]: 2,
+                            [UnitTypes.SPECIAL_FORCES]: 3,
+                            [UnitTypes.SUPPORT]: 4,
+                            [UnitTypes.HEAVY]: 5,
+                            [UnitTypes.OPERATIVE]: 6,
+                            [UnitTypes.AUXILIARY]: 7
+                        });
+                    } else {
+                        Object.assign(typeOrder, {
+                            [AoSUnitTypes.HERO]: 1,
+                            [AoSUnitTypes.BATTLELINE]: 2,
+                            [AoSUnitTypes.OTHER]: 3,
+                            [AoSUnitTypes.BEHEMOTH]: 4,
+                            [AoSUnitTypes.ARTILLERY]: 5
+                        });
+                    }
+
                     customUnitTypes.forEach(ct => {
                         typeOrder[ct.name] = ct.sortOrder || 100;
                     });
 
-                    // If type isn't found in typeOrder, give it a high number
                     const aOrder = typeOrder[a.type] !== undefined ? typeOrder[a.type] : 999;
                     const bOrder = typeOrder[b.type] !== undefined ? typeOrder[b.type] : 999;
 
@@ -207,30 +210,25 @@ const ArmyForm = () => {
         };
 
         fetchUnits();
-    }, [currentUser, formData.faction, customUnitTypes, upgrades.length]);
+    }, [currentUser, formData.faction, customUnitTypes, upgrades.length, currentSystem]);
 
     const getTypeDisplayName = (type) => {
-        // First check if it's a system unit type
-        if (Object.values(UnitTypes).includes(type)) {
-            return UnitTypes.getDisplayName(type);
+        if (Object.values(TypeEnum).includes(type)) {
+            return TypeEnum.getDisplayName(type);
         }
 
-        // Then check if it's a custom unit type
         const customType = customUnitTypes.find(t => t.name === type);
         if (customType) {
             return customType.displayName || customType.name;
         }
 
-        // If we can't find it, just return the type as-is
         return type;
     };
 
-    // Handle input changes
     const handleChange = (e) => {
-        const { name, value } = e.target;
+        const {name, value} = e.target;
 
         if (name === 'faction') {
-            // Reset selected units when faction changes
             setFormData(prev => ({
                 ...prev,
                 [name]: value,
@@ -239,53 +237,42 @@ const ArmyForm = () => {
             }));
             setSelectedUnits([]);
         } else {
-            setFormData(prev => ({ ...prev, [name]: value }));
+            setFormData(prev => ({...prev, [name]: value}));
         }
     };
 
-    // Handle adding a unit to the army
     const handleAddUnit = (unit) => {
-        // Check if unit is already selected
         if (formData.units.includes(unit.id)) {
             return;
         }
 
-        // Calculate unit points including upgrades
         const unitPoints = unit.points || 0;
 
-        // Add unit to the army
         setFormData(prev => ({
             ...prev,
             units: [...prev.units, unit.id],
             totalPoints: prev.totalPoints + unitPoints
         }));
 
-        // Add unit to the selected units
         setSelectedUnits(prev => [...prev, unit]);
     };
 
-    // Handle removing a unit from the army
     const handleRemoveUnit = (unitId) => {
-        // Find the unit in selected units
         const unit = selectedUnits.find(u => u.id === unitId);
 
         if (!unit) return;
 
-        // Calculate unit points including upgrades
         const unitPoints = unit.points || 0;
 
-        // Remove unit from the army
         setFormData(prev => ({
             ...prev,
             units: prev.units.filter(id => id !== unitId),
             totalPoints: prev.totalPoints - unitPoints
         }));
 
-        // Remove unit from the selected units
         setSelectedUnits(prev => prev.filter(u => u.id !== unitId));
     };
 
-    // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
         const form = e.currentTarget;
@@ -304,34 +291,29 @@ const ArmyForm = () => {
                 throw new Error('You must be logged in to create an army');
             }
 
-            // Prepare data
             const armyToSave = {
                 ...formData,
-                gameSystem: currentSystem, 
+                gameSystem: currentSystem,
                 userId: currentUser.uid,
                 updatedAt: serverTimestamp()
             };
 
             if (armyId) {
-                // Update existing army
                 const armyRef = doc(db, 'users', currentUser.uid, 'armies', armyId);
                 await updateDoc(armyRef, armyToSave);
                 setSuccess('Army updated successfully!');
 
-                // Navigate to army details after short delay
                 setTimeout(() => {
                     navigate(`/armies/${armyId}`);
                 }, 1500);
             } else {
-                // Create new army
                 armyToSave.createdAt = serverTimestamp();
                 const armyRef = await addDoc(collection(db, 'users', currentUser.uid, 'armies'), armyToSave);
                 setSuccess('Army created successfully!');
 
-                // Reset form
                 setFormData({
                     name: '',
-                    faction: Factions.REPUBLIC,
+                    faction: defaultFaction,
                     description: '',
                     units: [],
                     commandCards: [],
@@ -340,7 +322,6 @@ const ArmyForm = () => {
 
                 setSelectedUnits([]);
 
-                // Navigate to army details after short delay
                 setTimeout(() => {
                     navigate(`/armies/${armyRef.id}`);
                 }, 1500);
@@ -353,36 +334,42 @@ const ArmyForm = () => {
         }
     };
 
-    // Group units by type for the available units list
     const getGroupedAvailableUnits = () => {
-        // First, get all unit types from the available units
         const unitTypes = [...new Set(availableUnits.map(unit => unit.type))];
 
-        // Sort types based on the same order logic used in fetchUnits
         unitTypes.sort((a, b) => {
-            const typeOrder = {
-                [UnitTypes.COMMAND]: 1,
-                [UnitTypes.CORPS]: 2,
-                [UnitTypes.SPECIAL_FORCES]: 3,
-                [UnitTypes.SUPPORT]: 4,
-                [UnitTypes.HEAVY]: 5,
-                [UnitTypes.OPERATIVE]: 6,
-                [UnitTypes.AUXILIARY]: 7
-            };
+            const typeOrder = {};
 
-            // Add custom unit types to the ordering
+            if (currentSystem === GameSystems.LEGION) {
+                Object.assign(typeOrder, {
+                    [UnitTypes.COMMAND]: 1,
+                    [UnitTypes.CORPS]: 2,
+                    [UnitTypes.SPECIAL_FORCES]: 3,
+                    [UnitTypes.SUPPORT]: 4,
+                    [UnitTypes.HEAVY]: 5,
+                    [UnitTypes.OPERATIVE]: 6,
+                    [UnitTypes.AUXILIARY]: 7
+                });
+            } else {
+                Object.assign(typeOrder, {
+                    [AoSUnitTypes.HERO]: 1,
+                    [AoSUnitTypes.BATTLELINE]: 2,
+                    [AoSUnitTypes.OTHER]: 3,
+                    [AoSUnitTypes.BEHEMOTH]: 4,
+                    [AoSUnitTypes.ARTILLERY]: 5
+                });
+            }
+
             customUnitTypes.forEach(ct => {
                 typeOrder[ct.name] = ct.sortOrder || 100;
             });
 
-            // If type isn't found in typeOrder, give it a high number
             const aOrder = typeOrder[a] !== undefined ? typeOrder[a] : 999;
             const bOrder = typeOrder[b] !== undefined ? typeOrder[b] : 999;
 
             return aOrder - bOrder;
         });
 
-        // For each type, get all units of that type
         return unitTypes.map(type => ({
             type,
             displayName: getTypeDisplayName(type),
@@ -390,7 +377,6 @@ const ArmyForm = () => {
         }));
     };
 
-    // Calculate counts of each unit type
     const unitTypeCounts = selectedUnits.reduce((counts, unit) => {
         const type = unit.type;
         counts[type] = (counts[type] || 0) + 1;
@@ -398,14 +384,13 @@ const ArmyForm = () => {
     }, {});
 
     if (loadingArmy) {
-        return <LoadingSpinner text="Loading army data..." />;
+        return <LoadingSpinner text="Loading army data..."/>;
     }
 
     if (loading) {
-        return <LoadingSpinner text={armyId ? 'Updating army...' : 'Creating army...'} />;
+        return <LoadingSpinner text={armyId ? 'Updating army...' : 'Creating army...'}/>;
     }
 
-    // Group available units by type
     const groupedUnits = getGroupedAvailableUnits();
 
     return (
@@ -448,10 +433,11 @@ const ArmyForm = () => {
                                             onChange={handleChange}
                                             disabled={selectedUnits.length > 0}
                                         >
-                                            <option value={Factions.REPUBLIC}>{Factions.getDisplayName(Factions.REPUBLIC)}</option>
-                                            <option value={Factions.SEPARATIST}>{Factions.getDisplayName(Factions.SEPARATIST)}</option>
-                                            <option value={Factions.REBEL}>{Factions.getDisplayName(Factions.REBEL)}</option>
-                                            <option value={Factions.EMPIRE}>{Factions.getDisplayName(Factions.EMPIRE)}</option>
+                                            {Object.values(FactionEnum).filter(f => typeof f === 'string').map(faction => (
+                                                <option key={faction} value={faction}>
+                                                    {FactionEnum.getDisplayName(faction)}
+                                                </option>
+                                            ))}
                                         </Form.Select>
                                         {selectedUnits.length > 0 && (
                                             <Form.Text className="text-muted">
@@ -483,7 +469,6 @@ const ArmyForm = () => {
                                         </span>
                                     </div>
 
-                                    {/* Unit type counts */}
                                     <div className="mb-3">
                                         {Object.entries(unitTypeCounts).map(([type, count]) => (
                                             <Badge
@@ -514,10 +499,11 @@ const ArmyForm = () => {
                                                     <div>
                                                         <div className="fw-bold">{unit.name}</div>
                                                         <div className="small text-muted">
-                                                            {getTypeDisplayName(unit.type)} • 
+                                                            {getTypeDisplayName(unit.type)} •
                                                             {ArmyPointsCalculator.calculateUnitPoints(unit, upgrades)} points
                                                             {ArmyPointsCalculator.calculateUnitPoints(unit, upgrades) !== unit.points && (
-                                                                <span className="ms-1 text-primary" title="Includes upgrade costs">
+                                                                <span className="ms-1 text-primary"
+                                                                      title="Includes upgrade costs">
                                                                     (Base: {unit.points})
                                                                 </span>
                                                             )}
@@ -537,8 +523,7 @@ const ArmyForm = () => {
                                 </Col>
                             </Row>
 
-                            {/* Command Cards Notice */}
-                            {formData.units.length > 0 && (
+                            {currentSystem === GameSystems.LEGION && formData.units.length > 0 && (
                                 <Alert variant="info" className="mt-3">
                                     <div className="d-flex justify-content-between align-items-center">
                                         <span>
@@ -580,7 +565,7 @@ const ArmyForm = () => {
                         <Card.Body className="p-0">
                             {loadingUnits ? (
                                 <div className="text-center py-4">
-                                    <LoadingSpinner text="Loading units..." />
+                                    <LoadingSpinner text="Loading units..."/>
                                 </div>
                             ) : availableUnits.length === 0 ? (
                                 <div className="text-center py-4">
@@ -597,7 +582,7 @@ const ArmyForm = () => {
                                 <>
                                     {groupedUnits.map(group => (
                                         <div key={group.type}>
-                                            <div className={`bg-light p-2 fw-bold ${group.type === Object.values(UnitTypes)[0] ? 'border-top-0' : ''}`}>
+                                            <div className={`bg-light p-2 fw-bold`}>
                                                 {group.displayName}
                                                 {customUnitTypes.find(t => t.name === group.type) && (
                                                     <Badge bg="info" className="ms-2">Custom</Badge>
@@ -614,7 +599,8 @@ const ArmyForm = () => {
                                                             <div className="small text-muted">
                                                                 {ArmyPointsCalculator.calculateUnitPoints(unit, upgrades)} points
                                                                 {ArmyPointsCalculator.calculateUnitPoints(unit, upgrades) !== unit.points && (
-                                                                    <span className="ms-1 text-primary" title="Includes upgrade costs">
+                                                                    <span className="ms-1 text-primary"
+                                                                          title="Includes upgrade costs">
                                                                         (Base: {unit.points})
                                                                     </span>
                                                                 )}
@@ -641,11 +627,22 @@ const ArmyForm = () => {
                     <Alert variant="secondary" className="mt-3">
                         <p className="mb-1"><strong>Army Building Rules:</strong></p>
                         <ul className="mb-0 small">
-                            <li>Every army requires at least 1 Commander unit</li>
-                            <li>An army must include 3-6 Corps units</li>
-                            <li>Special Forces, Support, Heavy, and Operative units are optional</li>
-                            <li>Once your army is saved, you can add command cards</li>
-                            <li>A complete army should have 7 command cards</li>
+                            {currentSystem === GameSystems.LEGION ? (
+                                <>
+                                    <li>Every army requires at least 1 Commander unit</li>
+                                    <li>An army must include 3-6 Corps units</li>
+                                    <li>Special Forces, Support, Heavy, and Operative units are optional</li>
+                                    <li>Once your army is saved, you can add command cards</li>
+                                    <li>A complete army should have 7 command cards</li>
+                                </>
+                            ) : (
+                                <>
+                                    <li>Every army requires at least 1 Hero</li>
+                                    <li>Battleline units form the core of your army</li>
+                                    <li>Behemoths and Artillery provide powerful support</li>
+                                    <li>Check your battletome for specific army composition rules</li>
+                                </>
+                            )}
                         </ul>
                     </Alert>
                 </Col>

@@ -45,15 +45,13 @@ const CustomKeywordList = () => {
             const keywordsRef = collection(db, 'users', currentUser.uid, 'customKeywords');
             const q = query(
                 keywordsRef,
-                where('gameSystem', '==', currentSystem),
-                orderBy('name', 'asc')
+                where('gameSystem', '==', currentSystem)
             );
             const querySnapshot = await getDocs(q);
 
-            const keywordsList = querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const keywordsList = querySnapshot.docs
+                .map(doc => ({id: doc.id, ...doc.data()}))
+                .sort((a, b) => a.name.localeCompare(b.name));
 
             setKeywords(keywordsList);
             setError('');

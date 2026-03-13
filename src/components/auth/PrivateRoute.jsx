@@ -6,8 +6,6 @@ import { useAuth } from '../../contexts/AuthContext';
 const PrivateRoute = () => {
   const { currentUser, loading } = useAuth();
 
-  console.log("PrivateRoute rendering: currentUser =", !!currentUser, "loading =", loading);
-
   if (loading) {
     return (
       <div className="p-4 text-center">
@@ -18,8 +16,6 @@ const PrivateRoute = () => {
       </div>
     );
   }
-
-  console.log("PrivateRoute decision:", currentUser ? "Rendering outlet" : "Redirecting to login");
   
   return currentUser ? <Outlet /> : <Navigate to="/login" />;
 };

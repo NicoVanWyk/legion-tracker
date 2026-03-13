@@ -1,14 +1,18 @@
 // src/components/units/ArmyList.js
-import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Button, Badge, Form, InputGroup } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import { useAuth } from '../../contexts/AuthContext';
-import { useGameSystem } from '../../contexts/GameSystemContext';
+import React, {useState, useEffect} from 'react';
+import {Row, Col, Card, Button, Badge, Form, InputGroup} from 'react-bootstrap';
+import {Link} from 'react-router-dom';
+import {collection, query, where, getDocs} from 'firebase/firestore';
+import {db} from '../../firebase/config';
+import {useAuth} from '../../contexts/AuthContext';
+import {useGameSystem} from '../../contexts/GameSystemContext';
 import Factions from '../../enums/Factions';
+import UnitTypes from '../../enums/UnitTypes';
 import LoadingSpinner from '../layout/LoadingSpinner';
 import ArmyPointsCalculator from '../../utils/ArmyPointsCalculator';
+import AoSFactions from '../../enums/aos/AoSFactions';
+import AoSUnitTypes from '../../enums/aos/AoSUnitTypes';
+import GameSystems from '../../enums/GameSystems';
 
 const ArmyList = () => {
     const [armies, setArmies] = useState([]);
@@ -19,8 +23,11 @@ const ArmyList = () => {
     const [error, setError] = useState('');
     const [filterFaction, setFilterFaction] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
-    const { currentUser } = useAuth();
-    const { currentSystem } = useGameSystem();
+    const {currentUser} = useAuth();
+    const {currentSystem} = useGameSystem();
+
+    const FactionEnum = currentSystem === GameSystems.LEGION ? Factions : AoSFactions;
+    const TypeEnum = currentSystem === GameSystems.LEGION ? UnitTypes : AoSUnitTypes;
 
     useEffect(() => {
         const fetchData = async () => {
@@ -82,11 +89,11 @@ const ArmyList = () => {
     }, [currentUser, currentSystem]);
 
     const getTypeDisplayName = (type) => {
-        const customType = customUnitTypes.find(t => t.name === type);
-        if (customType) {
-            return customType.displayName || customType.name;
+        if (Object.values(TypeEnum).includes(type)) {
+            return TypeEnum.getDisplayName(type);
         }
-        return type;
+        const customType = customUnitTypes.find(t => t.name === type);
+        return customType ? (customType.displayName || customType.name) : type;
     };
 
     const calculateArmyPoints = (army) => {
@@ -126,7 +133,7 @@ const ArmyList = () => {
     });
 
     if (loading) {
-        return <LoadingSpinner text="Loading armies..." />;
+        return <LoadingSpinner text="Loading armies..."/>;
     }
 
     return (
@@ -144,10 +151,11 @@ const ArmyList = () => {
                                             onChange={(e) => setFilterFaction(e.target.value)}
                                         >
                                             <option value="all">All Factions</option>
-                                            <option value={Factions.REPUBLIC}>{Factions.getDisplayName(Factions.REPUBLIC)}</option>
-                                            <option value={Factions.SEPARATIST}>{Factions.getDisplayName(Factions.SEPARATIST)}</option>
-                                            <option value={Factions.REBEL}>{Factions.getDisplayName(Factions.REBEL)}</option>
-                                            <option value={Factions.EMPIRE}>{Factions.getDisplayName(Factions.EMPIRE)}</option>
+                                            {Object.values(FactionEnum).filter(f => typeof f === 'string').map(faction => (
+                                                <option key={faction} value={faction}>
+                                                    {FactionEnum.getDisplayName(faction)}
+                                                </option>
+                                            ))}
                                         </Form.Select>
                                     </Form.Group>
                                 </Col>
@@ -226,6 +234,7 @@ const ArmyList = () => {
                     {filteredArmies.map(army => {
                         const armyUnitTypes = getArmyUnitTypes(army);
                         const calculatedPoints = calculateArmyPoints(army);
+                        const factionColor = FactionEnum.getColor ? FactionEnum.getColor(army.faction) : '#6c757d';
 
                         return (
                             <Col key={army.id} md={6} lg={4} className="mb-4">
@@ -235,11 +244,11 @@ const ArmyList = () => {
                                         <Badge
                                             bg="secondary"
                                             style={{
-                                                backgroundColor: Factions.getColor(army.faction),
-                                                color: ['republic', 'rebel'].includes(army.faction) ? 'white' : 'white'
+                                                backgroundColor: factionColor,
+                                                color: 'white'
                                             }}
                                         >
-                                            {Factions.getDisplayName(army.faction)}
+                                            {FactionEnum.getDisplayName(army.faction)}
                                         </Badge>
                                     </Card.Header>
 
@@ -283,7 +292,8 @@ const ArmyList = () => {
                                             <Link to={`/armies/${army.id}`} className="btn btn-primary btn-sm me-2">
                                                 View Details
                                             </Link>
-                                            <Link to={`/armies/edit/${army.id}`} className="btn btn-outline-secondary btn-sm">
+                                            <Link to={`/armies/edit/${army.id}`}
+                                                  className="btn btn-outline-secondary btn-sm">
                                                 Edit
                                             </Link>
                                         </div>

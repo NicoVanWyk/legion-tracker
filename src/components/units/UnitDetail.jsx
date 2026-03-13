@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Badge, Button, Alert, ListGroup, Accordion, Tab, Tabs } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
-import { doc, getDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import { useAuth } from '../../contexts/AuthContext';
+import React, {useState, useEffect} from 'react';
+import {Card, Row, Col, Badge, Button, Alert, ListGroup, Accordion, Tab, Tabs} from 'react-bootstrap';
+import {Link, useNavigate} from 'react-router-dom';
+import {doc, getDoc, deleteDoc, collection, getDocs} from 'firebase/firestore';
+import {db} from '../../firebase/config';
+import {useAuth} from '../../contexts/AuthContext';
 import UnitTypes from '../../enums/UnitTypes';
 import Factions from '../../enums/Factions';
 import DefenseDice from '../../enums/DefenseDice';
@@ -16,10 +16,14 @@ import LoadingSpinner from '../layout/LoadingSpinner';
 import UnitCard from './UnitCard';
 import ExportButton from '../common/ExportButton';
 import ExportUtils from '../../utils/ExportUtils';
-import { exportToPDF } from '../../utils/exportToPDF';
+import {exportToPDF} from '../../utils/exportToPDF';
 import KeywordUtils from '../../utils/KeywordUtils';
+import {useGameSystem} from '../../contexts/GameSystemContext';
+import AoSFactions from '../../enums/aos/AoSFactions';
+import AoSUnitTypes from '../../enums/aos/AoSUnitTypes';
+import GameSystems from '../../enums/GameSystems';
 
-const UnitDetail = ({ unitId }) => {
+const UnitDetail = ({unitId}) => {
     const [unit, setUnit] = useState(null);
     const [abilities, setAbilities] = useState([]);
     const [upgrades, setUpgrades] = useState([]);
@@ -29,33 +33,34 @@ const UnitDetail = ({ unitId }) => {
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [customUnitTypes, setCustomUnitTypes] = useState([]);
     const [activeTab, setActiveTab] = useState('details');
-    const { currentUser } = useAuth();
+    const {currentUser} = useAuth();
+    const {currentSystem} = useGameSystem();
     const navigate = useNavigate();
+
+    const isAoS = currentSystem === GameSystems.AOS;
+    const isLegion = currentSystem === GameSystems.LEGION;
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
 
-                // Fetch unit
                 const unitRef = doc(db, 'users', currentUser.uid, 'units', unitId);
                 const unitDoc = await getDoc(unitRef);
 
                 if (unitDoc.exists()) {
-                    const unitData = { id: unitDoc.id, ...unitDoc.data() };
+                    const unitData = {id: unitDoc.id, ...unitDoc.data()};
                     setUnit(unitData);
 
-                    // Fetch abilities
                     if (unitData.abilities?.length > 0) {
                         const abilitiesRef = collection(db, 'users', currentUser.uid, 'abilities');
                         const abilitiesSnapshot = await getDocs(abilitiesRef);
                         const abilitiesList = abilitiesSnapshot.docs
-                            .map(doc => ({ id: doc.id, ...doc.data() }))
+                            .map(doc => ({id: doc.id, ...doc.data()}))
                             .filter(ability => unitData.abilities.includes(ability.id));
                         setAbilities(abilitiesList);
                     }
 
-                    // Fetch upgrade cards for equipped upgrades
                     const allEquippedUpgrades = [];
                     unitData.upgradeSlots?.forEach(slot => {
                         if (slot.equippedUpgrades) allEquippedUpgrades.push(...slot.equippedUpgrades);
@@ -65,12 +70,11 @@ const UnitDetail = ({ unitId }) => {
                         const upgradesRef = collection(db, 'users', currentUser.uid, 'upgradeCards');
                         const upgradesSnapshot = await getDocs(upgradesRef);
                         const upgradesList = upgradesSnapshot.docs
-                            .map(doc => ({ id: doc.id, ...doc.data() }))
+                            .map(doc => ({id: doc.id, ...doc.data()}))
                             .filter(upgrade => allEquippedUpgrades.includes(upgrade.id));
                         setUpgrades(upgradesList);
                     }
 
-                    // Fetch custom keywords
                     const keywordsRef = collection(db, 'users', currentUser.uid, 'customKeywords');
                     const keywordsSnapshot = await getDocs(keywordsRef);
                     const keywordsList = keywordsSnapshot.docs.map(doc => ({
@@ -116,11 +120,22 @@ const UnitDetail = ({ unitId }) => {
     };
 
     const getTypeDisplayName = (type) => {
-        if (Object.values(UnitTypes).includes(type)) {
-            return UnitTypes.getDisplayName(type);
+        const typeEnum = isLegion ? UnitTypes : AoSUnitTypes;
+        if (Object.values(typeEnum).includes(type)) {
+            return typeEnum.getDisplayName(type);
         }
         const customType = customUnitTypes.find(t => t.name === type);
         return customType ? customType.displayName : type;
+    };
+
+    const getFactionDisplayName = (faction) => {
+        const factionEnum = isLegion ? Factions : AoSFactions;
+        return factionEnum.getDisplayName(faction);
+    };
+
+    const getFactionColor = (faction) => {
+        const factionEnum = isLegion ? Factions : AoSFactions;
+        return factionEnum.getColor ? factionEnum.getColor(faction) : '#6c757d';
     };
 
     const handleEdit = () => navigate(`/units/edit/${unitId}`);
@@ -144,18 +159,12 @@ const UnitDetail = ({ unitId }) => {
 
     const cancelDelete = () => setConfirmDelete(false);
 
-    // Handle exporting the unit
     const handleExportUnit = () => {
         if (!unit) return;
-        
-        // Use ExportUtils to generate text content
         const unitText = ExportUtils.exportUnit(unit, customKeywords, upgrades, abilities, customUnitTypes);
-        
-        // Download the file
         ExportUtils.downloadTextFile(unitText, `${unit.name.replace(/\s+/g, '_')}_unit.txt`);
     };
 
-    // Replace the existing getAllKeywords function with:
     const getAllKeywords = () => {
         if (!unit) return [];
         return KeywordUtils.getAllKeywords(unit, upgrades);
@@ -164,9 +173,8 @@ const UnitDetail = ({ unitId }) => {
     const calculateModifiedStats = () => {
         if (!unit) return null;
 
-        let stats = {
+        let stats = isLegion ? {
             wounds: unit.wounds || 1,
-            // Allow 0 values explicitly (will render as dash)
             courage: unit.isVehicle ? 0 : (unit.courage !== undefined ? unit.courage : 1),
             resilience: unit.isVehicle ? (unit.resilience !== undefined ? unit.resilience : 0) : 0,
             speed: unit.speed || 2,
@@ -174,9 +182,15 @@ const UnitDetail = ({ unitId }) => {
             totalPoints: unit.points || 0,
             surgeAttack: unit.surgeAttack || false,
             surgeDefense: unit.surgeDefense || false
+        } : {
+            health: unit.health || 1,
+            move: unit.move || 5,
+            save: unit.save || 4,
+            control: unit.control || 1,
+            modelCount: unit.minModelCount || 1,
+            totalPoints: unit.points || 0
         };
 
-        // Apply upgrade modifications
         unit.upgradeSlots?.forEach(slot => {
             slot.equippedUpgrades?.forEach(upgradeId => {
                 const upgrade = upgrades.find(u => u.id === upgradeId);
@@ -184,16 +198,24 @@ const UnitDetail = ({ unitId }) => {
                     stats.totalPoints += upgrade.pointsCost || 0;
 
                     if (upgrade.effects?.statModifiers) {
-                        stats.wounds += upgrade.effects.statModifiers.wounds || 0;
-                        if (unit.isVehicle) {
-                            stats.resilience += upgrade.effects.statModifiers.resilience || upgrade.effects.statModifiers.courage || 0;
-                        } else {
-                            stats.courage += upgrade.effects.statModifiers.courage || 0;
-                        }
-                        stats.speed += upgrade.effects.statModifiers.speed || 0;
+                        const mods = upgrade.effects.statModifiers;
 
-                        if (upgrade.effects.statModifiers.surgeAttack) stats.surgeAttack = true;
-                        if (upgrade.effects.statModifiers.surgeDefense) stats.surgeDefense = true;
+                        if (isLegion) {
+                            stats.wounds += mods.wounds || 0;
+                            if (unit.isVehicle) {
+                                stats.resilience += mods.resilience || mods.courage || 0;
+                            } else {
+                                stats.courage += mods.courage || 0;
+                            }
+                            stats.speed += mods.speed || 0;
+                            if (mods.surgeAttack) stats.surgeAttack = true;
+                            if (mods.surgeDefense) stats.surgeDefense = true;
+                        } else {
+                            stats.health += mods.health || 0;
+                            stats.move += mods.move || 0;
+                            stats.save += mods.save || 0;
+                            stats.control += mods.control || 0;
+                        }
                     }
 
                     stats.modelCount += upgrade.effects?.modelCountChange || 0;
@@ -204,7 +226,6 @@ const UnitDetail = ({ unitId }) => {
         return stats;
     };
 
-    // Combine base weapons with upgrade weapons
     const calculateModifiedWeapons = () => {
         if (!unit) return [];
 
@@ -225,14 +246,14 @@ const UnitDetail = ({ unitId }) => {
             });
         });
 
-        return [...baseWeapons.map(w => ({ ...w, source: 'Base Unit' })), ...upgradeWeapons];
+        return [...baseWeapons.map(w => ({...w, source: 'Base Unit'})), ...upgradeWeapons];
     };
 
     const printUnitCard = () => {
         window.print();
     };
 
-    if (loading) return <LoadingSpinner text="Loading unit details..." />;
+    if (loading) return <LoadingSpinner text="Loading unit details..."/>;
 
     if (error)
         return (
@@ -284,7 +305,7 @@ const UnitDetail = ({ unitId }) => {
                         <h2 className="d-flex align-items-center">
                             {unit.name}
                             {unit.unitIcon && (
-                                <div 
+                                <div
                                     className="unit-icon-small ms-3"
                                     style={{
                                         width: '36px',
@@ -295,12 +316,12 @@ const UnitDetail = ({ unitId }) => {
                                         justifyContent: 'center',
                                         alignItems: 'center',
                                         backgroundColor: 'white',
-                                        border: `2px solid ${Factions.getColor(unit.faction)}`
+                                        border: `2px solid ${getFactionColor(unit.faction)}`
                                     }}
                                 >
-                                    <img 
-                                        src={unit.unitIcon} 
-                                        alt={unit.name} 
+                                    <img
+                                        src={unit.unitIcon}
+                                        alt={unit.name}
                                         style={{
                                             maxWidth: '70%',
                                             maxHeight: '70%',
@@ -311,8 +332,8 @@ const UnitDetail = ({ unitId }) => {
                             )}
                         </h2>
                         <div>
-                            <ExportButton 
-                                className="me-2" 
+                            <ExportButton
+                                className="me-2"
                                 onExport={handleExportUnit}
                                 text="Export Unit"
                             />
@@ -330,14 +351,17 @@ const UnitDetail = ({ unitId }) => {
 
                     <Tabs activeKey={activeTab} onSelect={setActiveTab} className="mb-4">
                         <Tab eventKey="details" title="Details">
-                            {/* --- UNIT INFO --- */}
                             <Card className="mb-4">
                                 <Card.Header className={`faction-${unit.faction}`}>
                                     <div className="d-flex justify-content-between align-items-center">
                                         <h5 className="mb-0">Unit Information</h5>
                                         <div className="d-flex align-items-center">
-                                            <Badge bg="secondary" className="me-2">{getTypeDisplayName(unit.type)}</Badge>
-                                            {unit.isVehicle && <Badge bg="info" className="me-2">Vehicle</Badge>}
+                                            <Badge bg="secondary"
+                                                   className="me-2">{getTypeDisplayName(unit.type)}</Badge>
+                                            {isLegion && unit.isVehicle &&
+                                                <Badge bg="info" className="me-2">Vehicle</Badge>}
+                                            {isAoS && unit.reinforceable &&
+                                                <Badge bg="info" className="me-2">Reinforceable</Badge>}
                                         </div>
                                     </div>
                                 </Card.Header>
@@ -345,7 +369,7 @@ const UnitDetail = ({ unitId }) => {
                                     <Row>
                                         <Col md={3}>
                                             <p>
-                                                <strong>Faction:</strong> {Factions.getDisplayName(unit.faction)}
+                                                <strong>Faction:</strong> {getFactionDisplayName(unit.faction)}
                                             </p>
                                         </Col>
                                         <Col md={3}>
@@ -357,78 +381,93 @@ const UnitDetail = ({ unitId }) => {
                                             </p>
                                         </Col>
                                         <Col md={6}>
-                                            <p>
-                                                <strong>Stats:</strong>{' '}
-                                                {modifiedStats.wounds !== unit.wounds && (
-                                                    <span className="text-primary">{modifiedStats.wounds}</span>
-                                                )}
-                                                {modifiedStats.wounds === unit.wounds && (unit.wounds || 1)}W /{' '}
+                                            {isLegion && (
+                                                <p>
+                                                    <strong>Stats:</strong>{' '}
+                                                    {modifiedStats.wounds !== unit.wounds &&
+                                                        <span className="text-primary">{modifiedStats.wounds}</span>}
+                                                    {modifiedStats.wounds === unit.wounds && (unit.wounds || 1)}W /{' '}
 
-                                                {unit.isVehicle ? (
-                                                    <>
-                                                        {modifiedStats.resilience !== unit.resilience && (
-                                                            <span className="text-primary">
-                                                                {modifiedStats.resilience === 0 ? '-' : modifiedStats.resilience}
-                                                            </span>
-                                                        )}
-                                                        {modifiedStats.resilience === unit.resilience && (
-                                                            unit.resilience === 0 ? '-' : unit.resilience
-                                                        )}R /{' '}
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        {modifiedStats.courage !== unit.courage && (
-                                                            <span className="text-primary">
-                                                                {modifiedStats.courage === 0 ? '-' : modifiedStats.courage}
-                                                            </span>
-                                                        )}
-                                                        {modifiedStats.courage === unit.courage && (
-                                                            unit.courage === 0 ? '-' : unit.courage
-                                                        )}C /{' '}
-                                                    </>
-                                                )}
+                                                    {unit.isVehicle ? (
+                                                        <>
+                                                            {modifiedStats.resilience !== unit.resilience && <span
+                                                                className="text-primary">{modifiedStats.resilience === 0 ? '-' : modifiedStats.resilience}</span>}
+                                                            {modifiedStats.resilience === unit.resilience && (unit.resilience === 0 ? '-' : unit.resilience)}R
+                                                            /{' '}
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            {modifiedStats.courage !== unit.courage && <span
+                                                                className="text-primary">{modifiedStats.courage === 0 ? '-' : modifiedStats.courage}</span>}
+                                                            {modifiedStats.courage === unit.courage && (unit.courage === 0 ? '-' : unit.courage)}C
+                                                            /{' '}
+                                                        </>
+                                                    )}
 
-                                                {modifiedStats.speed !== unit.speed && (
-                                                    <span className="text-primary">{modifiedStats.speed}</span>
-                                                )}
-                                                {modifiedStats.speed === unit.speed && (unit.speed || 2)}S /{' '}
-                                                <span className={DefenseDice.getColorClass(unit.defense)}>
-                                                  {unit.defense === 'white' ? 'W' : 'R'}
-                                                </span>{' '}
-                                                Defense
-                                            </p>
+                                                    {modifiedStats.speed !== unit.speed &&
+                                                        <span className="text-primary">{modifiedStats.speed}</span>}
+                                                    {modifiedStats.speed === unit.speed && (unit.speed || 2)}S /{' '}
+                                                    <span className={DefenseDice.getColorClass(unit.defense)}>
+                                                        {unit.defense === 'white' ? 'W' : 'R'}
+                                                    </span> Defense
+                                                </p>
+                                            )}
+                                            {isAoS && (
+                                                <p>
+                                                    <strong>Stats:</strong>{' '}
+                                                    {modifiedStats.move !== unit.move &&
+                                                        <span className="text-primary">{modifiedStats.move}</span>}
+                                                    {modifiedStats.move === unit.move && (unit.move || 5)}" Move /{' '}
+                                                    {modifiedStats.health !== unit.health &&
+                                                        <span className="text-primary">{modifiedStats.health}</span>}
+                                                    {modifiedStats.health === unit.health && (unit.health || 1)} Health
+                                                    /{' '}
+                                                    {modifiedStats.save !== unit.save &&
+                                                        <span className="text-primary">{modifiedStats.save}</span>}
+                                                    {modifiedStats.save === unit.save && (unit.save || 4)}+ Save /{' '}
+                                                    {modifiedStats.control !== unit.control &&
+                                                        <span className="text-primary">{modifiedStats.control}</span>}
+                                                    {modifiedStats.control === unit.control && (unit.control || 1)} Control
+                                                </p>
+                                            )}
                                         </Col>
                                     </Row>
                                     <Row>
                                         <Col md={6}>
                                             <p>
-                                                <strong>Model Count:</strong> Min: {unit.minModelCount || 1} | Current:{' '}
-                                                {unit.minModelCount || 1}
+                                                <strong>Model Count:</strong> Min: {unit.minModelCount || 1} |
+                                                Current: {unit.minModelCount || 1}
                                                 {modifiedStats.modelCount !== unit.minModelCount && (
                                                     <span className="text-primary"> → {modifiedStats.modelCount}</span>
                                                 )}
                                             </p>
                                         </Col>
-                                        <Col md={6}>
-                                            <p>
-                                                <strong>Surge Tokens:</strong>{' '}
-                                                {unit.surgeAttack || modifiedStats.surgeAttack ? (
-                                                    <Badge bg="success" className="me-2">Attack</Badge>
-                                                ) : (
-                                                    <Badge bg="secondary" className="me-2">No Attack</Badge>
-                                                )}
-                                                {unit.surgeDefense || modifiedStats.surgeDefense ? (
-                                                    <Badge bg="success">Defense</Badge>
-                                                ) : (
-                                                    <Badge bg="secondary">No Defense</Badge>
-                                                )}
-                                            </p>
-                                        </Col>
+                                        {isLegion && (
+                                            <Col md={6}>
+                                                <p>
+                                                    <strong>Surge Tokens:</strong>{' '}
+                                                    {unit.surgeAttack || modifiedStats.surgeAttack ? (
+                                                        <Badge bg="success" className="me-2">Attack</Badge>
+                                                    ) : (
+                                                        <Badge bg="secondary" className="me-2">No Attack</Badge>
+                                                    )}
+                                                    {unit.surgeDefense || modifiedStats.surgeDefense ? (
+                                                        <Badge bg="success">Defense</Badge>
+                                                    ) : (
+                                                        <Badge bg="secondary">No Defense</Badge>
+                                                    )}
+                                                </p>
+                                            </Col>
+                                        )}
+                                        {isAoS && unit.baseSize && (
+                                            <Col md={6}>
+                                                <p><strong>Base Size:</strong> {unit.baseSize}</p>
+                                            </Col>
+                                        )}
                                     </Row>
                                 </Card.Body>
                             </Card>
 
-                            {/* --- KEYWORDS --- */}
                             <Row>
                                 <Col md={6}>
                                     <Card className="mb-4">
@@ -442,7 +481,6 @@ const UnitDetail = ({ unitId }) => {
                                                         <Badge
                                                             key={index}
                                                             bg={keyword.startsWith('custom:') ? 'info' : (
-                                                                // Show keywords from upgrades in a different color
                                                                 unit.keywords && unit.keywords.includes(keyword) ? 'secondary' : 'success'
                                                             )}
                                                             className="me-2 mb-2 p-2"
@@ -461,7 +499,6 @@ const UnitDetail = ({ unitId }) => {
                                     </Card>
                                 </Col>
 
-                                {/* --- WEAPONS (Base + Upgrades) --- */}
                                 <Col md={6}>
                                     <Card className="mb-4">
                                         <Card.Header>
@@ -472,39 +509,39 @@ const UnitDetail = ({ unitId }) => {
                                                 <ListGroup variant="flush">
                                                     {modifiedWeapons.map((weapon, index) => (
                                                         <ListGroup.Item key={index}>
-                                                            <div className="d-flex justify-content-between align-items-center">
+                                                            <div
+                                                                className="d-flex justify-content-between align-items-center">
                                                                 <h6 className="mb-0">{weapon.name}</h6>
-                                                                <Badge bg={weapon.source === 'Base Unit' ? 'secondary' : 'info'}>
+                                                                <Badge
+                                                                    bg={weapon.source === 'Base Unit' ? 'secondary' : 'info'}>
                                                                     {weapon.source}
                                                                 </Badge>
                                                             </div>
                                                             <div className="small text-muted">
                                                                 <strong>Range:</strong>{' '}
-                                                                {WeaponRanges.getDisplayName
-                                                                    ? WeaponRanges.getDisplayName(weapon.range)
-                                                                    : weapon.range}
+                                                                {WeaponRanges.getDisplayName ? WeaponRanges.getDisplayName(weapon.range) : weapon.range}
                                                             </div>
-                                                            <div className="small">
-                                                                <strong>Dice:</strong>
-                                                                {weapon.dice?.[AttackDice.RED] > 0 && (
-                                                                    <span className="text-danger"> {weapon.dice[AttackDice.RED]}R</span>
-                                                                )}
-                                                                {weapon.dice?.[AttackDice.BLACK] > 0 && (
-                                                                    <span> {weapon.dice[AttackDice.BLACK]}B</span>
-                                                                )}
-                                                                {weapon.dice?.[AttackDice.WHITE] > 0 && (
-                                                                    <span className="text-muted"> {weapon.dice[AttackDice.WHITE]}W</span>
-                                                                )}
-                                                            </div>
+                                                            {isLegion && (
+                                                                <div className="small">
+                                                                    <strong>Dice:</strong>
+                                                                    {weapon.dice?.[AttackDice.RED] > 0 && <span
+                                                                        className="text-danger"> {weapon.dice[AttackDice.RED]}R</span>}
+                                                                    {weapon.dice?.[AttackDice.BLACK] > 0 &&
+                                                                        <span> {weapon.dice[AttackDice.BLACK]}B</span>}
+                                                                    {weapon.dice?.[AttackDice.WHITE] > 0 && <span
+                                                                        className="text-muted"> {weapon.dice[AttackDice.WHITE]}W</span>}
+                                                                </div>
+                                                            )}
+                                                            {isAoS && weapon.attacks && (
+                                                                <div className="small">
+                                                                    <strong>Attacks:</strong> {weapon.attacks}
+                                                                </div>
+                                                            )}
                                                             {weapon.keywords?.length > 0 && (
                                                                 <div className="small">
                                                                     <strong>Keywords:</strong>{' '}
                                                                     {weapon.keywords
-                                                                        .map(kw =>
-                                                                            WeaponKeywords.getDisplayName
-                                                                                ? WeaponKeywords.getDisplayName(kw)
-                                                                                : kw
-                                                                        )
+                                                                        .map(kw => WeaponKeywords.getDisplayName ? WeaponKeywords.getDisplayName(kw) : kw)
                                                                         .join(', ')}
                                                                 </div>
                                                             )}
@@ -519,7 +556,6 @@ const UnitDetail = ({ unitId }) => {
                                 </Col>
                             </Row>
 
-                            {/* --- ABILITIES, UPGRADES, NOTES, etc --- */}
                             {abilities.length > 0 && (
                                 <Card className="mb-4">
                                     <Card.Header>
@@ -540,10 +576,12 @@ const UnitDetail = ({ unitId }) => {
                                                                 <strong className="small">Reminders:</strong>
                                                                 <div className="mt-1">
                                                                     {ability.reminders.map((reminder, idx) => (
-                                                                        <div key={idx} className="small text-muted mb-1">
+                                                                        <div key={idx}
+                                                                             className="small text-muted mb-1">
                                                                             • {reminder.text}
                                                                             {reminder.condition && (
-                                                                                <span className="fst-italic"> ({reminder.condition})</span>
+                                                                                <span
+                                                                                    className="fst-italic"> ({reminder.condition})</span>
                                                                             )}
                                                                         </div>
                                                                     ))}
@@ -558,7 +596,7 @@ const UnitDetail = ({ unitId }) => {
                                 </Card>
                             )}
 
-                            {unit.upgradeSlots && unit.upgradeSlots.length > 0 && (
+                            {isLegion && unit.upgradeSlots && unit.upgradeSlots.length > 0 && (
                                 <Card className="mb-4">
                                     <Card.Header>
                                         <h5 className="mb-0">Upgrade Slots</h5>
@@ -571,16 +609,15 @@ const UnitDetail = ({ unitId }) => {
 
                                             return (
                                                 <div key={index} className="mb-3">
-                                                    <div className="d-flex justify-content-between align-items-center mb-2">
+                                                    <div
+                                                        className="d-flex justify-content-between align-items-center mb-2">
                                                         <Badge bg={UpgradeCardTypes.getBadgeColor(slot.type)}>
-                                                            <i
-                                                                className={UpgradeCardTypes.getIconClass(slot.type) + ' me-1'}
-                                                            ></i>
+                                                            <i className={UpgradeCardTypes.getIconClass(slot.type) + ' me-1'}></i>
                                                             {UpgradeCardTypes.getDisplayName(slot.type)}
                                                         </Badge>
                                                         <span className="small text-muted">
-                          {slot.equippedUpgrades?.length || 0} / {slot.maxCount} equipped
-                        </span>
+                                                            {slot.equippedUpgrades?.length || 0} / {slot.maxCount} equipped
+                                                        </span>
                                                     </div>
 
                                                     {equippedUpgrades.length > 0 ? (
@@ -593,7 +630,8 @@ const UnitDetail = ({ unitId }) => {
                                                                             {upgrade.pointsCost} pts
                                                                         </Badge>
                                                                     </div>
-                                                                    <div className="small text-muted">{upgrade.description}</div>
+                                                                    <div
+                                                                        className="small text-muted">{upgrade.description}</div>
                                                                 </ListGroup.Item>
                                                             ))}
                                                         </ListGroup>
@@ -613,7 +651,7 @@ const UnitDetail = ({ unitId }) => {
                                         <h5 className="mb-0">Miniature Information</h5>
                                     </Card.Header>
                                     <Card.Body>
-                                        <p style={{ whiteSpace: 'pre-line' }}>{unit.miniatures}</p>
+                                        <p style={{whiteSpace: 'pre-line'}}>{unit.miniatures}</p>
                                     </Card.Body>
                                 </Card>
                             )}
@@ -624,20 +662,19 @@ const UnitDetail = ({ unitId }) => {
                                         <h5 className="mb-0">Notes</h5>
                                     </Card.Header>
                                     <Card.Body>
-                                        <p style={{ whiteSpace: 'pre-line' }}>{unit.notes}</p>
+                                        <p style={{whiteSpace: 'pre-line'}}>{unit.notes}</p>
                                     </Card.Body>
                                 </Card>
                             )}
                         </Tab>
                         <Tab eventKey="card" title="Unit Card">
-                            {/* Unit Card Display */}
                             <Card className="mb-4">
                                 <Card.Body>
                                     <Row>
                                         <Col lg={8} className="mx-auto">
                                             <div id="exportArea" className="export-container">
-                                                <UnitCard 
-                                                    unit={unit} 
+                                                <UnitCard
+                                                    unit={unit}
                                                     customUnitTypes={customUnitTypes}
                                                 />
                                             </div>

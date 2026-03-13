@@ -30,17 +30,14 @@ export const AuthProvider = ({ children }) => {
       setError('');
       
       // Step 1: Create Firebase Auth user
-      console.log("Creating auth user...");
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
       // Step 2: Update the user profile with display name
-      console.log("Updating auth profile...");
       await updateProfile(userCredential.user, { 
         displayName: displayName || email.split('@')[0] // Use email username as fallback
       });
       
       // Step 3: Create user document in Firestore
-      console.log("Creating Firestore user document...");
       const userData = {
         email,
         displayName: displayName || email.split('@')[0], // Same fallback
@@ -49,7 +46,6 @@ export const AuthProvider = ({ children }) => {
       };
       
       await setDoc(doc(db, 'users', userCredential.user.uid), userData);
-      console.log("User document created successfully");
       
       return userCredential.user;
     } catch (err) {
@@ -97,16 +93,12 @@ export const AuthProvider = ({ children }) => {
   // Fetch user profile data from Firestore
   const fetchUserProfile = useCallback(async (uid) => {
     try {
-      console.log("Fetching user profile for:", uid);
       const userRef = doc(db, 'users', uid);
       const userDoc = await getDoc(userRef);
       
       if (userDoc.exists()) {
-        console.log("User profile found:", userDoc.data());
         setUserProfile(userDoc.data());
       } else {
-        console.log("No user profile found - creating one");
-        
         // Create a basic profile if it doesn't exist
         if (auth.currentUser) {
           const basicProfile = {
@@ -118,7 +110,6 @@ export const AuthProvider = ({ children }) => {
           
           await setDoc(userRef, basicProfile);
           setUserProfile(basicProfile);
-          console.log("Created basic profile successfully");
         }
       }
     } catch (err) {
@@ -157,11 +148,9 @@ export const AuthProvider = ({ children }) => {
 
   // Observer for auth state changes
   useEffect(() => {
-    console.log("Setting up auth state observer");
     setLoading(true);
     
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log("Auth state changed:", user ? `User ${user.uid}` : "No user");
       
       try {
         setCurrentUser(user);
@@ -179,7 +168,6 @@ export const AuthProvider = ({ children }) => {
     });
 
     return () => {
-      console.log("Cleaning up auth state observer");
       unsubscribe();
     };
   }, [fetchUserProfile]); // Now includes fetchUserProfile as dependency

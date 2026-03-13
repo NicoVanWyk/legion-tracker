@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Button, Row, Col, Badge, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import { useAuth } from '../../contexts/AuthContext';
+import React, {useState, useEffect} from 'react';
+import {Card, Button, Row, Col, Badge, OverlayTrigger, Tooltip} from 'react-bootstrap';
+import {collection, getDocs, doc, getDoc} from 'firebase/firestore';
+import {db} from '../../firebase/config';
+import {useAuth} from '../../contexts/AuthContext';
 import Factions from '../../enums/Factions';
 import UnitTypes from '../../enums/UnitTypes';
 import DefenseDice from '../../enums/DefenseDice';
@@ -12,24 +12,32 @@ import AttackDice from '../../enums/AttackDice';
 import WeaponKeywords from '../../enums/WeaponKeywords';
 import KeywordUtils from '../../utils/KeywordUtils';
 import WeaponKeywordHelper from '../common/WeaponKeywordHelper';
+import {useGameSystem} from '../../contexts/GameSystemContext';
+import AoSFactions from '../../enums/aos/AoSFactions';
+import AoSUnitTypes from '../../enums/aos/AoSUnitTypes';
+import GameSystems from '../../enums/GameSystems';
 
-const UnitCard = ({ unit, customUnitTypes }) => {
+const UnitCard = ({unit, customUnitTypes}) => {
     const [flipped, setFlipped] = useState(false);
     const [customKeywords, setCustomKeywords] = useState([]);
     const [upgrades, setUpgrades] = useState([]);
     const [abilities, setAbilities] = useState([]);
     const [loading, setLoading] = useState(true);
-    const { currentUser } = useAuth();
+    const {currentUser} = useAuth();
+    const {currentSystem} = useGameSystem();
+
+    const isAoS = currentSystem === GameSystems.AOS;
+    const isLegion = currentSystem === GameSystems.LEGION;
+    const FactionEnum = isLegion ? Factions : AoSFactions;
+    const TypeEnum = isLegion ? UnitTypes : AoSUnitTypes;
 
     useEffect(() => {
-        // Fetch custom keywords, equipped upgrades, and abilities
         const fetchData = async () => {
             if (!currentUser || !unit) return;
 
             try {
                 setLoading(true);
 
-                // Fetch custom keywords
                 const keywordsRef = collection(db, 'users', currentUser.uid, 'customKeywords');
                 const keywordsSnapshot = await getDocs(keywordsRef);
                 const keywordsList = keywordsSnapshot.docs.map(doc => ({
@@ -38,7 +46,6 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                 }));
                 setCustomKeywords(keywordsList);
 
-                // Fetch equipped upgrade cards
                 const allEquippedUpgrades = [];
                 unit.upgradeSlots?.forEach(slot => {
                     if (slot.equippedUpgrades) allEquippedUpgrades.push(...slot.equippedUpgrades);
@@ -60,7 +67,6 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                     setUpgrades(upgradesData);
                 }
 
-                // Fetch abilities
                 if (unit.abilities?.length > 0) {
                     const abilitiesData = [];
                     for (const abilityId of unit.abilities) {
@@ -88,23 +94,19 @@ const UnitCard = ({ unit, customUnitTypes }) => {
 
     if (!unit) return null;
 
-    // Function to get all keywords including those from upgrades, with stacking
     const getAllKeywords = () => {
         if (!unit) return [];
         return KeywordUtils.getAllKeywords(unit, upgrades);
     };
 
-    // Get all weapons including those from upgrades
     const getAllWeapons = () => {
         if (!unit) return [];
 
-        // Start with base unit weapons
         let allWeapons = [...(unit.weapons || [])].map(weapon => ({
             ...weapon,
             source: 'Base Unit'
         }));
 
-        // Add weapons from equipped upgrades
         unit.upgradeSlots?.forEach(slot => {
             slot.equippedUpgrades?.forEach(upgradeId => {
                 const upgrade = upgrades.find(u => u.id === upgradeId);
@@ -121,11 +123,9 @@ const UnitCard = ({ unit, customUnitTypes }) => {
         return allWeapons;
     };
 
-    // Calculate total points including upgrades
     const calculateTotalPoints = () => {
         let total = unit.points || 0;
 
-        // Add upgrade costs
         unit.upgradeSlots?.forEach(slot => {
             slot.equippedUpgrades?.forEach(upgradeId => {
                 const upgrade = upgrades.find(u => u.id === upgradeId);
@@ -138,9 +138,8 @@ const UnitCard = ({ unit, customUnitTypes }) => {
         return total;
     };
 
-    // Calculate modified stats based on upgrades
     const calculateModifiedStats = () => {
-        const stats = {
+        const stats = isLegion ? {
             wounds: unit.wounds || 1,
             courage: unit.isVehicle ? 0 : (unit.courage !== undefined ? unit.courage : 1),
             resilience: unit.isVehicle ? (unit.resilience !== undefined ? unit.resilience : 0) : 0,
@@ -149,9 +148,15 @@ const UnitCard = ({ unit, customUnitTypes }) => {
             surgeAttack: unit.surgeAttack || false,
             surgeDefense: unit.surgeDefense || false,
             upgrades: []
+        } : {
+            health: unit.health || 1,
+            move: unit.move || 5,
+            save: unit.save || 4,
+            control: unit.control || 1,
+            modelCount: unit.minModelCount || 1,
+            upgrades: []
         };
 
-        // Apply upgrade modifications
         unit.upgradeSlots?.forEach(slot => {
             slot.equippedUpgrades?.forEach(upgradeId => {
                 const upgrade = upgrades.find(u => u.id === upgradeId);
@@ -159,41 +164,58 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                 if (effects.statModifiers) {
                     const mods = effects.statModifiers;
 
-                    // Store which upgrade modified what stat for displaying tooltips
-                    if (mods.wounds) {
-                        stats.wounds += mods.wounds;
-                        stats.upgrades.push({ stat: 'wounds', name: upgrade.name, value: mods.wounds });
-                    }
+                    if (isLegion) {
+                        if (mods.wounds) {
+                            stats.wounds += mods.wounds;
+                            stats.upgrades.push({stat: 'wounds', name: upgrade.name, value: mods.wounds});
+                        }
 
-                    if (unit.isVehicle && (mods.resilience || mods.courage)) {
-                        stats.resilience += mods.resilience || mods.courage || 0;
-                        stats.upgrades.push({
-                            stat: 'resilience',
-                            name: upgrade.name,
-                            value: mods.resilience || mods.courage || 0
-                        });
-                    } else if (!unit.isVehicle && mods.courage) {
-                        stats.courage += mods.courage;
-                        stats.upgrades.push({ stat: 'courage', name: upgrade.name, value: mods.courage });
-                    }
+                        if (unit.isVehicle && (mods.resilience || mods.courage)) {
+                            stats.resilience += mods.resilience || mods.courage || 0;
+                            stats.upgrades.push({
+                                stat: 'resilience',
+                                name: upgrade.name,
+                                value: mods.resilience || mods.courage || 0
+                            });
+                        } else if (!unit.isVehicle && mods.courage) {
+                            stats.courage += mods.courage;
+                            stats.upgrades.push({stat: 'courage', name: upgrade.name, value: mods.courage});
+                        }
 
-                    if (mods.speed) {
-                        stats.speed += mods.speed;
-                        stats.upgrades.push({ stat: 'speed', name: upgrade.name, value: mods.speed });
-                    }
+                        if (mods.speed) {
+                            stats.speed += mods.speed;
+                            stats.upgrades.push({stat: 'speed', name: upgrade.name, value: mods.speed});
+                        }
 
-                    if (mods.surgeAttack) {
-                        stats.surgeAttack = true;
-                        stats.upgrades.push({ stat: 'surgeAttack', name: upgrade.name, value: true });
-                    }
+                        if (mods.surgeAttack) {
+                            stats.surgeAttack = true;
+                            stats.upgrades.push({stat: 'surgeAttack', name: upgrade.name, value: true});
+                        }
 
-                    if (mods.surgeDefense) {
-                        stats.surgeDefense = true;
-                        stats.upgrades.push({ stat: 'surgeDefense', name: upgrade.name, value: true });
+                        if (mods.surgeDefense) {
+                            stats.surgeDefense = true;
+                            stats.upgrades.push({stat: 'surgeDefense', name: upgrade.name, value: true});
+                        }
+                    } else {
+                        if (mods.health) {
+                            stats.health += mods.health;
+                            stats.upgrades.push({stat: 'health', name: upgrade.name, value: mods.health});
+                        }
+                        if (mods.move) {
+                            stats.move += mods.move;
+                            stats.upgrades.push({stat: 'move', name: upgrade.name, value: mods.move});
+                        }
+                        if (mods.save) {
+                            stats.save += mods.save;
+                            stats.upgrades.push({stat: 'save', name: upgrade.name, value: mods.save});
+                        }
+                        if (mods.control) {
+                            stats.control += mods.control;
+                            stats.upgrades.push({stat: 'control', name: upgrade.name, value: mods.control});
+                        }
                     }
                 }
 
-                // Track model count changes
                 if (typeof effects.modelCountChange === 'number') {
                     stats.modelCount += effects.modelCountChange;
                     stats.upgrades.push({
@@ -208,13 +230,11 @@ const UnitCard = ({ unit, customUnitTypes }) => {
         return stats;
     };
 
-    // Function to check if keyword is from an upgrade
     const isKeywordFromUpgrade = (keyword) => {
         if (!unit?.keywords) return false;
         return !unit.keywords.includes(keyword);
     };
 
-    // Function to get the proper display name for keywords
     const getKeywordDisplayName = (keyword) => {
         if (keyword.startsWith('custom:')) {
             const customId = keyword.replace('custom:', '');
@@ -225,15 +245,18 @@ const UnitCard = ({ unit, customUnitTypes }) => {
     };
 
     const getTypeDisplayName = (type) => {
-        if (Object.values(UnitTypes).includes(type)) {
-            return UnitTypes.getDisplayName(type);
+        if (Object.values(TypeEnum).includes(type)) {
+            return TypeEnum.getDisplayName(type);
         }
         const customType = customUnitTypes?.find(t => t.name === type);
         return customType ? customType.displayName : type;
     };
 
-    // Default background based on faction if none selected
     const getDefaultBackground = () => {
+        if (isAoS) {
+            return '/assets/cardbackgrounds/aos-default.png';
+        }
+
         switch (unit.faction) {
             case Factions.REPUBLIC:
                 return '/assets/cardbackgrounds/republic-default.png';
@@ -248,7 +271,6 @@ const UnitCard = ({ unit, customUnitTypes }) => {
         }
     };
 
-    // Get upgrade source data for tooltip display
     const getUpgradeSourcesForStat = (statName) => {
         const modifiedStats = calculateModifiedStats();
         const sources = modifiedStats.upgrades.filter(u => u.stat === statName);
@@ -261,26 +283,15 @@ const UnitCard = ({ unit, customUnitTypes }) => {
         }).join(', ');
     };
 
-    // Get card background
     const cardBackground = unit.cardBackground || getDefaultBackground();
-
-    // Get unit icon or default
     const unitIcon = unit.unitIcon || '/assets/uniticons/default-icon.png';
-
-    // Get all keywords including those from upgrades
     const allKeywords = getAllKeywords();
-
-    // Get all weapons including those from upgrades
     const allWeapons = getAllWeapons();
-
-    // Calculate the modified stats based on upgrades
     const modifiedStats = calculateModifiedStats();
-
-    // Get total points
     const totalPoints = calculateTotalPoints();
+    const factionColor = FactionEnum.getColor ? FactionEnum.getColor(unit.faction) : '#6c757d';
 
-    // Stat display with tooltip for modified stats
-    const StatValue = ({ original, modified, statName, modPrefix = true }) => {
+    const StatValue = ({original, modified, statName, modPrefix = true}) => {
         const hasChange = original !== modified;
         const sourcesText = hasChange ? getUpgradeSourcesForStat(statName) : null;
 
@@ -293,19 +304,19 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                 placement="top"
                 overlay={
                     <Tooltip id={`tooltip-${statName}`}>
-                        Base: {original === 0 && ['courage', 'resilience'].includes(statName) ? '-' : original}<br />
+                        Base: {original === 0 && ['courage', 'resilience'].includes(statName) ? '-' : original}<br/>
                         Modified by: {sourcesText}
                     </Tooltip>
                 }
             >
-        <span className="text-primary">
-          {modified === 0 && ['courage', 'resilience'].includes(statName) ? '-' : modified}
-            {hasChange && (
-                <small className="ms-1">
-                    <i className="bi bi-info-circle-fill"></i>
-                </small>
-            )}
-        </span>
+                <span className="text-primary">
+                    {modified === 0 && ['courage', 'resilience'].includes(statName) ? '-' : modified}
+                    {hasChange && (
+                        <small className="ms-1">
+                            <i className="bi bi-info-circle-fill"></i>
+                        </small>
+                    )}
+                </span>
             </OverlayTrigger>
         );
     };
@@ -322,7 +333,7 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                 </Button>
             </div>
 
-            <div className="position-relative" style={{ perspective: '1000px' }}>
+            <div className="position-relative" style={{perspective: '1000px'}}>
                 <div
                     className="unit-card"
                     style={{
@@ -343,9 +354,8 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                     >
                         <Card
                             className={`unit-card-front faction-${unit.faction}-border`}
-                            style={{ overflow: 'hidden' }}
+                            style={{overflow: 'hidden'}}
                         >
-                            {/* Card Background Image */}
                             <div
                                 className="card-background"
                                 style={{
@@ -362,7 +372,8 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                                 }}
                             />
 
-                            <Card.Header className={`faction-${unit.faction} d-flex justify-content-between align-items-center`}>
+                            <Card.Header
+                                className={`faction-${unit.faction} d-flex justify-content-between align-items-center`}>
                                 <h5 className="mb-0">{unit.name}</h5>
                                 <div className="d-flex align-items-center">
                                     {totalPoints !== unit.points ? (
@@ -370,7 +381,7 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                                             placement="top"
                                             overlay={
                                                 <Tooltip id="tooltip-points">
-                                                    Base: {unit.points} pts<br />
+                                                    Base: {unit.points} pts<br/>
                                                     Upgrades: {totalPoints - unit.points} pts
                                                 </Tooltip>
                                             }
@@ -398,7 +409,7 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                                             justifyContent: 'center',
                                             alignItems: 'center',
                                             backgroundColor: 'rgba(255,255,255,0.9)',
-                                            border: `2px solid ${Factions.getColor(unit.faction)}`
+                                            border: `2px solid ${factionColor}`
                                         }}
                                     >
                                         <img
@@ -414,79 +425,124 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                                 </div>
                             </Card.Header>
 
-                            <Card.Body className="position-relative" style={{ zIndex: 1 }}>
+                            <Card.Body className="position-relative" style={{zIndex: 1}}>
                                 <Row>
                                     <Col>
                                         <div className="mb-3">
                                             <strong>{getTypeDisplayName(unit.type)}</strong>
-                                            {unit.isVehicle && <span className="ms-2 badge bg-info">Vehicle</span>}
+                                            {isLegion && unit.isVehicle &&
+                                                <span className="ms-2 badge bg-info">Vehicle</span>}
                                         </div>
 
                                         <div className="mb-3">
-                                            <div><strong>Faction:</strong> {Factions.getDisplayName(unit.faction)}</div>
-                                            <div>
-                                                <strong>Stats:</strong>{' '}
-                                                <StatValue original={unit.wounds || 1} modified={modifiedStats.wounds} statName="wounds" />W /{' '}
-                                                {unit.isVehicle ? (
-                                                    <><StatValue original={unit.resilience || 0} modified={modifiedStats.resilience} statName="resilience" />R</>
-                                                ) : (
-                                                    <><StatValue original={unit.courage || 1} modified={modifiedStats.courage} statName="courage" />C</>
-                                                )} /{' '}
-                                                <StatValue original={unit.speed || 2} modified={modifiedStats.speed} statName="speed" />S /{' '}
-                                                <span className={DefenseDice.getColorClass(unit.defense)}>
-                          {unit.defense === 'white' ? 'W' : 'R'}
-                        </span> Defense
+                                            <div><strong>Faction:</strong> {FactionEnum.getDisplayName(unit.faction)}
                                             </div>
-                                            <div>
-                                                <strong>Models:</strong>{' '}
-                                                <StatValue
-                                                    original={unit.minModelCount || 1}
-                                                    modified={modifiedStats.modelCount}
-                                                    statName="modelCount"
-                                                />
-                                            </div>
-                                            <div>
-                                                <strong>Surge:</strong>{' '}
-                                                {(unit.surgeAttack || modifiedStats.surgeAttack) ? (
-                                                    <span className="text-success">
-                            Attack{' '}
-                                                        {!unit.surgeAttack && (
-                                                            <OverlayTrigger
-                                                                placement="top"
-                                                                overlay={
-                                                                    <Tooltip id="tooltip-surge-attack">
-                                                                        From: {getUpgradeSourcesForStat('surgeAttack')}
-                                                                    </Tooltip>
-                                                                }
-                                                            >
-                                                                <small><i className="bi bi-info-circle-fill"></i></small>
-                                                            </OverlayTrigger>
+
+                                            {isLegion && (
+                                                <>
+                                                    <div>
+                                                        <strong>Stats:</strong>{' '}
+                                                        <StatValue original={unit.wounds || 1}
+                                                                   modified={modifiedStats.wounds} statName="wounds"/>W
+                                                        /{' '}
+                                                        {unit.isVehicle ? (
+                                                            <><StatValue original={unit.resilience || 0}
+                                                                         modified={modifiedStats.resilience}
+                                                                         statName="resilience"/>R</>
+                                                        ) : (
+                                                            <><StatValue original={unit.courage || 1}
+                                                                         modified={modifiedStats.courage}
+                                                                         statName="courage"/>C</>
+                                                        )} /{' '}
+                                                        <StatValue original={unit.speed || 2}
+                                                                   modified={modifiedStats.speed} statName="speed"/>S
+                                                        /{' '}
+                                                        <span className={DefenseDice.getColorClass(unit.defense)}>
+                                                            {unit.defense === 'white' ? 'W' : 'R'}
+                                                        </span> Defense
+                                                    </div>
+                                                    <div>
+                                                        <strong>Models:</strong>{' '}
+                                                        <StatValue
+                                                            original={unit.minModelCount || 1}
+                                                            modified={modifiedStats.modelCount}
+                                                            statName="modelCount"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <strong>Surge:</strong>{' '}
+                                                        {(unit.surgeAttack || modifiedStats.surgeAttack) ? (
+                                                            <span className="text-success">
+                                                                Attack{' '}
+                                                                {!unit.surgeAttack && (
+                                                                    <OverlayTrigger
+                                                                        placement="top"
+                                                                        overlay={<Tooltip
+                                                                            id="tooltip-surge-attack">From: {getUpgradeSourcesForStat('surgeAttack')}</Tooltip>}
+                                                                    >
+                                                                        <small><i
+                                                                            className="bi bi-info-circle-fill"></i></small>
+                                                                    </OverlayTrigger>
+                                                                )}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-muted">No Attack</span>
                                                         )}
-                          </span>
-                                                ) : (
-                                                    <span className="text-muted">No Attack</span>
-                                                )}
-                                                {' | '}
-                                                {(unit.surgeDefense || modifiedStats.surgeDefense) ? (
-                                                    <span className="text-success">
-                            Defense{' '}
-                                                        {!unit.surgeDefense && (
-                                                            <OverlayTrigger
-                                                                placement="top"
-                                                                overlay={
-                                                                    <Tooltip id="tooltip-surge-defense">
-                                                                        From: {getUpgradeSourcesForStat('surgeDefense')}
-                                                                    </Tooltip>
-                                                                }
-                                                            >
-                                                                <small><i className="bi bi-info-circle-fill"></i></small>
-                                                            </OverlayTrigger>
+                                                        {' | '}
+                                                        {(unit.surgeDefense || modifiedStats.surgeDefense) ? (
+                                                            <span className="text-success">
+                                                                Defense{' '}
+                                                                {!unit.surgeDefense && (
+                                                                    <OverlayTrigger
+                                                                        placement="top"
+                                                                        overlay={<Tooltip
+                                                                            id="tooltip-surge-defense">From: {getUpgradeSourcesForStat('surgeDefense')}</Tooltip>}
+                                                                    >
+                                                                        <small><i
+                                                                            className="bi bi-info-circle-fill"></i></small>
+                                                                    </OverlayTrigger>
+                                                                )}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-muted">No Defense</span>
                                                         )}
-                          </span>
-                                                ) : (
-                                                    <span className="text-muted">No Defense</span>
-                                                )}
-                                            </div>
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            {isAoS && (
+                                                <>
+                                                    <div>
+                                                        <strong>Stats:</strong>{' '}
+                                                        <StatValue original={unit.move || 5}
+                                                                   modified={modifiedStats.move} statName="move"/>" Move
+                                                        /{' '}
+                                                        <StatValue original={unit.health || 1}
+                                                                   modified={modifiedStats.health}
+                                                                   statName="health"/> Health /{' '}
+                                                        <StatValue original={unit.save || 4}
+                                                                   modified={modifiedStats.save} statName="save"/>+ Save
+                                                        /{' '}
+                                                        <StatValue original={unit.control || 1}
+                                                                   modified={modifiedStats.control}
+                                                                   statName="control"/> Control
+                                                        {unit.ward && (
+                                                            <div><strong>Ward:</strong> {unit.ward}+</div>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <strong>Models:</strong>{' '}
+                                                        <StatValue original={unit.minModelCount || 1}
+                                                                   modified={modifiedStats.modelCount}
+                                                                   statName="modelCount"/>
+                                                        {unit.reinforceable &&
+                                                            <Badge bg="info" className="ms-2">Reinforceable</Badge>}
+                                                    </div>
+                                                    {unit.baseSize && (
+                                                        <div><strong>Base Size:</strong> {unit.baseSize}</div>
+                                                    )}
+                                                </>
+                                            )}
                                         </div>
 
                                         {allKeywords.length > 0 && (
@@ -502,21 +558,20 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                                                                 key={index}
                                                                 className={`badge ${isCustom ? 'bg-info' : (isFromUpgrade ? 'bg-success' : 'bg-secondary')} me-1 mb-1`}
                                                             >
-                                {getKeywordDisplayName(keyword)}
-                                                                {isCustom && <span className="ms-1" title="Custom Keyword">★</span>}
-                                                                {isFromUpgrade && <span className="ms-1" title="From Upgrade">+</span>}
-                              </span>
+                                                                {getKeywordDisplayName(keyword)}
+                                                                {isCustom && <span className="ms-1"
+                                                                                   title="Custom Keyword">★</span>}
+                                                                {isFromUpgrade && <span className="ms-1"
+                                                                                        title="From Upgrade">+</span>}
+                                                            </span>
                                                         );
 
                                                         return isFromUpgrade ? (
                                                             <OverlayTrigger
                                                                 key={index}
                                                                 placement="top"
-                                                                overlay={
-                                                                    <Tooltip id={`tooltip-kw-${index}`}>
-                                                                        Added by upgrade
-                                                                    </Tooltip>
-                                                                }
+                                                                overlay={<Tooltip id={`tooltip-kw-${index}`}>Added by
+                                                                    upgrade</Tooltip>}
                                                             >
                                                                 {keywordElement}
                                                             </OverlayTrigger>
@@ -537,33 +592,31 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                                                     <div className="d-flex justify-content-between">
                                                         <span className="fw-bold">{weapon.name}</span>
                                                         {weapon.source !== 'Base Unit' && (
-                                                            <small className="text-success">
-                                                                {weapon.source}
-                                                            </small>
+                                                            <small className="text-success">{weapon.source}</small>
                                                         )}
                                                     </div>
                                                     <div className="small">
-                            <span>
-                              {WeaponRanges.getDisplayName ?
-                                  WeaponRanges.getDisplayName(weapon.range) :
-                                  weapon.range
-                              }
-                            </span>
-                                                        <span className="ms-2">
-                                                            {weapon.dice?.[AttackDice.RED] > 0 &&
-                                                                <span className="text-danger">{weapon.dice[AttackDice.RED]}R </span>
-                                                            }
-                                                            {weapon.dice?.[AttackDice.BLACK] > 0 &&
-                                                                <span>{weapon.dice[AttackDice.BLACK]}B </span>
-                                                            }
-                                                            {weapon.dice?.[AttackDice.WHITE] > 0 &&
-                                                                <span className="text-muted">{weapon.dice[AttackDice.WHITE]}W</span>
-                                                            }
+                                                        <span>
+                                                            {WeaponRanges.getDisplayName ? WeaponRanges.getDisplayName(weapon.range) : weapon.range}
                                                         </span>
+                                                        {isLegion && (
+                                                            <span className="ms-2">
+                                                                {weapon.dice?.[AttackDice.RED] > 0 && <span
+                                                                    className="text-danger">{weapon.dice[AttackDice.RED]}R </span>}
+                                                                {weapon.dice?.[AttackDice.BLACK] > 0 &&
+                                                                    <span>{weapon.dice[AttackDice.BLACK]}B </span>}
+                                                                {weapon.dice?.[AttackDice.WHITE] > 0 && <span
+                                                                    className="text-muted">{weapon.dice[AttackDice.WHITE]}W</span>}
+                                                            </span>
+                                                        )}
+                                                        {isAoS && weapon.attacks && (
+                                                            <span className="ms-2">Attacks: {weapon.attacks}</span>
+                                                        )}
                                                     </div>
                                                     {weapon.keywords?.length > 0 && (
                                                         <div className="small">
-                                                            <WeaponKeywordHelper keywords={weapon.keywords} variant="badge" />
+                                                            <WeaponKeywordHelper keywords={weapon.keywords}
+                                                                                 variant="badge"/>
                                                         </div>
                                                     )}
                                                 </li>
@@ -588,9 +641,8 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                     >
                         <Card
                             className={`unit-card-back faction-${unit.faction}-border h-100`}
-                            style={{ overflow: 'hidden' }}
+                            style={{overflow: 'hidden'}}
                         >
-                            {/* Card Background Image */}
                             <div
                                 className="card-background"
                                 style={{
@@ -615,7 +667,7 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                                             placement="top"
                                             overlay={
                                                 <Tooltip id="tooltip-points-back">
-                                                    Base: {unit.points} pts<br />
+                                                    Base: {unit.points} pts<br/>
                                                     Upgrades: {totalPoints - unit.points} pts
                                                 </Tooltip>
                                             }
@@ -643,7 +695,7 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                                             justifyContent: 'center',
                                             alignItems: 'center',
                                             backgroundColor: 'rgba(255,255,255,0.9)',
-                                            border: `2px solid ${Factions.getColor(unit.faction)}`
+                                            border: `2px solid ${factionColor}`
                                         }}
                                     >
                                         <img
@@ -659,7 +711,7 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                                 </div>
                             </Card.Header>
 
-                            <Card.Body className="position-relative" style={{ zIndex: 1 }}>
+                            <Card.Body className="position-relative" style={{zIndex: 1}}>
                                 {abilities.length > 0 && (
                                     <div className="mb-3">
                                         <strong>Abilities:</strong>
@@ -674,7 +726,7 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                                     </div>
                                 )}
 
-                                {unit.upgradeSlots && unit.upgradeSlots.length > 0 && upgrades.length > 0 && (
+                                {isLegion && unit.upgradeSlots && unit.upgradeSlots.length > 0 && upgrades.length > 0 && (
                                     <div className="mb-3">
                                         <strong>Equipped Upgrades:</strong>
                                         <ul className="list-group list-group-flush mt-1">
@@ -693,62 +745,71 @@ const UnitCard = ({ unit, customUnitTypes }) => {
 
                                                         return (
                                                             <div className="small mt-1">
-                                                            {/* Stat Modifiers */}
-                                                            {Object.entries(mods)
-                                                                .filter(([_, value]) => value !== undefined && value !== null && value !== 0)
-                                                                .map(([key, value], idx) => {
-                                                                let statName;
-                                                                switch (key) {
-                                                                    case 'wounds': statName = 'Wounds'; break;
-                                                                    case 'courage': statName = unit.isVehicle ? 'Resilience' : 'Courage'; break;
-                                                                    case 'resilience': statName = 'Resilience'; break;
-                                                                    case 'speed': statName = 'Speed'; break;
-                                                                    case 'surgeAttack': statName = 'Surge Attack'; break;
-                                                                    case 'surgeDefense': statName = 'Surge Defense'; break;
-                                                                    default: statName = key.charAt(0).toUpperCase() + key.slice(1);
-                                                                }
+                                                                {Object.entries(mods)
+                                                                    .filter(([_, value]) => value !== undefined && value !== null && value !== 0)
+                                                                    .map(([key, value], idx) => {
+                                                                        let statName;
+                                                                        switch (key) {
+                                                                            case 'wounds':
+                                                                                statName = 'Wounds';
+                                                                                break;
+                                                                            case 'courage':
+                                                                                statName = unit.isVehicle ? 'Resilience' : 'Courage';
+                                                                                break;
+                                                                            case 'resilience':
+                                                                                statName = 'Resilience';
+                                                                                break;
+                                                                            case 'speed':
+                                                                                statName = 'Speed';
+                                                                                break;
+                                                                            case 'surgeAttack':
+                                                                                statName = 'Surge Attack';
+                                                                                break;
+                                                                            case 'surgeDefense':
+                                                                                statName = 'Surge Defense';
+                                                                                break;
+                                                                            default:
+                                                                                statName = key.charAt(0).toUpperCase() + key.slice(1);
+                                                                        }
 
-                                                                // Boolean values like surges
-                                                                if (typeof value === 'boolean') {
-                                                                    return (
-                                                                    <Badge key={idx} bg="info" className="me-1 mb-1">
-                                                                        Adds {statName}
+                                                                        if (typeof value === 'boolean') {
+                                                                            return (
+                                                                                <Badge key={idx} bg="info"
+                                                                                       className="me-1 mb-1">
+                                                                                    Adds {statName}
+                                                                                </Badge>
+                                                                            );
+                                                                        }
+
+                                                                        const prefix = value > 0 ? '+' : '';
+                                                                        return (
+                                                                            <Badge key={idx} bg="info"
+                                                                                   className="me-1 mb-1">
+                                                                                {statName} {prefix}{value}
+                                                                            </Badge>
+                                                                        );
+                                                                    })}
+
+                                                                {typeof effects.modelCountChange === 'number' && effects.modelCountChange !== 0 && (
+                                                                    <Badge bg="info" className="me-1 mb-1">
+                                                                        Models {effects.modelCountChange > 0 ? '+' : ''}{effects.modelCountChange}
                                                                     </Badge>
-                                                                    );
-                                                                }
+                                                                )}
 
-                                                                // Numeric values
-                                                                const prefix = value > 0 ? '+' : '';
-                                                                return (
-                                                                    <Badge key={idx} bg="info" className="me-1 mb-1">
-                                                                    {statName} {prefix}{value}
+                                                                {Array.isArray(effects.addKeywords) && effects.addKeywords.length > 0 && (
+                                                                    <Badge bg="info" className="me-1 mb-1">
+                                                                        Adds {effects.addKeywords.length} Keyword{effects.addKeywords.length !== 1 ? 's' : ''}
                                                                     </Badge>
-                                                                );
-                                                                })}
+                                                                )}
 
-                                                            {/* Model Count Change */}
-                                                            {typeof effects.modelCountChange === 'number' && effects.modelCountChange !== 0 && (
-                                                                <Badge bg="info" className="me-1 mb-1">
-                                                                Models {effects.modelCountChange > 0 ? '+' : ''}{effects.modelCountChange}
-                                                                </Badge>
-                                                            )}
-
-                                                            {/* Added Keywords */}
-                                                            {Array.isArray(effects.addKeywords) && effects.addKeywords.length > 0 && (
-                                                                <Badge bg="info" className="me-1 mb-1">
-                                                                Adds {effects.addKeywords.length} Keyword{effects.addKeywords.length !== 1 ? 's' : ''}
-                                                                </Badge>
-                                                            )}
-
-                                                            {/* Added Weapons */}
-                                                            {Array.isArray(effects.addWeapons) && effects.addWeapons.length > 0 && (
-                                                                <Badge bg="info" className="me-1 mb-1">
-                                                                Adds {effects.addWeapons.length} Weapon{effects.addWeapons.length !== 1 ? 's' : ''}
-                                                                </Badge>
-                                                            )}
+                                                                {Array.isArray(effects.addWeapons) && effects.addWeapons.length > 0 && (
+                                                                    <Badge bg="info" className="me-1 mb-1">
+                                                                        Adds {effects.addWeapons.length} Weapon{effects.addWeapons.length !== 1 ? 's' : ''}
+                                                                    </Badge>
+                                                                )}
                                                             </div>
                                                         );
-                                                        })()}
+                                                    })()}
                                                 </li>
                                             ))}
                                         </ul>
@@ -758,7 +819,7 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                                 {unit.notes && (
                                     <div className="mb-3">
                                         <strong>Notes:</strong>
-                                        <div className="mt-1 small" style={{ whiteSpace: 'pre-line' }}>
+                                        <div className="mt-1 small" style={{whiteSpace: 'pre-line'}}>
                                             {unit.notes}
                                         </div>
                                     </div>
@@ -767,7 +828,7 @@ const UnitCard = ({ unit, customUnitTypes }) => {
                                 {unit.miniatures && (
                                     <div>
                                         <strong>Miniature Information:</strong>
-                                        <div className="mt-1 small" style={{ whiteSpace: 'pre-line' }}>
+                                        <div className="mt-1 small" style={{whiteSpace: 'pre-line'}}>
                                             {unit.miniatures}
                                         </div>
                                     </div>

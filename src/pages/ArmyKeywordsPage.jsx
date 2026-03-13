@@ -1,14 +1,14 @@
-﻿// src/pages/CommandCards.jsx
+﻿// src/pages/ArmyKeywordsPage.jsx - AOS ONLY
 import React, {useState} from 'react';
 import {Container, Row, Col, Card, Tab, Nav, Alert, Button} from 'react-bootstrap';
 import {useParams, useLocation, useNavigate, Link} from 'react-router-dom';
 import {useGameSystem} from '../contexts/GameSystemContext';
 import GameSystems from '../enums/GameSystems';
-import CommandCardList from '../components/command/CommandCardList';
-import CustomCommandCardForm from '../components/command/CustomCommandCardForm';
+import ArmyKeywordList from '../components/aos/ArmyKeywordList';
+import ArmyKeywordForm from '../components/aos/ArmyKeywordForm';
 
-const CommandCards = () => {
-    const {cardId} = useParams();
+const ArmyKeywordsPage = () => {
+    const {keywordId} = useParams();
     const location = useLocation();
     const navigate = useNavigate();
     const {currentSystem} = useGameSystem();
@@ -16,9 +16,9 @@ const CommandCards = () => {
 
     // Set active tab based on URL parameters
     React.useEffect(() => {
-        if (location.pathname.includes('/command-cards/create')) {
+        if (location.pathname.includes('/army-keywords/create')) {
             setActiveTab('create');
-        } else if (location.pathname.includes('/command-cards/edit/')) {
+        } else if (location.pathname.includes('/army-keywords/edit/')) {
             setActiveTab('edit');
         } else {
             setActiveTab('list');
@@ -29,26 +29,26 @@ const CommandCards = () => {
         setActiveTab(tab);
 
         if (tab === 'list') {
-            navigate('/command-cards');
+            navigate('/army-keywords');
         } else if (tab === 'create') {
-            navigate('/command-cards/create');
+            navigate('/army-keywords/create');
         }
     };
 
     // System check at page level
-    if (currentSystem !== GameSystems.LEGION) {
+    if (currentSystem !== GameSystems.AOS) {
         return (
             <Container>
                 <Row className="mb-4">
                     <Col>
                         <Alert variant="info">
-                            <h4 className="mb-3">Command Cards are only available for Star Wars: Legion</h4>
-                            <p>You are currently viewing {currentSystem}. Command cards are a Legion-specific game
+                            <h4 className="mb-3">Army Keywords are only available for Age of Sigmar</h4>
+                            <p>You are currently viewing {currentSystem}. Army keywords are an AOS-specific game
                                 mechanic.</p>
-                            {currentSystem === GameSystems.AOS && (
+                            {currentSystem === GameSystems.LEGION && (
                                 <div className="mt-3">
-                                    <Button as={Link} to="/army-keywords" variant="primary" className="me-2">
-                                        Manage Army Keywords & Battle Traits
+                                    <Button as={Link} to="/command-cards" variant="primary" className="me-2">
+                                        Manage Command Cards
                                     </Button>
                                     <Button as={Link} to="/" variant="secondary">
                                         Back to Home
@@ -66,8 +66,8 @@ const CommandCards = () => {
         <Container>
             <Row className="mb-4">
                 <Col>
-                    <h1>Command Cards</h1>
-                    <p>Create and manage your Star Wars Legion command cards for use in your armies.</p>
+                    <h1>Army Keywords</h1>
+                    <p>Create and manage your Age of Sigmar army keywords, battle traits, and enhancements.</p>
                 </Col>
             </Row>
 
@@ -78,14 +78,14 @@ const CommandCards = () => {
                             <Card.Header>
                                 <Nav variant="tabs">
                                     <Nav.Item>
-                                        <Nav.Link eventKey="list">All Command Cards</Nav.Link>
+                                        <Nav.Link eventKey="list">All Army Keywords</Nav.Link>
                                     </Nav.Item>
                                     <Nav.Item>
-                                        <Nav.Link eventKey="create">Create Command Card</Nav.Link>
+                                        <Nav.Link eventKey="create">Create Army Keyword</Nav.Link>
                                     </Nav.Item>
-                                    {location.pathname.includes('/command-cards/edit/') && (
+                                    {location.pathname.includes('/army-keywords/edit/') && (
                                         <Nav.Item>
-                                            <Nav.Link eventKey="edit">Edit Command Card</Nav.Link>
+                                            <Nav.Link eventKey="edit">Edit Army Keyword</Nav.Link>
                                         </Nav.Item>
                                     )}
                                 </Nav>
@@ -94,15 +94,15 @@ const CommandCards = () => {
                             <Card.Body>
                                 <Tab.Content>
                                     <Tab.Pane eventKey="list">
-                                        <CommandCardList/>
+                                        <ArmyKeywordList/>
                                     </Tab.Pane>
 
                                     <Tab.Pane eventKey="create">
-                                        <CustomCommandCardForm/>
+                                        <ArmyKeywordForm/>
                                     </Tab.Pane>
 
                                     <Tab.Pane eventKey="edit">
-                                        <CustomCommandCardForm/>
+                                        <ArmyKeywordForm/>
                                     </Tab.Pane>
                                 </Tab.Content>
                             </Card.Body>
@@ -114,4 +114,4 @@ const CommandCards = () => {
     );
 };
 
-export default CommandCards;
+export default ArmyKeywordsPage;

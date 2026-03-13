@@ -1,18 +1,19 @@
-﻿// src/components/command/CustomCommandCardForm.js
-import React, { useState, useEffect } from 'react';
-import { Form, Button, Card, Alert, Row, Col, Badge } from 'react-bootstrap';
-import { useNavigate, useParams } from 'react-router-dom';
-import { collection, doc, addDoc, updateDoc, getDoc, getDocs, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import { useAuth } from '../../contexts/AuthContext';
-import { useGameSystem } from '../../contexts/GameSystemContext';
+﻿// src/components/command/CustomCommandCardForm.jsx - LEGION ONLY
+import React, {useState, useEffect, useCallback} from 'react';
+import {Form, Button, Card, Alert, Row, Col, Badge} from 'react-bootstrap';
+import {useNavigate, useParams} from 'react-router-dom';
+import {collection, doc, addDoc, updateDoc, getDoc, getDocs, serverTimestamp, query, where} from 'firebase/firestore';
+import {db} from '../../firebase/config';
+import {useAuth} from '../../contexts/AuthContext';
+import {useGameSystem} from '../../contexts/GameSystemContext';
 import Factions from '../../enums/Factions';
+import GameSystems from '../../enums/GameSystems';
 
 const CustomCommandCardForm = () => {
-    const { cardId } = useParams();
+    const {cardId} = useParams();
     const navigate = useNavigate();
-    const { currentUser } = useAuth();
-    const { currentSystem } = useGameSystem();
+    const {currentUser} = useAuth();
+    const {currentSystem} = useGameSystem();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -29,14 +30,9 @@ const CustomCommandCardForm = () => {
         imageUrl: ''
     });
 
-    useEffect(() => {
-        if (cardId && currentUser) {
-            fetchCommandCard();
-        }
-        fetchCommanders();
-    }, [cardId, currentUser]);
+    const fetchCommandCard = useCallback(async () => {
+        if (!cardId || !currentUser || currentSystem !== GameSystems.LEGION) return;
 
-    const fetchCommandCard = async () => {
         try {
             setLoading(true);
             const cardRef = doc(db, 'users', currentUser.uid, 'commandCards', cardId);
@@ -44,6 +40,12 @@ const CustomCommandCardForm = () => {
 
             if (cardDoc.exists()) {
                 const data = cardDoc.data();
+
+                if (data.gameSystem && data.gameSystem !== GameSystems.LEGION) {
+                    setError(`This card belongs to ${data.gameSystem}. Switch to that system to edit it.`);
+                    return;
+                }
+
                 setFormData({
                     name: data.name || '',
                     pips: data.pips || 1,
@@ -63,25 +65,51 @@ const CustomCommandCardForm = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [cardId, currentUser, currentSystem]);
 
-    const fetchCommanders = async () => {
+    const fetchCommanders = useCallback(async () => {
+        if (!currentUser || currentSystem !== GameSystems.LEGION) return;
+
         try {
             const unitsRef = collection(db, 'users', currentUser.uid, 'units');
-            const unitsSnapshot = await getDocs(unitsRef);
+            const unitsQuery = query(
+                unitsRef,
+                where('gameSystem', '==', GameSystems.LEGION)
+            );
+            const unitsSnapshot = await getDocs(unitsQuery);
 
             const commanderUnits = unitsSnapshot.docs
-                .map(doc => ({ id: doc.id, ...doc.data() }))
+                .map(doc => ({id: doc.id, ...doc.data()}))
                 .filter(unit => unit.type === 'command' || unit.type === 'operative');
 
             setCommanders(commanderUnits);
         } catch (err) {
             console.error('Error fetching commanders:', err);
         }
-    };
+    }, [currentUser, currentSystem]);
+
+    useEffect(() => {
+        fetchCommandCard();
+        fetchCommanders();
+    }, [fetchCommandCard, fetchCommanders]);
+
+    // Redirect if not Legion
+    if (currentSystem !== GameSystems.LEGION) {
+        return (
+            <Alert variant="info">
+                <h4 className="mb-3">Command Cards are only available for Star Wars: Legion</h4>
+                <p>You are currently viewing {currentSystem}. Command cards are a Legion-specific game mechanic.</p>
+                <div className="mt-3">
+                    <Button onClick={() => navigate('/command-cards')} variant="secondary">
+                        Back
+                    </Button>
+                </div>
+            </Alert>
+        );
+    }
 
     const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
+        const {name, value, type, checked} = e.target;
         setFormData(prev => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value
@@ -114,7 +142,7 @@ const CustomCommandCardForm = () => {
                 commander: formData.commander,
                 isUniversal: formData.isUniversal,
                 imageUrl: formData.imageUrl.trim(),
-                gameSystem: currentSystem,
+                gameSystem: GameSystems.LEGION,
                 isSystem: false,
                 lastUpdated: serverTimestamp(),
                 userId: currentUser.uid
@@ -210,8 +238,10 @@ const CustomCommandCardForm = () => {
                                     onChange={handleChange}
                                 >
                                     <option value="">Universal (All Factions)</option>
-                                    <option value={Factions.REPUBLIC}>{Factions.getDisplayName(Factions.REPUBLIC)}</option>
-                                    <option value={Factions.SEPARATIST}>{Factions.getDisplayName(Factions.SEPARATIST)}</option>
+                                    <option
+                                        value={Factions.REPUBLIC}>{Factions.getDisplayName(Factions.REPUBLIC)}</option>
+                                    <option
+                                        value={Factions.SEPARATIST}>{Factions.getDisplayName(Factions.SEPARATIST)}</option>
                                     <option value={Factions.REBEL}>{Factions.getDisplayName(Factions.REBEL)}</option>
                                     <option value={Factions.EMPIRE}>{Factions.getDisplayName(Factions.EMPIRE)}</option>
                                 </Form.Select>
@@ -247,7 +277,8 @@ const CustomCommandCardForm = () => {
                             onChange={handleChange}
                         />
                         <Form.Text className="text-muted">
-                            If checked, this card can be used by any army of the selected faction. If unchecked, you'll need to assign it to specific armies.
+                            If checked, this card can be used by any army of the selected faction. If unchecked, you'll
+                            need to assign it to specific armies.
                         </Form.Text>
                     </Form.Group>
 
@@ -320,7 +351,7 @@ const CustomCommandCardForm = () => {
                                 </div>
 
                                 <p className="small text-muted">{formData.description || 'Card description will appear here'}</p>
-                                <hr />
+                                <hr/>
                                 <p>{formData.effectText || 'Card effect text will appear here'}</p>
                             </Card.Body>
                         </Card>

@@ -1,10 +1,10 @@
 // src/components/units/ArmyDetail.js
-import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Badge, Button, Alert, Table, ListGroup, Accordion } from 'react-bootstrap';
-import { useNavigate, Link } from 'react-router-dom';
-import { doc, getDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import { useAuth } from '../../contexts/AuthContext';
+import React, {useState, useEffect} from 'react';
+import {Card, Row, Col, Badge, Button, Alert, Table, ListGroup, Accordion} from 'react-bootstrap';
+import {useNavigate, Link} from 'react-router-dom';
+import {doc, getDoc, deleteDoc, collection, getDocs} from 'firebase/firestore';
+import {db} from '../../firebase/config';
+import {useAuth} from '../../contexts/AuthContext';
 import UnitTypes from '../../enums/UnitTypes';
 import Factions from '../../enums/Factions';
 import DefenseDice from '../../enums/DefenseDice';
@@ -19,8 +19,12 @@ import ExportUtils from '../../utils/ExportUtils';
 import CommandCardValidator from '../../utils/CommandCardValidator';
 import KeywordUtils from '../../utils/KeywordUtils';
 import ArmyPointsCalculator from '../../utils/ArmyPointsCalculator';
+import {useGameSystem} from '../../contexts/GameSystemContext';
+import AoSFactions from '../../enums/aos/AoSFactions';
+import AoSUnitTypes from '../../enums/aos/AoSUnitTypes';
+import GameSystems from '../../enums/GameSystems';
 
-const ArmyDetail = ({ armyId }) => {
+const ArmyDetail = ({armyId}) => {
     const [army, setArmy] = useState(null);
     const [unitDetails, setUnitDetails] = useState([]);
     const [upgrades, setUpgrades] = useState([]);
@@ -33,18 +37,19 @@ const ArmyDetail = ({ armyId }) => {
     const [error, setError] = useState('');
     const [confirmDelete, setConfirmDelete] = useState(false);
 
-    const { currentUser } = useAuth();
+    const {currentUser} = useAuth();
+    const {currentSystem} = useGameSystem();
     const navigate = useNavigate();
+
+    const FactionEnum = currentSystem === GameSystems.LEGION ? Factions : AoSFactions;
+    const TypeEnum = currentSystem === GameSystems.LEGION ? UnitTypes : AoSUnitTypes;
 
     useEffect(() => {
         const fetchArmy = async () => {
             try {
                 setLoading(true);
 
-                // Get reference to the army document
                 const armyRef = doc(db, 'users', currentUser.uid, 'armies', armyId);
-
-                // Get the army data
                 const armyDoc = await getDoc(armyRef);
 
                 if (armyDoc.exists()) {
@@ -55,11 +60,9 @@ const ArmyDetail = ({ armyId }) => {
 
                     setArmy(armyData);
 
-                    // Fetch unit details
                     const unitIds = armyData.units || [];
                     const units = [];
 
-                    // Fetch custom keywords
                     const keywordsRef = collection(db, 'users', currentUser.uid, 'customKeywords');
                     const keywordsSnapshot = await getDocs(keywordsRef);
                     const keywordsList = keywordsSnapshot.docs.map(doc => ({
@@ -68,7 +71,6 @@ const ArmyDetail = ({ armyId }) => {
                     }));
                     setCustomKeywords(keywordsList);
 
-                    // Fetch custom unit types
                     const typesRef = collection(db, 'users', currentUser.uid, 'customUnitTypes');
                     const typesSnapshot = await getDocs(typesRef);
                     const typesList = typesSnapshot.docs.map(doc => ({
@@ -77,7 +79,6 @@ const ArmyDetail = ({ armyId }) => {
                     }));
                     setCustomUnitTypes(typesList);
 
-                    // Fetch all upgrades
                     const upgradesRef = collection(db, 'users', currentUser.uid, 'upgradeCards');
                     const upgradesSnapshot = await getDocs(upgradesRef);
                     const upgradesList = upgradesSnapshot.docs.map(doc => ({
@@ -86,7 +87,6 @@ const ArmyDetail = ({ armyId }) => {
                     }));
                     setUpgrades(upgradesList);
 
-                    // Fetch all abilities
                     const abilitiesRef = collection(db, 'users', currentUser.uid, 'abilities');
                     const abilitiesSnapshot = await getDocs(abilitiesRef);
                     const abilitiesList = abilitiesSnapshot.docs.map(doc => ({
@@ -95,15 +95,12 @@ const ArmyDetail = ({ armyId }) => {
                     }));
                     setAbilities(abilitiesList);
 
-                    // Fetch command cards
-                    if (armyData.commandCards && armyData.commandCards.length > 0) {
+                    if (currentSystem === GameSystems.LEGION && armyData.commandCards?.length > 0) {
                         const cardDetails = [];
                         const customCardsRef = collection(db, 'users', currentUser.uid, 'commandCards');
                         const customCardsSnapshot = await getDocs(customCardsRef);
 
-                        // Process each card ID
                         for (const cardId of armyData.commandCards) {
-                            // For system cards, create detail object
                             if (CommandCards.getAllSystemCards().includes(cardId)) {
                                 cardDetails.push({
                                     id: cardId,
@@ -114,9 +111,7 @@ const ArmyDetail = ({ armyId }) => {
                                     description: CommandCards.getDescription(cardId),
                                     isSystem: true
                                 });
-                            }
-                            // For custom cards, find in the snapshot
-                            else {
+                            } else {
                                 const cardDoc = customCardsSnapshot.docs.find(doc => doc.id === cardId);
                                 if (cardDoc) {
                                     cardDetails.push({
@@ -130,10 +125,8 @@ const ArmyDetail = ({ armyId }) => {
 
                         setCommandCards(cardDetails);
 
-                        // Validate command cards
                         const commanders = [];
 
-                        // Find commanders in the army
                         for (const unitId of unitIds) {
                             const unitRef = doc(db, 'users', currentUser.uid, 'units', unitId);
                             const unitDoc = await getDoc(unitRef);
@@ -159,7 +152,6 @@ const ArmyDetail = ({ armyId }) => {
 
                         setCommandCardValidation(validation);
                     } else {
-                        // Fetch unit details without validating command cards
                         for (const unitId of unitIds) {
                             const unitRef = doc(db, 'users', currentUser.uid, 'units', unitId);
                             const unitDoc = await getDoc(unitRef);
@@ -173,25 +165,33 @@ const ArmyDetail = ({ armyId }) => {
                         }
                     }
 
-                    // Sort units by type
                     units.sort((a, b) => {
-                        // Order: Command, Corps, Special Forces, Support, Heavy, Operative, Auxiliary
-                        const typeOrder = {
-                            [UnitTypes.COMMAND]: 1,
-                            [UnitTypes.CORPS]: 2,
-                            [UnitTypes.SPECIAL_FORCES]: 3,
-                            [UnitTypes.SUPPORT]: 4,
-                            [UnitTypes.HEAVY]: 5,
-                            [UnitTypes.OPERATIVE]: 6,
-                            [UnitTypes.AUXILIARY]: 7
-                        };
+                        const typeOrder = {};
 
-                        // Add custom unit types to the ordering
+                        if (currentSystem === GameSystems.LEGION) {
+                            Object.assign(typeOrder, {
+                                [UnitTypes.COMMAND]: 1,
+                                [UnitTypes.CORPS]: 2,
+                                [UnitTypes.SPECIAL_FORCES]: 3,
+                                [UnitTypes.SUPPORT]: 4,
+                                [UnitTypes.HEAVY]: 5,
+                                [UnitTypes.OPERATIVE]: 6,
+                                [UnitTypes.AUXILIARY]: 7
+                            });
+                        } else {
+                            Object.assign(typeOrder, {
+                                [AoSUnitTypes.HERO]: 1,
+                                [AoSUnitTypes.BATTLELINE]: 2,
+                                [AoSUnitTypes.OTHER]: 3,
+                                [AoSUnitTypes.BEHEMOTH]: 4,
+                                [AoSUnitTypes.ARTILLERY]: 5
+                            });
+                        }
+
                         typesList.forEach(ct => {
                             typeOrder[ct.name] = ct.sortOrder || 100;
                         });
 
-                        // If type isn't found in typeOrder, give it a high number
                         const aOrder = typeOrder[a.type] !== undefined ? typeOrder[a.type] : 999;
                         const bOrder = typeOrder[b.type] !== undefined ? typeOrder[b.type] : 999;
 
@@ -213,7 +213,7 @@ const ArmyDetail = ({ armyId }) => {
         if (currentUser && armyId) {
             fetchArmy();
         }
-    }, [currentUser, armyId]);
+    }, [currentUser, armyId, currentSystem]);
 
     const handleEdit = () => {
         navigate(`/armies/edit/${armyId}`);
@@ -227,11 +227,7 @@ const ArmyDetail = ({ armyId }) => {
 
         try {
             setLoading(true);
-
-            // Delete the army document
             await deleteDoc(doc(db, 'users', currentUser.uid, 'armies', armyId));
-
-            // Navigate back to the armies list
             navigate('/armies');
         } catch (err) {
             console.error('Error deleting army:', err);
@@ -248,17 +244,14 @@ const ArmyDetail = ({ armyId }) => {
         navigate(`/battles/create?armyId=${armyId}`);
     };
 
-    // Calculate the total points for this army including upgrades
     const calculateTotalPoints = () => {
         if (!unitDetails || unitDetails.length === 0) return 0;
         return ArmyPointsCalculator.calculateArmyPoints(unitDetails, upgrades);
     };
 
-    // Handle exporting the army
     const handleExportArmy = () => {
         if (!army) return;
 
-        // Use ExportUtils to generate text content
         const armyText = ExportUtils.exportArmy(
             army,
             unitDetails,
@@ -269,38 +262,31 @@ const ArmyDetail = ({ armyId }) => {
             commandCards
         );
 
-        // Download the file
         ExportUtils.downloadTextFile(armyText, `${army.name.replace(/\s+/g, '_')}_army.txt`);
     };
 
     const getTypeDisplayName = (type) => {
-        // First check if it's a system unit type
-        if (Object.values(UnitTypes).includes(type)) {
-            return UnitTypes.getDisplayName(type);
+        if (Object.values(TypeEnum).includes(type)) {
+            return TypeEnum.getDisplayName(type);
         }
 
-        // Then check if it's a custom unit type
         const customType = customUnitTypes.find(t => t.name === type);
         if (customType) {
             return customType.displayName || customType.name;
         }
 
-        // If we can't find it, just return the type as-is
         return type;
     };
 
-    // Check if a type is a custom unit type
     const isCustomUnitType = (type) => {
         return customUnitTypes.some(t => t.name === type);
     };
 
-    // Get the icon for a custom unit type, or return empty string if none
     const getCustomTypeIcon = (type) => {
         const customType = customUnitTypes.find(t => t.name === type);
         return customType?.icon || '';
     };
 
-    // Handle custom keywords
     const getKeywordDisplay = (keyword) => {
         if (keyword.startsWith('custom:')) {
             const customId = keyword.replace('custom:', '');
@@ -315,13 +301,11 @@ const ArmyDetail = ({ armyId }) => {
         return Keywords.getDisplayName(keyword);
     };
 
-    // Get all keywords including those from upgrades
     const getAllKeywords = (unit) => {
         if (!unit) return [];
         return KeywordUtils.getAllKeywords(unit, upgrades);
     };
 
-    // Get all equipped upgrades for a unit
     const getEquippedUpgrades = (unit) => {
         if (!unit || !unit.upgradeSlots) return [];
 
@@ -343,7 +327,6 @@ const ArmyDetail = ({ armyId }) => {
         return equippedUpgrades;
     };
 
-    // Combine base weapons with upgrade weapons
     const getAllWeapons = (unit) => {
         if (!unit) return [];
 
@@ -364,32 +347,39 @@ const ArmyDetail = ({ armyId }) => {
             });
         });
 
-        return [...baseWeapons.map(w => ({ ...w, source: 'Base Unit' })), ...upgradeWeapons];
+        return [...baseWeapons.map(w => ({...w, source: 'Base Unit'})), ...upgradeWeapons];
     };
 
-    // Get all unit types used in this army (including custom types)
     const getUnitTypes = () => {
-        // Get unique unit types from unitDetails
         const types = [...new Set(unitDetails.map(unit => unit.type))];
 
-        // Sort by the same order used for unit sorting
         types.sort((a, b) => {
-            const typeOrder = {
-                [UnitTypes.COMMAND]: 1,
-                [UnitTypes.CORPS]: 2,
-                [UnitTypes.SPECIAL_FORCES]: 3,
-                [UnitTypes.SUPPORT]: 4,
-                [UnitTypes.HEAVY]: 5,
-                [UnitTypes.OPERATIVE]: 6,
-                [UnitTypes.AUXILIARY]: 7
-            };
+            const typeOrder = {};
 
-            // Add custom unit types to the ordering
+            if (currentSystem === GameSystems.LEGION) {
+                Object.assign(typeOrder, {
+                    [UnitTypes.COMMAND]: 1,
+                    [UnitTypes.CORPS]: 2,
+                    [UnitTypes.SPECIAL_FORCES]: 3,
+                    [UnitTypes.SUPPORT]: 4,
+                    [UnitTypes.HEAVY]: 5,
+                    [UnitTypes.OPERATIVE]: 6,
+                    [UnitTypes.AUXILIARY]: 7
+                });
+            } else {
+                Object.assign(typeOrder, {
+                    [AoSUnitTypes.HERO]: 1,
+                    [AoSUnitTypes.BATTLELINE]: 2,
+                    [AoSUnitTypes.OTHER]: 3,
+                    [AoSUnitTypes.BEHEMOTH]: 4,
+                    [AoSUnitTypes.ARTILLERY]: 5
+                });
+            }
+
             customUnitTypes.forEach(ct => {
                 typeOrder[ct.name] = ct.sortOrder || 100;
             });
 
-            // If type isn't found in typeOrder, give it a high number
             const aOrder = typeOrder[a] !== undefined ? typeOrder[a] : 999;
             const bOrder = typeOrder[b] !== undefined ? typeOrder[b] : 999;
 
@@ -403,8 +393,9 @@ const ArmyDetail = ({ armyId }) => {
         window.print();
     };
 
-    // Render command cards section
     const renderCommandCards = () => {
+        if (currentSystem !== GameSystems.LEGION) return null;
+
         if (!commandCards || commandCards.length === 0) {
             return (
                 <Alert variant="warning">
@@ -444,7 +435,6 @@ const ArmyDetail = ({ armyId }) => {
                     <Card.Body>
                         {commandCardValidation && (
                             <>
-                                {/* Command Card Validation Status */}
                                 {!commandCardValidation.valid && commandCardValidation.errors.length > 0 && (
                                     <Alert variant="danger" className="mb-3">
                                         <strong>Command Card Errors:</strong>
@@ -469,31 +459,33 @@ const ArmyDetail = ({ armyId }) => {
 
                                 {commandCardValidation.valid && commandCardValidation.warnings.length === 0 && (
                                     <Alert variant="success" className="mb-3">
-                                        <strong>Command Card Setup Complete</strong> - This army has a valid set of command cards.
+                                        <strong>Command Card Setup Complete</strong> - This army has a valid set of
+                                        command cards.
                                     </Alert>
                                 )}
 
-                                {/* Command Card Summary */}
                                 <div className="d-flex flex-wrap mb-3">
-                                    <Badge bg="primary" className="me-2 mb-2" style={{ fontSize: '0.85rem', padding: '0.4rem' }}>
+                                    <Badge bg="primary" className="me-2 mb-2"
+                                           style={{fontSize: '0.85rem', padding: '0.4rem'}}>
                                         1-Pip Cards: {commandCardValidation.counts.onePip}/2
                                     </Badge>
-                                    <Badge bg="primary" className="me-2 mb-2" style={{ fontSize: '0.85rem', padding: '0.4rem' }}>
+                                    <Badge bg="primary" className="me-2 mb-2"
+                                           style={{fontSize: '0.85rem', padding: '0.4rem'}}>
                                         2-Pip Cards: {commandCardValidation.counts.twoPip}/2
                                     </Badge>
-                                    <Badge bg="primary" className="me-2 mb-2" style={{ fontSize: '0.85rem', padding: '0.4rem' }}>
+                                    <Badge bg="primary" className="me-2 mb-2"
+                                           style={{fontSize: '0.85rem', padding: '0.4rem'}}>
                                         3-Pip Cards: {commandCardValidation.counts.threePip}/2
                                     </Badge>
-                                    <Badge bg="primary" className="me-2 mb-2" style={{ fontSize: '0.85rem', padding: '0.4rem' }}>
+                                    <Badge bg="primary" className="me-2 mb-2"
+                                           style={{fontSize: '0.85rem', padding: '0.4rem'}}>
                                         4-Pip Card: {commandCardValidation.counts.fourPip}/1
                                     </Badge>
                                 </div>
                             </>
                         )}
 
-                        {/* Command Card List */}
                         <ListGroup>
-                            {/* Group by pip count */}
                             {[1, 2, 3, 4].map(pips => {
                                 const pipCards = commandCards.filter(card => card.pips === pips);
                                 if (pipCards.length === 0) return null;
@@ -511,10 +503,12 @@ const ArmyDetail = ({ armyId }) => {
                                                         </div>
 
                                                         {card.commander && (
-                                                            <Badge bg="info" className="mt-2">Requires {card.commander}</Badge>
+                                                            <Badge bg="info"
+                                                                   className="mt-2">Requires {card.commander}</Badge>
                                                         )}
                                                     </div>
-                                                    <Badge bg={card.isSystem ? 'secondary' : 'success'} className="ms-2">
+                                                    <Badge bg={card.isSystem ? 'secondary' : 'success'}
+                                                           className="ms-2">
                                                         {card.isSystem ? 'System' : 'Custom'}
                                                     </Badge>
                                                 </div>
@@ -531,7 +525,7 @@ const ArmyDetail = ({ armyId }) => {
     };
 
     if (loading) {
-        return <LoadingSpinner text="Loading army details..." />;
+        return <LoadingSpinner text="Loading army details..."/>;
     }
 
     if (error) {
@@ -560,15 +554,14 @@ const ArmyDetail = ({ armyId }) => {
         );
     }
 
-    // Calculate counts of each unit type
     const unitTypeCounts = unitDetails.reduce((counts, unit) => {
         const type = unit.type;
         counts[type] = (counts[type] || 0) + 1;
         return counts;
     }, {});
 
-    // Get all unit types used in this army
     const armyUnitTypes = getUnitTypes();
+    const factionColor = FactionEnum.getColor ? FactionEnum.getColor(army.faction) : '#6c757d';
 
     return (
         <>
@@ -620,13 +613,13 @@ const ArmyDetail = ({ armyId }) => {
                             <Row>
                                 <Col md={6}>
                                     <p>
-                                        <strong>Faction:</strong><br />
-                                        {Factions.getDisplayName(army.faction)}
+                                        <strong>Faction:</strong><br/>
+                                        {FactionEnum.getDisplayName(army.faction)}
                                     </p>
                                 </Col>
                                 <Col md={6}>
                                     <p>
-                                        <strong>Total Points:</strong><br />
+                                        <strong>Total Points:</strong><br/>
                                         {calculateTotalPoints()} pts
                                         {calculateTotalPoints() !== army.totalPoints && (
                                             <span className="text-danger ms-2" title="Different from base value">
@@ -641,7 +634,7 @@ const ArmyDetail = ({ armyId }) => {
                                 <Row>
                                     <Col>
                                         <p>
-                                            <strong>Description:</strong><br />
+                                            <strong>Description:</strong><br/>
                                             {army.description}
                                         </p>
                                     </Col>
@@ -650,7 +643,7 @@ const ArmyDetail = ({ armyId }) => {
 
                             <Row>
                                 <Col>
-                                    <strong>Unit Composition:</strong><br />
+                                    <strong>Unit Composition:</strong><br/>
                                     <div className="mb-2">
                                         {Object.entries(unitTypeCounts).map(([type, count]) => (
                                             <Badge
@@ -738,12 +731,10 @@ const ArmyDetail = ({ armyId }) => {
                 </Col>
             </Row>
 
-            {/* Command Cards Section */}
             {renderCommandCards()}
 
             <h3>Unit Details</h3>
 
-            {/* Display units grouped by their types */}
             {armyUnitTypes.map(unitType => {
                 const unitsOfType = unitDetails.filter(unit => unit.type === unitType);
 
@@ -774,7 +765,8 @@ const ArmyDetail = ({ armyId }) => {
                                                     <span>
                                                         {ArmyPointsCalculator.calculateUnitPoints(unit, upgrades)} pts
                                                         {ArmyPointsCalculator.calculateUnitPoints(unit, upgrades) !== unit.points && (
-                                                            <span className="text-primary ms-1" title="Includes upgrade costs">
+                                                            <span className="text-primary ms-1"
+                                                                  title="Includes upgrade costs">
                                                                 ({unit.points})
                                                             </span>
                                                         )}
@@ -791,14 +783,13 @@ const ArmyDetail = ({ armyId }) => {
                                                     )}
                                                     {unit.speed || 2}S /
                                                     <span className={DefenseDice.getColorClass(unit.defense)}>
-                                                        {unit.defense === DefenseDice.WHITE ? 'W' : 'R'}
+                                                      {unit.defense === DefenseDice.WHITE ? 'W' : 'R'}
                                                     </span> Defense
                                                 </div>
 
-                                                {/* Keywords (including from upgrades) */}
                                                 {getAllKeywords(unit).length > 0 && (
                                                     <div className="small mb-2">
-                                                        <strong>Keywords:</strong><br />
+                                                        <strong>Keywords:</strong><br/>
                                                         <div className="mt-1">
                                                             {getAllKeywords(unit).map((keyword, index) => (
                                                                 <Badge
@@ -810,7 +801,8 @@ const ArmyDetail = ({ armyId }) => {
                                                                 >
                                                                     {getKeywordDisplay(keyword)}
                                                                     {!unit.keywords?.includes(keyword) && (
-                                                                        <span className="ms-1" title="From Upgrade">+</span>
+                                                                        <span className="ms-1"
+                                                                              title="From Upgrade">+</span>
                                                                     )}
                                                                 </Badge>
                                                             ))}
@@ -818,35 +810,42 @@ const ArmyDetail = ({ armyId }) => {
                                                     </div>
                                                 )}
 
-                                                {/* Weapons (including from upgrades) */}
                                                 {getAllWeapons(unit).length > 0 && (
                                                     <div className="small">
                                                         <strong>Weapons:</strong>
                                                         <Accordion className="mt-1">
                                                             <Accordion.Item eventKey="0">
                                                                 <Accordion.Header>
-                                                                    <span className="small">{getAllWeapons(unit).length} weapon{getAllWeapons(unit).length !== 1 ? 's' : ''}</span>
+                                                                    <span
+                                                                        className="small">{getAllWeapons(unit).length} weapon{getAllWeapons(unit).length !== 1 ? 's' : ''}</span>
                                                                 </Accordion.Header>
                                                                 <Accordion.Body className="p-0">
                                                                     <ListGroup variant="flush">
                                                                         {getAllWeapons(unit).map((weapon, index) => (
-                                                                            <ListGroup.Item key={`${unit.id}-weapon-${index}`} className="p-2">
-                                                                                <div className="d-flex justify-content-between">
+                                                                            <ListGroup.Item
+                                                                                key={`${unit.id}-weapon-${index}`}
+                                                                                className="p-2">
+                                                                                <div
+                                                                                    className="d-flex justify-content-between">
                                                                                     <strong>{weapon.name}</strong>
-                                                                                    <Badge bg={weapon.source === 'Base Unit' ? 'secondary' : 'info'} className="small">
+                                                                                    <Badge
+                                                                                        bg={weapon.source === 'Base Unit' ? 'secondary' : 'info'}
+                                                                                        className="small">
                                                                                         {weapon.source}
                                                                                     </Badge>
                                                                                 </div>
                                                                                 <div>
                                                                                     {WeaponRanges.getDisplayName ? WeaponRanges.getDisplayName(weapon.range) : weapon.range} |
                                                                                     {weapon.dice?.[AttackDice.RED] > 0 && (
-                                                                                        <span className="text-danger"> {weapon.dice[AttackDice.RED]}R</span>
+                                                                                        <span
+                                                                                            className="text-danger"> {weapon.dice[AttackDice.RED]}R</span>
                                                                                     )}
                                                                                     {weapon.dice?.[AttackDice.BLACK] > 0 && (
                                                                                         <span> {weapon.dice[AttackDice.BLACK]}B</span>
                                                                                     )}
                                                                                     {weapon.dice?.[AttackDice.WHITE] > 0 && (
-                                                                                        <span className="text-muted"> {weapon.dice[AttackDice.WHITE]}W</span>
+                                                                                        <span
+                                                                                            className="text-muted"> {weapon.dice[AttackDice.WHITE]}W</span>
                                                                                     )}
                                                                                 </div>
                                                                                 {weapon.keywords?.length > 0 && (
@@ -865,26 +864,30 @@ const ArmyDetail = ({ armyId }) => {
                                                     </div>
                                                 )}
 
-                                                {/* Equipped upgrades */}
                                                 {getEquippedUpgrades(unit).length > 0 && (
                                                     <div className="small mt-2">
                                                         <strong>Upgrades:</strong>
                                                         <Accordion className="mt-1">
                                                             <Accordion.Item eventKey="0">
                                                                 <Accordion.Header>
-                                                                    <span className="small">{getEquippedUpgrades(unit).length} upgrade{getEquippedUpgrades(unit).length !== 1 ? 's' : ''}</span>
+                                                                    <span
+                                                                        className="small">{getEquippedUpgrades(unit).length} upgrade{getEquippedUpgrades(unit).length !== 1 ? 's' : ''}</span>
                                                                 </Accordion.Header>
                                                                 <Accordion.Body className="p-0">
                                                                     <ListGroup variant="flush">
                                                                         {getEquippedUpgrades(unit).map((upgrade, index) => (
-                                                                            <ListGroup.Item key={`${unit.id}-upgrade-${index}`} className="p-2">
-                                                                                <div className="d-flex justify-content-between align-items-center">
+                                                                            <ListGroup.Item
+                                                                                key={`${unit.id}-upgrade-${index}`}
+                                                                                className="p-2">
+                                                                                <div
+                                                                                    className="d-flex justify-content-between align-items-center">
                                                                                     <strong>{upgrade.name}</strong>
                                                                                     <Badge bg="warning" text="dark">
                                                                                         {upgrade.pointsCost || 0} pts
                                                                                     </Badge>
                                                                                 </div>
-                                                                                <div className="text-muted">{upgrade.description}</div>
+                                                                                <div
+                                                                                    className="text-muted">{upgrade.description}</div>
                                                                             </ListGroup.Item>
                                                                         ))}
                                                                     </ListGroup>

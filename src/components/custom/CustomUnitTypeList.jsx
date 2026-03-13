@@ -35,15 +35,13 @@ const CustomUnitTypeList = () => {
             const typesRef = collection(db, 'users', currentUser.uid, 'customUnitTypes');
             const q = query(
                 typesRef,
-                where('gameSystem', '==', currentSystem),
-                orderBy('sortOrder', 'asc')
+                where('gameSystem', '==', currentSystem)
             );
             const querySnapshot = await getDocs(q);
 
-            const typesList = querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const typesList = querySnapshot.docs
+                .map(doc => ({id: doc.id, ...doc.data()}))
+                .sort((a, b) => (a.sortOrder || 100) - (b.sortOrder || 100));
 
             setUnitTypes(typesList);
         } catch (err) {

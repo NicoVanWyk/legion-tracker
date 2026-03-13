@@ -1,20 +1,21 @@
-﻿// src/components/command/ArmyCommandCards.js
-import React, { useState, useEffect } from 'react';
-import { Card, Button, Row, Col, Alert, ListGroup, Form, Badge } from 'react-bootstrap';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import { useAuth } from '../../contexts/AuthContext';
-import { useGameSystem } from '../../contexts/GameSystemContext';
+﻿// src/components/command/ArmyCommandCards.jsx - LEGION ONLY
+import React, {useState, useEffect} from 'react';
+import {Card, Button, Row, Col, Alert, ListGroup, Form, Badge} from 'react-bootstrap';
+import {useParams, useNavigate, Link} from 'react-router-dom';
+import {doc, getDoc, updateDoc, collection, query, where, getDocs} from 'firebase/firestore';
+import {db} from '../../firebase/config';
+import {useAuth} from '../../contexts/AuthContext';
+import {useGameSystem} from '../../contexts/GameSystemContext';
 import CommandCards from '../../enums/CommandCards';
 import Factions from '../../enums/Factions';
+import GameSystems from '../../enums/GameSystems';
 import LoadingSpinner from '../layout/LoadingSpinner';
 
 const ArmyCommandCards = () => {
-    const { armyId } = useParams();
+    const {armyId} = useParams();
     const navigate = useNavigate();
-    const { currentUser } = useAuth();
-    const { currentSystem } = useGameSystem();
+    const {currentUser} = useAuth();
+    const {currentSystem} = useGameSystem();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
@@ -44,7 +45,15 @@ const ArmyCommandCards = () => {
                     return;
                 }
 
-                const armyData = { id: armyDoc.id, ...armyDoc.data() };
+                const armyData = {id: armyDoc.id, ...armyDoc.data()};
+
+                // Check system compatibility - Legion only
+                if (armyData.gameSystem !== GameSystems.LEGION) {
+                    setError('Command cards are only available for Star Wars: Legion.');
+                    setLoading(false);
+                    return;
+                }
+
                 setArmy(armyData);
 
                 const commanderUnits = [];
@@ -77,12 +86,12 @@ const ArmyCommandCards = () => {
                 const customCardsRef = collection(db, 'users', currentUser.uid, 'commandCards');
                 const customCardsQuery = query(
                     customCardsRef,
-                    where('gameSystem', '==', currentSystem)
+                    where('gameSystem', '==', GameSystems.LEGION)
                 );
                 const customCardsSnapshot = await getDocs(customCardsQuery);
 
                 const customCardsList = customCardsSnapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() }))
+                    .map(doc => ({id: doc.id, ...doc.data()}))
                     .filter(card => {
                         return (
                             (!card.faction || card.faction === '' || card.faction === armyData.faction) &&
@@ -183,7 +192,7 @@ const ArmyCommandCards = () => {
     });
 
     if (loading) {
-        return <LoadingSpinner text="Loading army command cards..." />;
+        return <LoadingSpinner text="Loading army command cards..."/>;
     }
 
     if (!army) {
@@ -254,7 +263,8 @@ const ArmyCommandCards = () => {
                                         <Col md={4}>
                                             <div className="text-center">
                                                 <h5>3+ Pips</h5>
-                                                <Badge bg="secondary" className="mb-2">{getCardPipCount(3) + getCardPipCount(4)}/3</Badge>
+                                                <Badge bg="secondary"
+                                                       className="mb-2">{getCardPipCount(3) + getCardPipCount(4)}/3</Badge>
                                             </div>
                                         </Col>
                                     </Row>
@@ -281,13 +291,15 @@ const ArmyCommandCards = () => {
 
                                                         <div className="mt-1">
                                                             {card.faction ? (
-                                                                <Badge bg="primary" className="me-2">{Factions.getDisplayName(card.faction)}</Badge>
+                                                                <Badge bg="primary"
+                                                                       className="me-2">{Factions.getDisplayName(card.faction)}</Badge>
                                                             ) : (
                                                                 <Badge bg="secondary" className="me-2">Universal</Badge>
                                                             )}
 
                                                             {card.commander && (
-                                                                <Badge bg="info" className="me-2">{card.commander}</Badge>
+                                                                <Badge bg="info"
+                                                                       className="me-2">{card.commander}</Badge>
                                                             )}
 
                                                             {card.isSystem ? (
@@ -357,9 +369,11 @@ const ArmyCommandCards = () => {
                                                         <h6 className="mb-0">{card.name}</h6>
                                                         <div className="small">
                                                             {card.faction ? (
-                                                                <Badge bg="primary" size="sm" className="me-1">{Factions.getDisplayName(card.faction)}</Badge>
+                                                                <Badge bg="primary" size="sm"
+                                                                       className="me-1">{Factions.getDisplayName(card.faction)}</Badge>
                                                             ) : (
-                                                                <Badge bg="secondary" size="sm" className="me-1">Universal</Badge>
+                                                                <Badge bg="secondary" size="sm"
+                                                                       className="me-1">Universal</Badge>
                                                             )}
 
                                                             {card.isSystem ? (
@@ -370,7 +384,7 @@ const ArmyCommandCards = () => {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
+
                                                 <div>
                                                     {card.description && (
                                                         <p className="mt-1 mb-0 small">{card.description}</p>
@@ -409,7 +423,8 @@ const ArmyCommandCards = () => {
                         <li>Up to 2 cards with 1 pip</li>
                         <li>Up to 2 cards with 2 pips</li>
                         <li>Up to 3 cards with 3 or more pips</li>
-                        <li>Cards that require a specific commander can only be used if that commander is in your army</li>
+                        <li>Cards that require a specific commander can only be used if that commander is in your army
+                        </li>
                     </ul>
                 </Alert>
             </div>

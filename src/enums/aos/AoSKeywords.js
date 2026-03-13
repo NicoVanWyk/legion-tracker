@@ -9,7 +9,16 @@ const AoSKeywords = {
     STANDARD_BEARER: 'standard_bearer',
     MOUNT: 'mount',
     MONSTER: 'monster',
-    WAR_MACHINE: 'war_machine'
+    WAR_MACHINE: 'war_machine',
+    CAVALRY: 'cavalry',
+    INFANTRY: 'infantry',
+    DAEMON: 'daemon',
+    WARMASTER: 'warmaster',
+    HERO: 'hero',
+    REINFORCEMENTS: 'reinforcements',
+    UNLIMITED: 'unlimited',
+    MANIFESTATION: 'manifestation',
+    UNIQUE: 'unique'
 };
 
 AoSKeywords.getDisplayName = (keyword) => {
@@ -23,7 +32,16 @@ AoSKeywords.getDisplayName = (keyword) => {
         [AoSKeywords.STANDARD_BEARER]: 'Standard Bearer',
         [AoSKeywords.MOUNT]: 'Mount',
         [AoSKeywords.MONSTER]: 'Monster',
-        [AoSKeywords.WAR_MACHINE]: 'War Machine'
+        [AoSKeywords.WAR_MACHINE]: 'War Machine',
+        [AoSKeywords.CAVALRY]: 'Cavalry',
+        [AoSKeywords.INFANTRY]: 'Infantry',
+        [AoSKeywords.DAEMON]: 'Daemon',
+        [AoSKeywords.WARMASTER]: 'Warmaster',
+        [AoSKeywords.HERO]: 'Hero',
+        [AoSKeywords.REINFORCEMENTS]: 'Reinforcements',
+        [AoSKeywords.UNLIMITED]: 'Unlimited',
+        [AoSKeywords.MANIFESTATION]: 'Manifestation',
+        [AoSKeywords.UNIQUE]: 'Unique'
     };
     return names[keyword] || keyword;
 };

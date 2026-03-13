@@ -1,10 +1,10 @@
 ﻿// src/components/upgrades/UpgradeCardForm.jsx
-import React, { useState, useEffect, useMemo } from 'react';
-import { Form, Button, Card, Alert, Row, Col, ListGroup, Badge, Accordion, Modal } from 'react-bootstrap';
-import { useNavigate, useParams } from 'react-router-dom';
-import { collection, doc, addDoc, updateDoc, getDoc, getDocs, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import { useAuth } from '../../contexts/AuthContext';
+import React, {useState, useEffect, useMemo} from 'react';
+import {Form, Button, Card, Alert, Row, Col, ListGroup, Badge, Accordion, Modal} from 'react-bootstrap';
+import {useNavigate, useParams} from 'react-router-dom';
+import {collection, doc, addDoc, updateDoc, getDoc, getDocs, serverTimestamp} from 'firebase/firestore';
+import {db} from '../../firebase/config';
+import {useAuth} from '../../contexts/AuthContext';
 import UpgradeCardTypes from '../../enums/UpgradeCardTypes';
 import ReminderTypes from '../../enums/ReminderTypes';
 import WeaponRanges from '../../enums/WeaponRanges';
@@ -12,29 +12,29 @@ import AttackDice from '../../enums/AttackDice';
 import WeaponKeywords from '../../enums/WeaponKeywords';
 import Keywords from '../../enums/Keywords';
 import KeywordSelector from '../units/KeywordSelector';
-import { v4 as uuidv4 } from 'uuid';
-import { useGameSystem } from '../../contexts/GameSystemContext';
+import {v4 as uuidv4} from 'uuid';
+import {useGameSystem} from '../../contexts/GameSystemContext';
+import GameSystems from '../../enums/GameSystems';
 
 // Child modal component
-const WeaponEditorModal = ({ show, onClose, onSave, weapon, setWeapon }) => {
+const WeaponEditorModal = ({show, onClose, onSave, weapon, setWeapon}) => {
     const allKeywords = useMemo(() => WeaponKeywords.getAllKeywords(), []);
 
     const handleWeaponChange = (e) => {
-        e.preventDefault(); // Prevent form submission
-        const { name, value } = e.target;
-        setWeapon((prev) => ({ ...prev, [name]: value }));
+        e.preventDefault();
+        const {name, value} = e.target;
+        setWeapon((prev) => ({...prev, [name]: value}));
     };
 
     const handleWeaponDiceChange = (diceType, value) => {
         const numValue = parseInt(value, 10) || 0;
         setWeapon((prev) => ({
             ...prev,
-            dice: { ...prev.dice, [diceType]: numValue },
+            dice: {...prev.dice, [diceType]: numValue},
         }));
     };
 
     const handleWeaponKeywordToggle = (e, keyword) => {
-        // Stop event propagation and prevent default form submission
         if (e) {
             e.preventDefault();
             e.stopPropagation();
@@ -44,7 +44,7 @@ const WeaponEditorModal = ({ show, onClose, onSave, weapon, setWeapon }) => {
             const keywords = prev.keywords.includes(keyword)
                 ? prev.keywords.filter((k) => k !== keyword)
                 : [...prev.keywords, keyword];
-            return { ...prev, keywords };
+            return {...prev, keywords};
         });
     };
 
@@ -117,7 +117,7 @@ const WeaponEditorModal = ({ show, onClose, onSave, weapon, setWeapon }) => {
                                                     key={index}
                                                     bg="info"
                                                     className="me-1 mb-1 p-2"
-                                                    style={{ cursor: 'pointer' }}
+                                                    style={{cursor: 'pointer'}}
                                                     onClick={(e) => handleWeaponKeywordToggle(e, keyword)}
                                                 >
                                                     {WeaponKeywords.getDisplayName(keyword)} ×
@@ -143,9 +143,11 @@ const WeaponEditorModal = ({ show, onClose, onSave, weapon, setWeapon }) => {
                                                             onClick={(e) => handleWeaponKeywordToggle(e, keyword)}
                                                             className="py-2"
                                                         >
-                                                            <div className="d-flex justify-content-between align-items-center">
+                                                            <div
+                                                                className="d-flex justify-content-between align-items-center">
                                                                 <span>{WeaponKeywords.getDisplayName(keyword)}</span>
-                                                                {weapon.keywords.includes(keyword) && <Badge bg="success">Selected</Badge>}
+                                                                {weapon.keywords.includes(keyword) &&
+                                                                    <Badge bg="success">Selected</Badge>}
                                                             </div>
                                                         </ListGroup.Item>
                                                     ))}
@@ -178,10 +180,10 @@ const WeaponEditorModal = ({ show, onClose, onSave, weapon, setWeapon }) => {
 };
 
 const UpgradeCardForm = () => {
-    const { currentSystem } = useGameSystem();
-    const { upgradeId } = useParams();
+    const {currentSystem} = useGameSystem();
+    const {upgradeId} = useParams();
     const navigate = useNavigate();
-    const { currentUser } = useAuth();
+    const {currentUser} = useAuth();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -215,7 +217,7 @@ const UpgradeCardForm = () => {
         id: '',
         name: '',
         range: WeaponRanges.MELEE,
-        dice: { [AttackDice.RED]: 0, [AttackDice.BLACK]: 0, [AttackDice.WHITE]: 0 },
+        dice: {[AttackDice.RED]: 0, [AttackDice.BLACK]: 0, [AttackDice.WHITE]: 0},
         keywords: [],
     });
     const [editingWeaponIndex, setEditingWeaponIndex] = useState(null);
@@ -226,14 +228,13 @@ const UpgradeCardForm = () => {
 
     useEffect(() => {
         if (currentUser) fetchAvailableOptions();
-    }, [currentUser]); // only once
+    }, [currentUser]);
 
     const fetchUpgrade = async () => {
         try {
             const ref = doc(db, 'users', currentUser.uid, 'upgradeCards', upgradeId);
             const docSnap = await getDoc(ref);
             if (docSnap.exists()) {
-                // Ensure we have all the expected fields in the effects object
                 const data = docSnap.data();
                 if (!data.effects) {
                     data.effects = {
@@ -244,7 +245,6 @@ const UpgradeCardForm = () => {
                         statModifiers: {}
                     };
                 } else {
-                    // Ensure all properties exist
                     data.effects = {
                         modelCountChange: data.effects.modelCountChange || 0,
                         addWeapons: data.effects.addWeapons || [],
@@ -253,7 +253,6 @@ const UpgradeCardForm = () => {
                         statModifiers: data.effects.statModifiers || {}
                     };
 
-                    // Ensure all statModifiers exist
                     data.effects.statModifiers = {
                         wounds: data.effects.statModifiers?.wounds || 0,
                         courage: data.effects.statModifiers?.courage || 0,
@@ -276,10 +275,10 @@ const UpgradeCardForm = () => {
     const fetchAvailableOptions = async () => {
         try {
             const keywordsSnap = await getDocs(collection(db, 'users', currentUser.uid, 'customKeywords'));
-            setAvailableKeywords(keywordsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+            setAvailableKeywords(keywordsSnap.docs.map((d) => ({id: d.id, ...d.data()})));
 
             const abilitiesSnap = await getDocs(collection(db, 'users', currentUser.uid, 'abilities'));
-            setAvailableAbilities(abilitiesSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+            setAvailableAbilities(abilitiesSnap.docs.map((d) => ({id: d.id, ...d.data()})));
         } catch (err) {
             console.error(err);
         }
@@ -288,7 +287,7 @@ const UpgradeCardForm = () => {
     const handleEffectChange = (field, value) =>
         setFormData((prev) => ({
             ...prev,
-            effects: { ...prev.effects, [field]: value },
+            effects: {...prev.effects, [field]: value},
         }));
 
     const handleStatModifierChange = (field, value) => {
@@ -313,7 +312,7 @@ const UpgradeCardForm = () => {
             id: uuidv4(),
             name: '',
             range: WeaponRanges.MELEE,
-            dice: { [AttackDice.RED]: 0, [AttackDice.BLACK]: 0, [AttackDice.WHITE]: 0 },
+            dice: {[AttackDice.RED]: 0, [AttackDice.BLACK]: 0, [AttackDice.WHITE]: 0},
             keywords: [],
         });
         setShowWeaponModal(true);
@@ -321,12 +320,11 @@ const UpgradeCardForm = () => {
 
     const handleEditWeapon = (index) => {
         setEditingWeaponIndex(index);
-        setCurrentWeapon({ ...formData.effects.addWeapons[index] });
+        setCurrentWeapon({...formData.effects.addWeapons[index]});
         setShowWeaponModal(true);
     };
 
     const handleSaveWeapon = (e, weapon) => {
-        // Prevent default form submission
         if (e) e.preventDefault();
 
         if (!weapon.name.trim()) {
@@ -354,12 +352,10 @@ const UpgradeCardForm = () => {
         handleEffectChange('addWeapons', newWeapons);
     };
 
-    // Handle keywords selection
     const handleKeywordsChange = (keywords) => {
         handleEffectChange('addKeywords', keywords);
     };
 
-    // Handle abilities selection
     const handleAbilitiesChange = (abilities) => {
         handleEffectChange('addAbilities', abilities);
     };
@@ -372,7 +368,7 @@ const UpgradeCardForm = () => {
             setLoading(true);
             const upgradeData = {
                 ...formData,
-                gameSystem: currentSystem, 
+                gameSystem: currentSystem,
                 lastUpdated: serverTimestamp(),
                 userId: currentUser.uid,
                 isCustom: true,
@@ -409,7 +405,6 @@ const UpgradeCardForm = () => {
                     {success && <Alert variant="success">{success}</Alert>}
 
                     <Form onSubmit={handleSubmit}>
-                        {/* Basic Info */}
                         <Row>
                             <Col md={6}>
                                 <Form.Group>
@@ -417,7 +412,7 @@ const UpgradeCardForm = () => {
                                     <Form.Control
                                         type="text"
                                         value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        onChange={(e) => setFormData({...formData, name: e.target.value})}
                                         required
                                     />
                                 </Form.Group>
@@ -427,7 +422,7 @@ const UpgradeCardForm = () => {
                                     <Form.Label>Upgrade Type*</Form.Label>
                                     <Form.Select
                                         value={formData.upgradeType}
-                                        onChange={(e) => setFormData({ ...formData, upgradeType: e.target.value })}
+                                        onChange={(e) => setFormData({...formData, upgradeType: e.target.value})}
                                     >
                                         {UpgradeCardTypes.getAllTypes().map((type) => (
                                             <option key={type} value={type}>
@@ -443,7 +438,10 @@ const UpgradeCardForm = () => {
                                     <Form.Control
                                         type="number"
                                         value={formData.pointsCost}
-                                        onChange={(e) => setFormData({ ...formData, pointsCost: parseInt(e.target.value) || 0 })}
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            pointsCost: parseInt(e.target.value) || 0
+                                        })}
                                     />
                                 </Form.Group>
                             </Col>
@@ -454,13 +452,12 @@ const UpgradeCardForm = () => {
                             <Form.Control
                                 as="textarea"
                                 value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                onChange={(e) => setFormData({...formData, description: e.target.value})}
                                 rows={3}
                                 required
                             />
                         </Form.Group>
 
-                        {/* --- EFFECTS --- */}
                         <Card className="mt-4">
                             <Card.Header>
                                 <strong>Effects</strong>
@@ -479,13 +476,13 @@ const UpgradeCardForm = () => {
                                                 placeholder="e.g. +1 for Heavy Weapon"
                                             />
                                             <Form.Text className="text-muted">
-                                                Increase/decrease number of models in the unit (e.g. +1 for Heavy Weapon).
+                                                Increase/decrease number of models in the unit (e.g. +1 for Heavy
+                                                Weapon).
                                             </Form.Text>
                                         </Form.Group>
                                     </Col>
                                 </Row>
 
-                                {/* Stat Modifiers */}
                                 <Card className="mt-3">
                                     <Card.Header>Stat Modifiers</Card.Header>
                                     <Card.Body>
@@ -532,36 +529,38 @@ const UpgradeCardForm = () => {
                                             </Col>
                                         </Row>
 
-                                        <Row className="mt-3">
-                                            <Col md={6}>
-                                                <Form.Check
-                                                    type="checkbox"
-                                                    id="surge-attack-modifier"
-                                                    label="Adds Surge to Attack"
-                                                    checked={formData.effects.statModifiers?.surgeAttack || false}
-                                                    onChange={(e) => handleStatModifierChange('surgeAttack', e.target.checked)}
-                                                />
-                                            </Col>
-                                            <Col md={6}>
-                                                <Form.Check
-                                                    type="checkbox"
-                                                    id="surge-defense-modifier"
-                                                    label="Adds Surge to Defense"
-                                                    checked={formData.effects.statModifiers?.surgeDefense || false}
-                                                    onChange={(e) => handleStatModifierChange('surgeDefense', e.target.checked)}
-                                                />
-                                            </Col>
-                                        </Row>
+                                        {currentSystem === GameSystems.LEGION && (
+                                            <Row className="mt-3">
+                                                <Col md={6}>
+                                                    <Form.Check
+                                                        type="checkbox"
+                                                        id="surge-attack-modifier"
+                                                        label="Adds Surge to Attack"
+                                                        checked={formData.effects.statModifiers?.surgeAttack || false}
+                                                        onChange={(e) => handleStatModifierChange('surgeAttack', e.target.checked)}
+                                                    />
+                                                </Col>
+                                                <Col md={6}>
+                                                    <Form.Check
+                                                        type="checkbox"
+                                                        id="surge-defense-modifier"
+                                                        label="Adds Surge to Defense"
+                                                        checked={formData.effects.statModifiers?.surgeDefense || false}
+                                                        onChange={(e) => handleStatModifierChange('surgeDefense', e.target.checked)}
+                                                    />
+                                                </Col>
+                                            </Row>
+                                        )}
                                     </Card.Body>
                                 </Card>
                             </Card.Body>
                         </Card>
 
-                        {/* Keywords */}
                         <Card className="mt-4">
                             <Card.Header>
                                 <strong>Add Keywords to Unit</strong>
-                                <span className="text-muted ms-2">({formData.effects.addKeywords.length} selected)</span>
+                                <span
+                                    className="text-muted ms-2">({formData.effects.addKeywords.length} selected)</span>
                             </Card.Header>
                             <Card.Body>
                                 <KeywordSelector
@@ -571,7 +570,6 @@ const UpgradeCardForm = () => {
                             </Card.Body>
                         </Card>
 
-                        {/* Weapons */}
                         <Card className="mt-4">
                             <Card.Header className="d-flex justify-content-between align-items-center">
                                 <span>Weapons ({formData.effects.addWeapons.length})</span>
@@ -598,10 +596,12 @@ const UpgradeCardForm = () => {
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <Button size="sm" variant="outline-secondary" className="me-2" onClick={() => handleEditWeapon(i)}>
+                                                        <Button size="sm" variant="outline-secondary" className="me-2"
+                                                                onClick={() => handleEditWeapon(i)}>
                                                             Edit
                                                         </Button>
-                                                        <Button size="sm" variant="outline-danger" onClick={() => handleDeleteWeapon(i)}>
+                                                        <Button size="sm" variant="outline-danger"
+                                                                onClick={() => handleDeleteWeapon(i)}>
                                                             Delete
                                                         </Button>
                                                     </div>
@@ -629,7 +629,6 @@ const UpgradeCardForm = () => {
                 </Card.Body>
             </Card>
 
-            {/* Modal */}
             <WeaponEditorModal
                 show={showWeaponModal}
                 onClose={() => setShowWeaponModal(false)}

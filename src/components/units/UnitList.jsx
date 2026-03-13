@@ -1,18 +1,21 @@
 // src/components/units/UnitList.js - Updated with export button
-import React, { useState, useEffect } from 'react';
-import { Card, Button, Badge, Alert, Row, Col, Form } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import { useAuth } from '../../contexts/AuthContext';
+import React, {useState, useEffect} from 'react';
+import {Card, Button, Badge, Alert, Row, Col, Form} from 'react-bootstrap';
+import {Link, useNavigate} from 'react-router-dom';
+import {collection, getDocs, query, orderBy} from 'firebase/firestore';
+import {db} from '../../firebase/config';
+import {useAuth} from '../../contexts/AuthContext';
 import UnitTypes from '../../enums/UnitTypes';
 import Factions from '../../enums/Factions';
 import Keywords from '../../enums/Keywords';
 import LoadingSpinner from '../layout/LoadingSpinner';
 import KeywordUtils from '../../utils/KeywordUtils';
 import ExportUtils from '../../utils/ExportUtils';
-import { useGameSystem } from '../../contexts/GameSystemContext';
-import { where } from 'firebase/firestore';
+import {useGameSystem} from '../../contexts/GameSystemContext';
+import {where} from 'firebase/firestore';
+import AoSFactions from '../../enums/aos/AoSFactions';
+import AoSUnitTypes from '../../enums/aos/AoSUnitTypes';
+import GameSystems from '../../enums/GameSystems';
 
 const UnitList = () => {
     const [units, setUnits] = useState([]);
@@ -26,14 +29,14 @@ const UnitList = () => {
     const [filterFaction, setFilterFaction] = useState('all');
     const [filterType, setFilterType] = useState('all');
     const [abilities, setAbilities] = useState([]);
-    const { currentUser } = useAuth();
-    const { currentSystem } = useGameSystem();
+    const {currentUser} = useAuth();
+    const {currentSystem} = useGameSystem();
     const navigate = useNavigate();
 
     // Fetch data on component mount
     useEffect(() => {
         fetchData();
-    }, [currentUser, currentSystem]); 
+    }, [currentUser, currentSystem]);
 
     // Filter units whenever filtering criteria changes
     useEffect(() => {
@@ -49,7 +52,7 @@ const UnitList = () => {
             // Fetch units
             const unitsRef = collection(db, 'users', currentUser.uid, 'units');
             const unitsQuery = query(
-                unitsRef, 
+                unitsRef,
                 where('gameSystem', '==', currentSystem),
                 orderBy('name', 'asc')
             );
@@ -144,11 +147,17 @@ const UnitList = () => {
     };
 
     const getTypeDisplayName = (type) => {
-        if (Object.values(UnitTypes).includes(type)) {
-            return UnitTypes.getDisplayName(type);
+        const typeEnum = currentSystem === GameSystems.LEGION ? UnitTypes : AoSUnitTypes;
+        if (Object.values(typeEnum).includes(type)) {
+            return typeEnum.getDisplayName(type);
         }
         const customType = customUnitTypes.find(t => t.name === type);
         return customType ? customType.displayName : type;
+    };
+
+    const getFactionDisplayName = (faction) => {
+        const factionEnum = currentSystem === GameSystems.LEGION ? Factions : AoSFactions;
+        return factionEnum.getDisplayName(faction);
     };
 
     const getTotalPoints = (unit) => {
@@ -194,8 +203,11 @@ const UnitList = () => {
     };
 
     if (loading) {
-        return <LoadingSpinner text="Loading units..." />;
+        return <LoadingSpinner text="Loading units..."/>;
     }
+
+    const FactionEnum = currentSystem === GameSystems.LEGION ? Factions : AoSFactions;
+    const TypeEnum = currentSystem === GameSystems.LEGION ? UnitTypes : AoSUnitTypes;
 
     return (
         <Card>
@@ -228,9 +240,9 @@ const UnitList = () => {
                                 onChange={(e) => setFilterFaction(e.target.value)}
                             >
                                 <option value="all">All Factions</option>
-                                {Object.values(Factions).filter(f => typeof f === 'string').map(faction => (
+                                {Object.values(FactionEnum).filter(f => typeof f === 'string').map(faction => (
                                     <option key={faction} value={faction}>
-                                        {Factions.getDisplayName(faction)}
+                                        {FactionEnum.getDisplayName(faction)}
                                     </option>
                                 ))}
                             </Form.Select>
@@ -245,9 +257,9 @@ const UnitList = () => {
                             >
                                 <option value="all">All Types</option>
                                 {/* System unit types */}
-                                {Object.values(UnitTypes).filter(t => typeof t !== 'function').map(type => (
+                                {Object.values(TypeEnum).filter(t => typeof t !== 'function' && typeof t === 'string').map(type => (
                                     <option key={type} value={type}>
-                                        {UnitTypes.getDisplayName(type)}
+                                        {TypeEnum.getDisplayName(type)}
                                     </option>
                                 ))}
                                 {/* Custom unit types */}
@@ -279,7 +291,7 @@ const UnitList = () => {
                                 <Card
                                     className={`h-100 faction-${unit.faction}-border`}
                                     onClick={() => navigate(`/units/${unit.id}`)}
-                                    style={{ cursor: 'pointer' }}
+                                    style={{cursor: 'pointer'}}
                                 >
                                     <Card.Header className={`faction-${unit.faction}`}>
                                         <div className="d-flex justify-content-between align-items-center">
@@ -291,14 +303,16 @@ const UnitList = () => {
                                     </Card.Header>
                                     <Card.Body className="d-flex flex-column">
                                         <div className="mb-2">
-                                            <Badge bg="secondary" className="me-2">{getTypeDisplayName(unit.type)}</Badge>
+                                            <Badge bg="secondary"
+                                                   className="me-2">{getTypeDisplayName(unit.type)}</Badge>
                                             {unit.isVehicle && <Badge bg="info">Vehicle</Badge>}
                                             <div className="mt-2 small text-muted">
-                                                <strong>Faction:</strong> {Factions.getDisplayName(unit.faction)}
+                                                <strong>Faction:</strong> {getFactionDisplayName(unit.faction)}
                                             </div>
                                         </div>
 
-                                        <div className="keyword-container mb-3" style={{ minHeight: '60px', flexGrow: 1 }}>
+                                        <div className="keyword-container mb-3"
+                                             style={{minHeight: '60px', flexGrow: 1}}>
                                             <div className="small mb-1 text-muted">Keywords:</div>
                                             {getAllKeywords(unit).length > 0 ? (
                                                 <div className="d-flex flex-wrap">

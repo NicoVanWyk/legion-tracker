@@ -21,7 +21,9 @@ const AoSFactions = {
     HEDONITES_OF_SLAANESH: 'hedonites_of_slaanesh',
     MAGGOTKIN_OF_NURGLE: 'maggotkin_of_nurgle',
     SLAVES_TO_DARKNESS: 'slaves_to_darkness',
-    BEASTS_OF_CHAOS: 'beasts_of_chaos'
+    BEASTS_OF_CHAOS: 'beasts_of_chaos',
+    SKAVEN: 'skaven',
+    HELSMITHS_OF_HASHUT: 'helsmiths_of_hashut'
 };
 
 AoSFactions.getDisplayName = (faction) => {
@@ -47,7 +49,9 @@ AoSFactions.getDisplayName = (faction) => {
         [AoSFactions.HEDONITES_OF_SLAANESH]: 'Hedonites of Slaanesh',
         [AoSFactions.MAGGOTKIN_OF_NURGLE]: 'Maggotkin of Nurgle',
         [AoSFactions.SLAVES_TO_DARKNESS]: 'Slaves to Darkness',
-        [AoSFactions.BEASTS_OF_CHAOS]: 'Beasts of Chaos'
+        [AoSFactions.BEASTS_OF_CHAOS]: 'Beasts of Chaos',
+        [AoSFactions.SKAVEN]: 'Skaven',
+        [AoSFactions.HELSMITHS_OF_HASHUT]: 'Helsmiths of Hashut'
     };
     return names[faction] || faction;
 };
@@ -55,6 +59,8 @@ AoSFactions.getDisplayName = (faction) => {
 AoSFactions.getColor = (faction) => {
     const colors = {
         [AoSFactions.STORMCAST_ETERNALS]: '#1e4d8b',
+        [AoSFactions.OSSIARCH_BONEREAPERS]: '#8b8378',
+        [AoSFactions.SKAVEN]: '#3a4a2d',
         [AoSFactions.NIGHTHAUNT]: '#2d3e50',
         [AoSFactions.DAUGHTERS_OF_KHAINE]: '#8b1e3f',
         [AoSFactions.IDONETH_DEEPKIN]: '#0d5e72',
@@ -67,7 +73,6 @@ AoSFactions.getColor = (faction) => {
         [AoSFactions.GLOOMSPITE_GITZ]: '#3d4d2c',
         [AoSFactions.ORRUK_WARCLANS]: '#4d5e3a',
         [AoSFactions.SONS_OF_BEHEMAT]: '#7a5c3d',
-        [AoSFactions.OSSIARCH_BONEREAPERS]: '#8b8378',
         [AoSFactions.FLESH_EATER_COURTS]: '#5c3d3d',
         [AoSFactions.SOULBLIGHT_GRAVELORDS]: '#3d1e1e',
         [AoSFactions.BLADES_OF_KHORNE]: '#8b1e1e',
@@ -75,7 +80,8 @@ AoSFactions.getColor = (faction) => {
         [AoSFactions.HEDONITES_OF_SLAANESH]: '#8b1e8b',
         [AoSFactions.MAGGOTKIN_OF_NURGLE]: '#4d5e1e',
         [AoSFactions.SLAVES_TO_DARKNESS]: '#2d2d2d',
-        [AoSFactions.BEASTS_OF_CHAOS]: '#5e3d1e'
+        [AoSFactions.BEASTS_OF_CHAOS]: '#5e3d1e',
+        [AoSFactions.HELSMITHS_OF_HASHUT]: '#5e2d1e'
     };
     return colors[faction] || '#6c757d';
 };

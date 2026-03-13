@@ -1,13 +1,14 @@
-﻿// src/components/command/CommandCardList.js
-import React, { useState, useEffect } from 'react';
-import { Card, Button, Row, Col, Badge, ListGroup, Form, InputGroup, Alert, Tabs, Tab } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
-import { collection, query, where, getDocs, doc, deleteDoc } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import { useAuth } from '../../contexts/AuthContext';
-import { useGameSystem } from '../../contexts/GameSystemContext';
+﻿// src/components/command/CommandCardList.jsx - LEGION ONLY
+import React, {useState, useEffect, useCallback} from 'react';
+import {Card, Button, Row, Col, Badge, ListGroup, Form, InputGroup, Alert, Tabs, Tab} from 'react-bootstrap';
+import {Link} from 'react-router-dom';
+import {collection, query, where, getDocs, doc, deleteDoc} from 'firebase/firestore';
+import {db} from '../../firebase/config';
+import {useAuth} from '../../contexts/AuthContext';
+import {useGameSystem} from '../../contexts/GameSystemContext';
 import CommandCards from '../../enums/CommandCards';
 import Factions from '../../enums/Factions';
+import GameSystems from '../../enums/GameSystems';
 import LoadingSpinner from '../layout/LoadingSpinner';
 
 const CommandCardList = () => {
@@ -19,15 +20,11 @@ const CommandCardList = () => {
     const [filterFaction, setFilterFaction] = useState('all');
     const [filterPips, setFilterPips] = useState('all');
     const [activeTab, setActiveTab] = useState('all');
-    const { currentUser } = useAuth();
-    const { currentSystem } = useGameSystem();
+    const {currentUser} = useAuth();
+    const {currentSystem} = useGameSystem();
 
-    useEffect(() => {
-        fetchCommandCards();
-    }, [currentUser, currentSystem]);
-
-    const fetchCommandCards = async () => {
-        if (!currentUser) {
+    const fetchCommandCards = useCallback(async () => {
+        if (!currentUser || currentSystem !== GameSystems.LEGION) {
             setLoading(false);
             return;
         }
@@ -39,7 +36,7 @@ const CommandCardList = () => {
             const cardsRef = collection(db, 'users', currentUser.uid, 'commandCards');
             const cardsQuery = query(
                 cardsRef,
-                where('gameSystem', '==', currentSystem)
+                where('gameSystem', '==', GameSystems.LEGION)
             );
             const cardsSnapshot = await getDocs(cardsQuery);
 
@@ -69,7 +66,28 @@ const CommandCardList = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [currentUser, currentSystem]);
+
+    useEffect(() => {
+        fetchCommandCards();
+    }, [fetchCommandCards]);
+
+    // Redirect if not Legion
+    if (currentSystem !== GameSystems.LEGION) {
+        return (
+            <Alert variant="info">
+                <h4 className="mb-3">Command Cards are only available for Star Wars: Legion</h4>
+                <p>You are currently viewing {currentSystem}. Command cards are a Legion-specific game mechanic.</p>
+                {currentSystem === GameSystems.AOS && (
+                    <div className="mt-3">
+                        <Button as={Link} to="/army-keywords" variant="primary">
+                            Manage Army Keywords & Battle Traits
+                        </Button>
+                    </div>
+                )}
+            </Alert>
+        );
+    }
 
     const handleDeleteCard = async (cardId) => {
         if (!window.confirm('Are you sure you want to delete this command card?')) {
@@ -122,7 +140,7 @@ const CommandCardList = () => {
     });
 
     if (loading) {
-        return <LoadingSpinner text="Loading command cards..." />;
+        return <LoadingSpinner text="Loading command cards..."/>;
     }
 
     return (
@@ -173,7 +191,8 @@ const CommandCardList = () => {
                                 <option value="all">All Factions</option>
                                 <option value="">Universal Only</option>
                                 <option value={Factions.REPUBLIC}>{Factions.getDisplayName(Factions.REPUBLIC)}</option>
-                                <option value={Factions.SEPARATIST}>{Factions.getDisplayName(Factions.SEPARATIST)}</option>
+                                <option
+                                    value={Factions.SEPARATIST}>{Factions.getDisplayName(Factions.SEPARATIST)}</option>
                                 <option value={Factions.REBEL}>{Factions.getDisplayName(Factions.REBEL)}</option>
                                 <option value={Factions.EMPIRE}>{Factions.getDisplayName(Factions.EMPIRE)}</option>
                             </Form.Select>
@@ -204,9 +223,9 @@ const CommandCardList = () => {
                                 onSelect={(key) => setActiveTab(key)}
                                 className="mb-3"
                             >
-                                <Tab eventKey="all" title="All" />
-                                <Tab eventKey="system" title="System" />
-                                <Tab eventKey="custom" title="Custom" />
+                                <Tab eventKey="all" title="All"/>
+                                <Tab eventKey="system" title="System"/>
+                                <Tab eventKey="custom" title="Custom"/>
                             </Tabs>
                         </Form.Group>
                     </Col>
@@ -232,7 +251,8 @@ const CommandCardList = () => {
                                                 <h5 className="mb-1">{card.name}</h5>
                                                 <div>
                                                     {card.faction ? (
-                                                        <Badge bg="primary" className="me-2">{Factions.getDisplayName(card.faction)}</Badge>
+                                                        <Badge bg="primary"
+                                                               className="me-2">{Factions.getDisplayName(card.faction)}</Badge>
                                                     ) : (
                                                         <Badge bg="secondary" className="me-2">Universal</Badge>
                                                     )}
@@ -248,7 +268,8 @@ const CommandCardList = () => {
                                                     )}
 
                                                     {card.isUniversal && (
-                                                        <Badge bg="warning" text="dark" className="ms-2">All Armies</Badge>
+                                                        <Badge bg="warning" text="dark" className="ms-2">All
+                                                            Armies</Badge>
                                                     )}
                                                 </div>
                                             </div>
@@ -299,7 +320,8 @@ const CommandCardList = () => {
             </Card.Body>
             <Card.Footer>
                 <small className="text-muted">
-                    Showing {filteredCards.length} cards ({systemCards.filter(card => filterCards([card]).length).length} system,
+                    Showing {filteredCards.length} cards
+                    ({systemCards.filter(card => filterCards([card]).length).length} system,
                     {' '}{customCards.filter(card => filterCards([card]).length).length} custom)
                 </small>
             </Card.Footer>
