@@ -2,6 +2,7 @@
 import React, {useState, useEffect} from 'react';
 import {Card, ListGroup, Form, InputGroup, Button, Alert, Badge} from 'react-bootstrap';
 import {collection, getDocs, query, orderBy, where} from 'firebase/firestore';
+import { Link } from 'react-router-dom';
 import {db} from '../../firebase/config';
 import {useAuth} from '../../contexts/AuthContext';
 import ReminderTypes from '../../enums/ReminderTypes';
@@ -181,7 +182,8 @@ const AbilitySelector = ({selectedAbilities = [], onChange}) => {
                     <Button
                         variant="outline-primary"
                         size="sm"
-                        onClick={() => window.open('/abilities/create', '_blank')}
+                        as={Link}
+                        to="/abilities/create"
                     >
                         Create Ability
                     </Button>

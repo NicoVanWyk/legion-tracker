@@ -1,5 +1,6 @@
 ﻿// src/enums/aos/AoSPhases.js
 const AoSPhases = {
+    PASSIVE: 'passive',  
     START_OF_TURN: 'start_of_turn',
     HERO: 'hero',
     MOVEMENT: 'movement',
@@ -13,6 +14,7 @@ const AoSPhases = {
 
 AoSPhases.getDisplayName = (phase) => {
     const names = {
+        [AoSPhases.PASSIVE]: 'Passive', 
         [AoSPhases.START_OF_TURN]: 'Start of Turn',
         [AoSPhases.HERO]: 'Hero Phase',
         [AoSPhases.MOVEMENT]: 'Movement Phase',
@@ -28,6 +30,7 @@ AoSPhases.getDisplayName = (phase) => {
 
 AoSPhases.getColor = (phase) => {
     const colors = {
+        [AoSPhases.PASSIVE]: '#6c757d',
         [AoSPhases.START_OF_TURN]: '#17a2b8',
         [AoSPhases.HERO]: '#6f42c1',
         [AoSPhases.MOVEMENT]: '#28a745',
