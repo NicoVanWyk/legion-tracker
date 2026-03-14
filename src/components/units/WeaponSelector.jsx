@@ -1,12 +1,13 @@
 // src/components/units/WeaponSelector.jsx
 import React, { useState } from 'react';
-import { Form, Button, Card, Row, Col, Badge, Modal, ListGroup, Accordion } from 'react-bootstrap';
+import { Form, Button, Card, Row, Col, Badge, Modal, ListGroup, Accordion, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { v4 as uuidv4 } from 'uuid';
 import { useGameSystem } from '../../contexts/GameSystemContext';
 import GameSystems from '../../enums/GameSystems';
 import WeaponRanges from '../../enums/WeaponRanges';
 import AttackDice from '../../enums/AttackDice';
 import WeaponKeywords from '../../enums/WeaponKeywords';
+import AoSWeaponAbilities from '../../enums/aos/AoSWeaponAbilities';
 
 const WeaponSelector = ({ weapons = [], onChange }) => {
   const { currentSystem, config } = useGameSystem();
@@ -39,7 +40,8 @@ const WeaponSelector = ({ weapons = [], onChange }) => {
         toHit: 4,
         toWound: 4,
         rend: 0,
-        damage: 1
+        damage: 1,
+        keywords: []
       };
     }
   };
@@ -170,6 +172,13 @@ const WeaponSelector = ({ weapons = [], onChange }) => {
               Rend: {weapon.rend === 0 ? '-' : weapon.rend} | Dmg: {weapon.damage}
             </small>
           </div>
+          <div className="mt-1">
+            {weapon.keywords?.map((keyword, kidx) => (
+              <Badge key={kidx} bg="info" className="me-1 mb-1">
+                {AoSWeaponAbilities.getDisplayName(keyword)}
+              </Badge>
+            ))}
+          </div>
         </>
       );
     }
@@ -246,7 +255,11 @@ const WeaponSelector = ({ weapons = [], onChange }) => {
                           bg="info"
                           className="me-1 mb-1 p-2"
                           style={{ cursor: 'pointer' }}
-                          onClick={() => handleKeywordToggle(keyword)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleKeywordToggle(keyword);
+                          }}
                         >
                           {WeaponKeywords.getDisplayName(keyword)} &times;
                         </Badge>
@@ -268,8 +281,14 @@ const WeaponSelector = ({ weapons = [], onChange }) => {
                               key={keyword} 
                               action
                               active={currentWeapon.keywords?.includes(keyword)}
-                              onClick={() => handleKeywordToggle(keyword)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleKeywordToggle(keyword);
+                              }}
                               className="py-2"
+                              as="div"
+                              style={{ cursor: 'pointer' }}
                             >
                               {WeaponKeywords.getDisplayName(keyword)}
                             </ListGroup.Item>
@@ -361,6 +380,86 @@ const WeaponSelector = ({ weapons = [], onChange }) => {
               </Form.Group>
             </Col>
           </Row>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Weapon Abilities</Form.Label>
+            <Card>
+              <Card.Body className="p-2">
+                <div className="mb-2">
+                  <strong>Selected Abilities:</strong>
+                  {currentWeapon.keywords?.length === 0 ? (
+                    <span className="text-muted ms-2">None</span>
+                  ) : (
+                    <div className="mt-1">
+                      {currentWeapon.keywords?.map((keyword, index) => (
+                        <Badge 
+                          key={index}
+                          bg="info"
+                          className="me-1 mb-1 p-2"
+                          style={{ cursor: 'pointer' }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleKeywordToggle(keyword);
+                          }}
+                        >
+                          {AoSWeaponAbilities.getDisplayName(keyword)} &times;
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                <Accordion>
+                  {Object.entries(AoSWeaponAbilities.getAllAbilities()).map(([category, abilities]) => (
+                    <Accordion.Item key={category} eventKey={category}>
+                      <Accordion.Header>
+                        {category.charAt(0).toUpperCase() + category.slice(1)} Abilities
+                      </Accordion.Header>
+                      <Accordion.Body className="p-0">
+                        <ListGroup variant="flush">
+                          {abilities.map(ability => {
+                            const description = AoSWeaponAbilities.getDescription(ability);
+                            const displayName = AoSWeaponAbilities.getDisplayName(ability);
+                            
+                            return (
+                              <OverlayTrigger
+                                key={ability}
+                                placement="right"
+                                overlay={
+                                  <Tooltip id={`tooltip-${ability}`}>
+                                    {description}
+                                  </Tooltip>
+                                }
+                              >
+                                <ListGroup.Item 
+                                  action
+                                  active={currentWeapon.keywords?.includes(ability)}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleKeywordToggle(ability);
+                                  }}
+                                  className="py-2"
+                                  as="div"
+                                  style={{ cursor: 'pointer' }}
+                                >
+                                  <div className="d-flex justify-content-between align-items-center">
+                                    <span>{displayName}</span>
+                                    <i className="bi bi-info-circle text-muted"></i>
+                                  </div>
+                                </ListGroup.Item>
+                              </OverlayTrigger>
+                            );
+                          })}
+                        </ListGroup>
+                      </Accordion.Body>
+                    </Accordion.Item>
+                  ))}
+                </Accordion>
+              </Card.Body>
+            </Card>
+          </Form.Group>
         </>
       );
     }

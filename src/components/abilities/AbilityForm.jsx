@@ -8,7 +8,6 @@ import {useAuth} from '../../contexts/AuthContext';
 import ReminderTypes from '../../enums/ReminderTypes';
 import {useGameSystem} from '../../contexts/GameSystemContext';
 import GameSystems from '../../enums/GameSystems';
-import AoSAbilityKeywords from '../../enums/aos/AoSAbilityKeywords';
 import AoSPhases from '../../enums/aos/AoSPhases';
 import AoSAbilityFrequency from '../../enums/aos/AoSAbilityFrequency';
 
@@ -31,10 +30,8 @@ const AbilityForm = () => {
         timing: ReminderTypes.GENERAL,
         reminders: [],
         // AoS specific
-        abilityKeywords: [],
         phase: AoSPhases.ANY,
         frequency: AoSAbilityFrequency.UNLIMITED,
-        declareText: '',
         effectText: ''
     });
 
@@ -66,10 +63,8 @@ const AbilityForm = () => {
                         rulesText: data.rulesText || '',
                         timing: data.timing || ReminderTypes.GENERAL,
                         reminders: data.reminders || [],
-                        abilityKeywords: data.abilityKeywords || [],
                         phase: data.phase || AoSPhases.ANY,
                         frequency: data.frequency || AoSAbilityFrequency.UNLIMITED,
-                        declareText: data.declareText || '',
                         effectText: data.effectText || ''
                     });
                 } else {
@@ -151,10 +146,8 @@ const AbilityForm = () => {
 
             // Add AoS-specific fields
             if (isAoS) {
-                abilityData.abilityKeywords = formData.abilityKeywords;
                 abilityData.phase = formData.phase;
                 abilityData.frequency = formData.frequency;
-                abilityData.declareText = formData.declareText.trim();
                 abilityData.effectText = formData.effectText.trim();
             }
 
@@ -178,10 +171,8 @@ const AbilityForm = () => {
                     rulesText: '',
                     timing: ReminderTypes.GENERAL,
                     reminders: [],
-                    abilityKeywords: [],
                     phase: AoSPhases.ANY,
                     frequency: AoSAbilityFrequency.UNLIMITED,
-                    declareText: '',
                     effectText: ''
                 });
             }
@@ -274,48 +265,6 @@ const AbilityForm = () => {
                                     </Form.Group>
                                 </Col>
                             </Row>
-
-                            <Form.Group className="mb-3">
-                                <Form.Label>Ability Keywords</Form.Label>
-                                <div className="d-flex flex-wrap gap-2">
-                                    {Object.values(AoSAbilityKeywords).filter(k => typeof k === 'string').map(keyword => (
-                                        <Form.Check
-                                            key={keyword}
-                                            type="checkbox"
-                                            id={`keyword-${keyword}`}
-                                            label={AoSAbilityKeywords.getDisplayName(keyword)}
-                                            checked={formData.abilityKeywords?.includes(keyword)}
-                                            onChange={(e) => {
-                                                const checked = e.target.checked;
-                                                setFormData(prev => ({
-                                                    ...prev,
-                                                    abilityKeywords: checked
-                                                        ? [...(prev.abilityKeywords || []), keyword]
-                                                        : (prev.abilityKeywords || []).filter(k => k !== keyword)
-                                                }));
-                                            }}
-                                        />
-                                    ))}
-                                </div>
-                                <Form.Text className="text-muted">
-                                    Select all keywords that apply to this ability
-                                </Form.Text>
-                            </Form.Group>
-
-                            <Form.Group className="mb-3">
-                                <Form.Label>Declare</Form.Label>
-                                <Form.Control
-                                    as="textarea"
-                                    name="declareText"
-                                    value={formData.declareText}
-                                    onChange={handleChange}
-                                    placeholder="Declare: Pick a friendly unit..."
-                                    rows={2}
-                                />
-                                <Form.Text className="text-muted">
-                                    What you declare when using this ability (optional)
-                                </Form.Text>
-                            </Form.Group>
 
                             <Form.Group className="mb-3">
                                 <Form.Label>Effect</Form.Label>

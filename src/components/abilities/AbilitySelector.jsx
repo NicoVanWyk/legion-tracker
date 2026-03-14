@@ -10,7 +10,6 @@ import LoadingSpinner from '../layout/LoadingSpinner';
 import {useGameSystem} from '../../contexts/GameSystemContext';
 import GameSystems from '../../enums/GameSystems';
 import AoSPhases from '../../enums/aos/AoSPhases';
-import AoSAbilityKeywords from '../../enums/aos/AoSAbilityKeywords';
 import AoSAbilityFrequency from '../../enums/aos/AoSAbilityFrequency';
 
 const AbilitySelector = ({selectedAbilities = [], onChange}) => {
@@ -82,7 +81,6 @@ const AbilitySelector = ({selectedAbilities = [], onChange}) => {
                 a.name.toLowerCase().includes(term) ||
                 a.description?.toLowerCase().includes(term) ||
                 a.rulesText?.toLowerCase().includes(term) ||
-                a.declareText?.toLowerCase().includes(term) ||
                 a.effectText?.toLowerCase().includes(term)
             );
         }
@@ -220,18 +218,6 @@ const AbilitySelector = ({selectedAbilities = [], onChange}) => {
                                             <Badge bg="secondary" className="me-1">
                                                 {AoSAbilityFrequency.getDisplayName(ability.frequency)}
                                             </Badge>
-                                        )}
-
-                                        {isAoS && ability.abilityKeywords?.length > 0 && (
-                                            ability.abilityKeywords.map(kw => (
-                                                <Badge
-                                                    key={kw}
-                                                    className="me-1"
-                                                    style={{backgroundColor: AoSAbilityKeywords.getColor(kw)}}
-                                                >
-                                                    {AoSAbilityKeywords.getDisplayName(kw)}
-                                                </Badge>
-                                            ))
                                         )}
 
                                         {isLegion && ability.timing && (

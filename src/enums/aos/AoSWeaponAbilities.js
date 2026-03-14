@@ -56,4 +56,29 @@ AoSWeaponAbilities.getDescription = (ability) => {
     return descriptions[ability] || '';
 };
 
+AoSWeaponAbilities.getAllAbilities = () => {
+    return {
+        anti: [
+            AoSWeaponAbilities.ANTI_CHARGE,
+            AoSWeaponAbilities.ANTI_INFANTRY,
+            AoSWeaponAbilities.ANTI_CAVALRY,
+            AoSWeaponAbilities.ANTI_MONSTER,
+            AoSWeaponAbilities.ANTI_HERO,
+            AoSWeaponAbilities.ANTI_WARMACHINE
+        ],
+        critical: [
+            AoSWeaponAbilities.CRIT_2_HITS,
+            AoSWeaponAbilities.CRIT_MORTAL,
+            AoSWeaponAbilities.CRIT_AUTO_WOUND
+        ],
+        combat: [
+            AoSWeaponAbilities.CHARGE,
+            AoSWeaponAbilities.COMPANION,
+            AoSWeaponAbilities.SHOOT_IN_COMBAT,
+            AoSWeaponAbilities.STRIKE_FIRST,
+            AoSWeaponAbilities.STRIKE_LAST
+        ]
+    };
+};
+
 export default AoSWeaponAbilities;

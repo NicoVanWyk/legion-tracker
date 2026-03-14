@@ -1,6 +1,8 @@
 // src/enums/aos/AoSFactions.js
 const AoSFactions = {
     STORMCAST_ETERNALS: 'stormcast_eternals',
+    OSSIARCH_BONEREAPERS: 'ossiarch_bonereapers',
+    SKAVEN: 'skaven',
     NIGHTHAUNT: 'nighthaunt',
     DAUGHTERS_OF_KHAINE: 'daughters_of_khaine',
     IDONETH_DEEPKIN: 'idoneth_deepkin',
@@ -13,7 +15,6 @@ const AoSFactions = {
     GLOOMSPITE_GITZ: 'gloomspite_gitz',
     ORRUK_WARCLANS: 'orruk_warclans',
     SONS_OF_BEHEMAT: 'sons_of_behemat',
-    OSSIARCH_BONEREAPERS: 'ossiarch_bonereapers',
     FLESH_EATER_COURTS: 'flesh_eater_courts',
     SOULBLIGHT_GRAVELORDS: 'soulblight_gravelords',
     BLADES_OF_KHORNE: 'blades_of_khorne',
@@ -22,7 +23,6 @@ const AoSFactions = {
     MAGGOTKIN_OF_NURGLE: 'maggotkin_of_nurgle',
     SLAVES_TO_DARKNESS: 'slaves_to_darkness',
     BEASTS_OF_CHAOS: 'beasts_of_chaos',
-    SKAVEN: 'skaven',
     HELSMITHS_OF_HASHUT: 'helsmiths_of_hashut'
 };
 
