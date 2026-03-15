@@ -37,10 +37,12 @@ const WeaponSelector = ({ weapons = [], onChange }) => {
         name: '',
         range: 1,
         attacks: 1,
+        attacksType: 'fixed', // 'fixed' or 'dice'
         toHit: 4,
         toWound: 4,
         rend: 0,
         damage: 1,
+        damageType: 'fixed', // 'fixed' or 'dice'
         keywords: []
       };
     }
@@ -56,7 +58,19 @@ const WeaponSelector = ({ weapons = [], onChange }) => {
 
   const handleEditWeapon = (index) => {
     setEditingIndex(index);
-    setCurrentWeapon({ ...weapons[index] });
+    const weapon = { ...weapons[index] };
+    
+    // Add backwards compatibility for existing weapons without attacksType/damageType
+    if (currentSystem === GameSystems.AOS) {
+      if (!weapon.attacksType) {
+        weapon.attacksType = 'fixed';
+      }
+      if (!weapon.damageType) {
+        weapon.damageType = 'fixed';
+      }
+    }
+    
+    setCurrentWeapon(weapon);
     setShowModal(true);
   };
 
@@ -99,16 +113,43 @@ const WeaponSelector = ({ weapons = [], onChange }) => {
   const handleWeaponChange = (e) => {
     const {name, value} = e.target;
 
-    // Parse numeric fields for AoS weapons
-    if (currentSystem === GameSystems.AOS &&
-        ['range', 'attacks', 'toHit', 'toWound', 'rend', 'damage'].includes(name)) {
+    // Handle attacks/damage type changes
+    if (name === 'attacksType' || name === 'damageType') {
       setCurrentWeapon((prev) => ({
         ...prev,
-        [name]: value === '' ? 0 : parseInt(value, 10)
+        [name]: value,
+        // Reset the corresponding value when switching types
+        [name.replace('Type', '')]: value === 'dice' ? 'D3' : 1
       }));
-    } else {
-      setCurrentWeapon((prev) => ({...prev, [name]: value}));
+      return;
     }
+
+    // Parse numeric fields for AoS weapons (but only if they're in 'fixed' mode)
+    if (currentSystem === GameSystems.AOS) {
+      if (name === 'attacks' && currentWeapon.attacksType === 'fixed') {
+        setCurrentWeapon((prev) => ({
+          ...prev,
+          [name]: value === '' ? 0 : parseInt(value, 10)
+        }));
+        return;
+      }
+      if (name === 'damage' && currentWeapon.damageType === 'fixed') {
+        setCurrentWeapon((prev) => ({
+          ...prev,
+          [name]: value === '' ? 0 : parseInt(value, 10)
+        }));
+        return;
+      }
+      if (['range', 'toHit', 'toWound', 'rend'].includes(name)) {
+        setCurrentWeapon((prev) => ({
+          ...prev,
+          [name]: value === '' ? 0 : parseInt(value, 10)
+        }));
+        return;
+      }
+    }
+
+    setCurrentWeapon((prev) => ({...prev, [name]: value}));
   };
 
   const handleDiceChange = (diceType, value) => {
@@ -163,13 +204,26 @@ const WeaponSelector = ({ weapons = [], onChange }) => {
     }
 
     if (currentSystem === GameSystems.AOS) {
+      // Handle both new format (with type) and legacy format (without type)
+      const attacksDisplay = weapon.attacksType === 'dice' 
+        ? weapon.attacks 
+        : (typeof weapon.attacks === 'string' && weapon.attacks.includes('D') 
+            ? weapon.attacks 
+            : `${weapon.attacks}A`);
+      
+      const damageDisplay = weapon.damageType === 'dice' 
+        ? weapon.damage 
+        : (typeof weapon.damage === 'string' && weapon.damage.includes('D') 
+            ? weapon.damage 
+            : weapon.damage);
+      
       return (
         <>
           <div className="fw-bold">{weapon.name}</div>
           <div>
             <small className="text-muted">
-              {weapon.range}" | {weapon.attacks}A | {weapon.toHit}+/{weapon.toWound}+ | 
-              Rend: {weapon.rend === 0 ? '-' : weapon.rend} | Dmg: {weapon.damage}
+              {weapon.range}" | {attacksDisplay} | {weapon.toHit}+/{weapon.toWound}+ | 
+              Rend: {weapon.rend === 0 ? '-' : weapon.rend} | Dmg: {damageDisplay}
             </small>
           </div>
           <div className="mt-1">
@@ -325,13 +379,38 @@ const WeaponSelector = ({ weapons = [], onChange }) => {
             <Col md={4}>
               <Form.Group className="mb-3">
                 <Form.Label>Attacks</Form.Label>
-                <Form.Control
-                  type="number"
-                  name="attacks"
-                  min="1"
-                  value={currentWeapon.attacks}
-                  onChange={handleWeaponChange}
-                />
+                <div className="d-flex gap-2">
+                  <Form.Select 
+                    name="attacksType" 
+                    value={currentWeapon.attacksType || 'fixed'} 
+                    onChange={handleWeaponChange}
+                    style={{ maxWidth: '90px' }}
+                  >
+                    <option value="fixed">Fixed</option>
+                    <option value="dice">Dice</option>
+                  </Form.Select>
+                  {currentWeapon.attacksType === 'dice' ? (
+                    <Form.Select
+                      name="attacks"
+                      value={currentWeapon.attacks}
+                      onChange={handleWeaponChange}
+                    >
+                      <option value="D3">D3</option>
+                      <option value="D6">D6</option>
+                      <option value="2D3">2D3</option>
+                      <option value="2D6">2D6</option>
+                      <option value="3D6">3D6</option>
+                    </Form.Select>
+                  ) : (
+                    <Form.Control
+                      type="number"
+                      name="attacks"
+                      min="1"
+                      value={currentWeapon.attacks}
+                      onChange={handleWeaponChange}
+                    />
+                  )}
+                </div>
               </Form.Group>
             </Col>
             <Col md={4}>
@@ -370,13 +449,38 @@ const WeaponSelector = ({ weapons = [], onChange }) => {
             <Col md={4}>
               <Form.Group className="mb-3">
                 <Form.Label>Damage</Form.Label>
-                <Form.Control
-                  type="number"
-                  name="damage"
-                  min="1"
-                  value={currentWeapon.damage}
-                  onChange={handleWeaponChange}
-                />
+                <div className="d-flex gap-2">
+                  <Form.Select 
+                    name="damageType" 
+                    value={currentWeapon.damageType || 'fixed'} 
+                    onChange={handleWeaponChange}
+                    style={{ maxWidth: '90px' }}
+                  >
+                    <option value="fixed">Fixed</option>
+                    <option value="dice">Dice</option>
+                  </Form.Select>
+                  {(currentWeapon.damageType === 'dice') ? (
+                    <Form.Select
+                      name="damage"
+                      value={currentWeapon.damage}
+                      onChange={handleWeaponChange}
+                    >
+                      <option value="D3">D3</option>
+                      <option value="D6">D6</option>
+                      <option value="2D3">2D3</option>
+                      <option value="2D6">2D6</option>
+                      <option value="3D6">3D6</option>
+                    </Form.Select>
+                  ) : (
+                    <Form.Control
+                      type="number"
+                      name="damage"
+                      min="1"
+                      value={currentWeapon.damage}
+                      onChange={handleWeaponChange}
+                    />
+                  )}
+                </div>
               </Form.Group>
             </Col>
           </Row>
