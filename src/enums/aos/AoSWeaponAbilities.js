@@ -8,6 +8,7 @@ const AoSWeaponAbilities = {
     ANTI_MONSTER: 'anti_monster',
     ANTI_HERO: 'anti_hero',
     ANTI_WARMACHINE: 'anti_warmachine',
+    ANTI_MANIFESTATION: 'anti_manifestation',
     CHARGE: 'charge',
     COMPANION: 'companion',
     CRIT_2_HITS: 'crit_2_hits',
@@ -28,6 +29,7 @@ AoSWeaponAbilities.getDisplayName = (ability) => {
         [AoSWeaponAbilities.ANTI_MONSTER]: 'Anti-monster (+1 Rend)',
         [AoSWeaponAbilities.ANTI_HERO]: 'Anti-hero (+1 Rend)',
         [AoSWeaponAbilities.ANTI_WARMACHINE]: 'Anti-war machine (+1 Rend)',
+        [AoSWeaponAbilities.ANTI_MANIFESTATION]: 'Anti-manifestation (+1 Rend)',
         [AoSWeaponAbilities.CHARGE]: 'Charge (+1 Damage)',
         [AoSWeaponAbilities.COMPANION]: 'Companion',
         [AoSWeaponAbilities.CRIT_2_HITS]: 'Crit (2 Hits)',
@@ -50,6 +52,7 @@ AoSWeaponAbilities.getDescription = (ability) => {
         [AoSWeaponAbilities.ANTI_MONSTER]: 'Add 1 to the Rend characteristic of this weapon for attacks that target a Monster',
         [AoSWeaponAbilities.ANTI_HERO]: 'Add 1 to the Rend characteristic of this weapon for attacks that target a Hero',
         [AoSWeaponAbilities.ANTI_WARMACHINE]: 'Add 1 to the Rend characteristic of this weapon for attacks that target a War Machine',
+        [AoSWeaponAbilities.ANTI_MANIFESTATION]: 'Add 1 to the Rend characteristic of this weapon for attacks that target a Manifestation',
         [AoSWeaponAbilities.CHARGE]: 'Add 1 to the Damage characteristic of this weapon if the attacking unit charged this turn',
         [AoSWeaponAbilities.COMPANION]: 'This weapon cannot be affected by abilities that affect weapon characteristics and cannot be used for attacks made by Champion models',
         [AoSWeaponAbilities.CRIT_2_HITS]: 'If an attack made with this weapon scores a critical hit, that attack scores 2 hits on the target unit instead of 1',
@@ -72,7 +75,8 @@ AoSWeaponAbilities.getAllAbilities = () => {
             AoSWeaponAbilities.ANTI_CAVALRY,
             AoSWeaponAbilities.ANTI_MONSTER,
             AoSWeaponAbilities.ANTI_HERO,
-            AoSWeaponAbilities.ANTI_WARMACHINE
+            AoSWeaponAbilities.ANTI_WARMACHINE,
+            AoSWeaponAbilities.ANTI_MANIFESTATION
         ],
         critical: [
             AoSWeaponAbilities.CRIT_2_HITS,
