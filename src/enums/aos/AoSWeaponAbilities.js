@@ -2,6 +2,8 @@
 const AoSWeaponAbilities = {
     ANTI_CHARGE: 'anti_charge',
     ANTI_INFANTRY: 'anti_infantry',
+    ANTI_WIZARD: 'anti_wizard',
+    ANTI_PRIEST: 'anti_priest',
     ANTI_CAVALRY: 'anti_cavalry',
     ANTI_MONSTER: 'anti_monster',
     ANTI_HERO: 'anti_hero',
@@ -20,6 +22,8 @@ AoSWeaponAbilities.getDisplayName = (ability) => {
     const names = {
         [AoSWeaponAbilities.ANTI_CHARGE]: 'Anti-charge (+1 Rend)',
         [AoSWeaponAbilities.ANTI_INFANTRY]: 'Anti-infantry (+1 Rend)',
+        [AoSWeaponAbilities.ANTI_WIZARD]: 'Anti-wizard (+1 Rend)',
+        [AoSWeaponAbilities.ANTI_PRIEST]: 'Anti-priest (+1 Rend)',
         [AoSWeaponAbilities.ANTI_CAVALRY]: 'Anti-cavalry (+1 Rend)',
         [AoSWeaponAbilities.ANTI_MONSTER]: 'Anti-monster (+1 Rend)',
         [AoSWeaponAbilities.ANTI_HERO]: 'Anti-hero (+1 Rend)',
@@ -40,6 +44,8 @@ AoSWeaponAbilities.getDescription = (ability) => {
     const descriptions = {
         [AoSWeaponAbilities.ANTI_CHARGE]: 'Add 1 to the Rend characteristic of this weapon if the attacking unit charged this turn',
         [AoSWeaponAbilities.ANTI_INFANTRY]: 'Add 1 to the Rend characteristic of this weapon for attacks that target an Infantry unit',
+        [AoSWeaponAbilities.ANTI_WIZARD]: 'Add 1 to the Rend characteristic of this weapon for attacks that target a Wizard unit',
+        [AoSWeaponAbilities.ANTI_PRIEST]: 'Add 1 to the Rend characteristic of this weapon for attacks that target a Priest unit',
         [AoSWeaponAbilities.ANTI_CAVALRY]: 'Add 1 to the Rend characteristic of this weapon for attacks that target a Cavalry unit',
         [AoSWeaponAbilities.ANTI_MONSTER]: 'Add 1 to the Rend characteristic of this weapon for attacks that target a Monster',
         [AoSWeaponAbilities.ANTI_HERO]: 'Add 1 to the Rend characteristic of this weapon for attacks that target a Hero',
@@ -61,6 +67,8 @@ AoSWeaponAbilities.getAllAbilities = () => {
         anti: [
             AoSWeaponAbilities.ANTI_CHARGE,
             AoSWeaponAbilities.ANTI_INFANTRY,
+            AoSWeaponAbilities.ANTI_WIZARD,
+            AoSWeaponAbilities.ANTI_PRIEST,
             AoSWeaponAbilities.ANTI_CAVALRY,
             AoSWeaponAbilities.ANTI_MONSTER,
             AoSWeaponAbilities.ANTI_HERO,
