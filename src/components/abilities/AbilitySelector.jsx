@@ -195,65 +195,62 @@ const AbilitySelector = ({selectedAbilities = [], onChange}) => {
                 <ListGroup className="ability-list">
                     {filteredAbilities.map(ability => (
                         <ListGroup.Item
-                            key={ability.id}
-                            action
-                            active={selectedAbilities.includes(ability.id)}
-                            onClick={() => toggleAbility(ability.id)}
+                        key={ability.id}
+                        className={selectedAbilities.includes(ability.id) ? 'border-primary' : ''}
                         >
-                            <div className="d-flex justify-content-between align-items-start">
-                                <div className="flex-grow-1">
-                                    <div className="fw-bold">{ability.name}</div>
-                                    <div className="small text-muted">{ability.description}</div>
+                        <div className="d-flex justify-content-between align-items-start">
+                            <div className="flex-grow-1">
+                            <div className="fw-bold">{ability.name}</div>
+                            <div className="small text-muted">{ability.description}</div>
 
-                                    <div className="mt-2">
-                                        {isAoS && ability.phase && (
-                                            <Badge
-                                                className="me-1"
-                                                style={{backgroundColor: AoSPhases.getColor(ability.phase)}}
-                                            >
-                                                {AoSPhases.getDisplayName(ability.phase)}
-                                            </Badge>
-                                        )}
-
-                                        {isAoS && ability.frequency && (
-                                            <Badge bg="secondary" className="me-1">
-                                                {AoSAbilityFrequency.getDisplayName(ability.frequency)}
-                                            </Badge>
-                                        )}
-
-                                        {isLegion && ability.timing && (
-                                            <Badge
-                                                bg={ReminderTypes.getBadgeColor(ability.timing)}
-                                            >
-                                                {ReminderTypes.getDisplayName(ability.timing)}
-                                            </Badge>
-                                        )}
-
-                                        {isAoS && ability.abilityKeywords?.length > 0 && (
-                                            <div className="mt-1">
-                                                {ability.abilityKeywords.map(kw => (
-                                                <Badge 
-                                                    key={kw}
-                                                    className="me-1"
-                                                    style={{ 
-                                                    backgroundColor: AoSAbilityKeywords.getColor(kw),
-                                                    fontSize: '0.7rem'
-                                                    }}
-                                                >
-                                                    {AoSAbilityKeywords.getDisplayName(kw)}
-                                                </Badge>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                                <Button
-                                    variant={selectedAbilities.includes(ability.id) ? "danger" : "primary"}
-                                    size="sm"
+                            <div className="mt-2">
+                                {isAoS && ability.phase && (
+                                <Badge
+                                    className="me-1"
+                                    style={{backgroundColor: AoSPhases.getColor(ability.phase)}}
                                 >
-                                    {selectedAbilities.includes(ability.id) ? "Remove" : "Add"}
-                                </Button>
+                                    {AoSPhases.getDisplayName(ability.phase)}
+                                </Badge>
+                                )}
+
+                                {isAoS && ability.frequency && (
+                                <Badge bg="secondary" className="me-1">
+                                    {AoSAbilityFrequency.getDisplayName(ability.frequency)}
+                                </Badge>
+                                )}
+                                
+                                {isAoS && ability.abilityKeywords?.length > 0 && (
+                                <>
+                                    {ability.abilityKeywords.map(kw => (
+                                    <Badge 
+                                        key={kw}
+                                        className="me-1"
+                                        style={{ 
+                                        backgroundColor: AoSAbilityKeywords.getColor(kw),
+                                        fontSize: '0.7rem'
+                                        }}
+                                    >
+                                        {AoSAbilityKeywords.getDisplayName(kw)}
+                                    </Badge>
+                                    ))}
+                                </>
+                                )}
+
+                                {isLegion && ability.timing && (
+                                <Badge bg={ReminderTypes.getBadgeColor(ability.timing)}>
+                                    {ReminderTypes.getDisplayName(ability.timing)}
+                                </Badge>
+                                )}
                             </div>
+                            </div>
+                            <Button
+                            variant={selectedAbilities.includes(ability.id) ? "danger" : "primary"}
+                            size="sm"
+                            onClick={() => toggleAbility(ability.id)}
+                            >
+                            {selectedAbilities.includes(ability.id) ? "Remove" : "Add"}
+                            </Button>
+                        </div>
                         </ListGroup.Item>
                     ))}
                 </ListGroup>

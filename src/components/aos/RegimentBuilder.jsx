@@ -4,14 +4,10 @@ import UnitAssignmentPanel from './UnitAssignmentPanel';
 import AoSFactionKeywords from '../../enums/aos/AoSFactionKeywords';
 import AoSContentTypes from '../../enums/aos/AoSContentTypes';
 
-const RegimentBuilder = ({ 
-  regiment, 
-  availableUnits, 
-  availableContent = [],
-  onSave, 
-  onCancel,
-  saving 
-}) => {
+const RegimentBuilder = ({ regiment, availableUnits = [], availableContent = [], onSave, onCancel, saving }) => {
+  if (!availableUnits) {
+    return <div>Loading...</div>;
+  }
   const [formData, setFormData] = useState({
     name: '',
     commander: null,

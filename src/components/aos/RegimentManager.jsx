@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, Button, Alert, Row, Col } from 'react-bootstrap';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
@@ -25,58 +25,73 @@ const RegimentManager = () => {
   const [showBuilder, setShowBuilder] = useState(false);
 
   useEffect(() => {
-    fetchArmyData();
-  }, [armyId, currentUser]);
+    const fetchArmyData = async () => {
+      if (!currentUser || !armyId) return;
 
-  const fetchArmyData = async () => {
-    if (!currentUser || !armyId) return;
+      try {
+        setLoading(true);
+        
+        const armyRef = doc(db, 'users', currentUser.uid, 'armies', armyId);
+        const armyDoc = await getDoc(armyRef);
 
-    try {
-      setLoading(true);
-      
-      const armyRef = doc(db, 'users', currentUser.uid, 'armies', armyId);
-      const armyDoc = await getDoc(armyRef);
+        if (!armyDoc.exists()) {
+          setError('Army not found');
+          return;
+        }
 
-      if (!armyDoc.exists()) {
-        setError('Army not found');
-        return;
-      }
+        const armyData = { id: armyDoc.id, ...armyDoc.data() };
+        
+        if (armyData.gameSystem !== GameSystems.AOS) {
+          setError('Regiment management is only available for Age of Sigmar armies');
+          return;
+        }
 
-      const armyData = { id: armyDoc.id, ...armyDoc.data() };
-      
-      if (armyData.gameSystem !== GameSystems.AOS) {
-        setError('Regiment management is only available for Age of Sigmar armies');
-        return;
-      }
+        setArmy(armyData);
 
-      setArmy(armyData);
+        const unitPromises = (armyData.units || []).map(async (unitId) => {
+          const unitRef = doc(db, 'users', currentUser.uid, 'units', unitId);
+          const unitDoc = await getDoc(unitRef);
+          return unitDoc.exists() ? { id: unitDoc.id, ...unitDoc.data() } : null;
+        });
+        
+        const unitsData = (await Promise.all(unitPromises)).filter(Boolean);
+        setUnits(unitsData);
 
-      // Fetch units
-      const unitPromises = (armyData.units || []).map(async (unitId) => {
-        const unitRef = doc(db, 'users', currentUser.uid, 'units', unitId);
-        const unitDoc = await getDoc(unitRef);
-        return unitDoc.exists() ? { id: unitDoc.id, ...unitDoc.data() } : null;
-      });
-      
-      const unitsData = (await Promise.all(unitPromises)).filter(Boolean);
-      setUnits(unitsData);
-
-      const contentRef = collection(db, 'users', currentUser.uid, 'armyContent');
-      const contentQuery = query(contentRef, where('gameSystem', '==', GameSystems.AOS));
+        const contentRef = collection(db, 'users', currentUser.uid, 'armyContent');
+        const contentQuery = query(contentRef, where('gameSystem', '==', GameSystems.AOS));
         const contentSnapshot = await getDocs(contentQuery);
         const contentList = contentSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
+          id: doc.id,
+          ...doc.data()
         }));
         setContent(contentList);
 
-    } catch (err) {
-      console.error('Error fetching army data:', err);
-      setError('Failed to load army data');
-    } finally {
-      setLoading(false);
-    }
-  };
+      } catch (err) {
+        console.error('Error fetching army data:', err);
+        setError('Failed to load army data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchArmyData();
+  }, [armyId, currentUser]);
+
+  const availableUnits = useMemo(() => {
+    if (!army) return units;
+    
+    const usedUnitIds = new Set();
+    (army.regiments || []).forEach(reg => {
+      if (editingRegiment?.id !== reg.id) {
+        if (reg.commander) usedUnitIds.add(reg.commander);
+        (reg.subCommanders || []).forEach(id => usedUnitIds.add(id));
+        (reg.troops || []).forEach(id => usedUnitIds.add(id));
+      }
+    });
+    (army.auxiliaryUnits || []).forEach(id => usedUnitIds.add(id));
+    
+    return units.filter(u => !usedUnitIds.has(u.id));
+  }, [army, units, editingRegiment]);
 
   const handleSaveRegiment = async (regimentData) => {
     try {
@@ -145,20 +160,6 @@ const RegimentManager = () => {
     setEditingRegiment(null);
   };
 
-  const getAvailableUnits = () => {
-    const usedUnitIds = new Set();
-    (army.regiments || []).forEach(reg => {
-      if (editingRegiment?.id !== reg.id) {
-        if (reg.commander) usedUnitIds.add(reg.commander);
-        (reg.subCommanders || []).forEach(id => usedUnitIds.add(id));
-        (reg.troops || []).forEach(id => usedUnitIds.add(id));
-      }
-    });
-    (army.auxiliaryUnits || []).forEach(id => usedUnitIds.add(id));
-    
-    return units.filter(u => !usedUnitIds.has(u.id));
-  };
-
   if (loading) return <LoadingSpinner text="Loading regiments..." />;
 
   if (error && !army) {
@@ -179,7 +180,7 @@ const RegimentManager = () => {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2>Regiment Management</h2>
-          <p className="text-muted mb-0">{army.name}</p>
+          <p className="text-muted mb-0">{army?.name}</p>
         </div>
         <div>
           <Button
@@ -207,7 +208,7 @@ const RegimentManager = () => {
       {showBuilder ? (
         <RegimentBuilder
           regiment={editingRegiment}
-          availableUnits={getAvailableUnits()}
+          availableUnits={availableUnits}
           availableContent={content}
           onSave={handleSaveRegiment}
           onCancel={handleCancelBuilder}
@@ -215,7 +216,7 @@ const RegimentManager = () => {
         />
       ) : (
         <>
-          {(army.regiments || []).length === 0 ? (
+          {(army?.regiments || []).length === 0 ? (
             <Alert variant="info">
               <h5>No Regiments Created</h5>
               <p>Age of Sigmar armies are organized into regiments. Each regiment must have:</p>
@@ -245,14 +246,14 @@ const RegimentManager = () => {
 
           <Card className="mt-4">
             <Card.Header>
-              <h5 className="mb-0">Available Units ({getAvailableUnits().length})</h5>
+              <h5 className="mb-0">Available Units ({availableUnits.length})</h5>
             </Card.Header>
             <Card.Body>
-              {getAvailableUnits().length === 0 ? (
+              {availableUnits.length === 0 ? (
                 <p className="text-muted mb-0">All units assigned to regiments</p>
               ) : (
                 <Row>
-                  {getAvailableUnits().map(unit => (
+                  {availableUnits.map(unit => (
                     <Col md={6} lg={4} key={unit.id} className="mb-2">
                       <Card bg="light">
                         <Card.Body className="p-2">
