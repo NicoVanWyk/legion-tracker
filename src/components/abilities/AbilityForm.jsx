@@ -10,6 +10,8 @@ import {useGameSystem} from '../../contexts/GameSystemContext';
 import GameSystems from '../../enums/GameSystems';
 import AoSPhases from '../../enums/aos/AoSPhases';
 import AoSAbilityFrequency from '../../enums/aos/AoSAbilityFrequency';
+import AoSAbilityKeywords from '../../enums/aos/AoSAbilityKeywords';
+import AbilityKeywordSelector from '../aos/AbilityKeywordSelector';
 
 const AbilityForm = () => {
     const {currentSystem} = useGameSystem();
@@ -32,7 +34,8 @@ const AbilityForm = () => {
         // AoS specific
         phase: AoSPhases.ANY,
         frequency: AoSAbilityFrequency.UNLIMITED,
-        effectText: ''
+        effectText: '',
+        abilityKeywords: [] 
     });
 
     const [newReminder, setNewReminder] = useState({
@@ -65,7 +68,8 @@ const AbilityForm = () => {
                         reminders: data.reminders || [],
                         phase: data.phase || AoSPhases.ANY,
                         frequency: data.frequency || AoSAbilityFrequency.UNLIMITED,
-                        effectText: data.effectText || ''
+                        effectText: data.effectText || '',
+                        abilityKeywords: data.abilityKeywords || [] 
                     });
                 } else {
                     setError('Ability not found');
@@ -141,7 +145,8 @@ const AbilityForm = () => {
                 gameSystem: currentSystem,
                 lastUpdated: serverTimestamp(),
                 userId: currentUser.uid,
-                isCustom: true
+                isCustom: true,
+                abilityKeywords: formData.abilityKeywords 
             };
 
             // Add AoS-specific fields
@@ -173,7 +178,8 @@ const AbilityForm = () => {
                     reminders: [],
                     phase: AoSPhases.ANY,
                     frequency: AoSAbilityFrequency.UNLIMITED,
-                    effectText: ''
+                    effectText: '',
+                    abilityKeywords: [] 
                 });
             }
 
@@ -263,6 +269,19 @@ const AbilityForm = () => {
                                             How often this ability can be used
                                         </Form.Text>
                                     </Form.Group>
+
+                                    {isAoS && (
+                                        <Form.Group className="mb-3">
+                                            <Form.Label>Ability Keywords</Form.Label>
+                                            <AbilityKeywordSelector
+                                            selected={formData.abilityKeywords}
+                                            onChange={(keywords) => setFormData(prev => ({ ...prev, abilityKeywords: keywords }))}
+                                            />
+                                            <Form.Text className="text-muted">
+                                            Add keywords like Spell, Prayer, Rampage, etc.
+                                            </Form.Text>
+                                        </Form.Group>
+                                    )}
                                 </Col>
                             </Row>
 

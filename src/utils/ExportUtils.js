@@ -8,78 +8,93 @@ import AttackDice from '../enums/AttackDice';
 import WeaponKeywords from '../enums/WeaponKeywords';
 import UpgradeCardTypes from '../enums/UpgradeCardTypes';
 import KeywordUtils from './KeywordUtils';
+import AoSFactions from '../enums/aos/AoSFactions';
+import AoSUnitTypes from '../enums/aos/AoSUnitTypes';
+import GameSystems from '../enums/GameSystems';
 
-/**
- * Utility for exporting unit and army data to text files
- */
 export default class ExportUtils {
   
-  /**
-   * Creates a text export of a unit with all its details
-   * @param {Object} unit The unit to export
-   * @param {Array} customKeywords Array of custom keywords
-   * @param {Array} upgrades Array of equipped upgrade cards 
-   * @param {Array} abilities Array of abilities
-   * @param {Array} customUnitTypes Array of custom unit types
-   * @returns {String} Formatted text of unit data
-   */
   static exportUnit(unit, customKeywords = [], upgrades = [], abilities = [], customUnitTypes = []) {
     if (!unit) return '';
+    
+    const isAoS = unit.gameSystem === GameSystems.AOS;
+    const FactionEnum = isAoS ? AoSFactions : Factions;
+    const TypeEnum = isAoS ? AoSUnitTypes : UnitTypes;
     
     let exportText = '';
     
     // HEADER SECTION
     exportText += `============================================\n`;
-    exportText += `STAR WARS LEGION - UNIT CARD\n`;
+    exportText += `${isAoS ? 'AGE OF SIGMAR' : 'STAR WARS LEGION'} - UNIT CARD\n`;
     exportText += `============================================\n\n`;
     
     // BASIC INFO
     exportText += `${unit.name?.toUpperCase() || 'UNNAMED UNIT'}\n`;
     exportText += `--------------------------------------------\n`;
-    exportText += `Faction: ${Factions.getDisplayName(unit.faction)}\n`;
-    exportText += `Type: ${this.getTypeDisplayName(unit.type, customUnitTypes)}\n`;
-    exportText += `${unit.isVehicle ? 'Vehicle' : 'Trooper'}\n`;
+    exportText += `Faction: ${FactionEnum.getDisplayName(unit.faction)}\n`;
+    exportText += `Type: ${this.getTypeDisplayName(unit.type, customUnitTypes, TypeEnum)}\n`;
+    
+    if (!isAoS) {
+      exportText += `${unit.isVehicle ? 'Vehicle' : 'Trooper'}\n`;
+    }
     exportText += `Points Cost: ${unit.points || 0}\n\n`;
     
     // STATS
     exportText += `STATS:\n`;
     exportText += `--------------------------------------------\n`;
-    exportText += `Wounds: ${unit.wounds || 1}\n`;
     
-    if (unit.isVehicle) {
-      exportText += `Resilience: ${unit.resilience === 0 ? '-' : unit.resilience}\n`;
+    if (isAoS) {
+      exportText += `Move: ${unit.move || 5}"\n`;
+      exportText += `Health: ${unit.health || 1}\n`;
+      exportText += `Save: ${unit.save || 4}+\n`;
+      exportText += `Control: ${unit.control || 1}\n`;
+      if (unit.ward) exportText += `Ward: ${unit.ward}+\n`;
+      exportText += `Base Size: ${unit.baseSize || '32mm'}\n`;
+      if (unit.reinforceable) exportText += `Reinforceable: Yes\n`;
     } else {
-      exportText += `Courage: ${unit.courage === 0 ? '-' : unit.courage}\n`;
+      exportText += `Wounds: ${unit.wounds || 1}\n`;
+      
+      if (unit.isVehicle) {
+        exportText += `Resilience: ${unit.resilience === 0 ? '-' : unit.resilience}\n`;
+      } else {
+        exportText += `Courage: ${unit.courage === 0 ? '-' : unit.courage}\n`;
+      }
+      
+      exportText += `Speed: ${unit.speed || 2}\n`;
+      exportText += `Defense: ${unit.defense === 'white' ? 'White' : 'Red'}\n`;
+      exportText += `Surge Tokens: ${unit.surgeAttack ? 'Attack' : 'No Attack'}, ${unit.surgeDefense ? 'Defense' : 'No Defense'}\n`;
     }
     
-    exportText += `Speed: ${unit.speed || 2}\n`;
-    exportText += `Defense: ${unit.defense === 'white' ? 'White' : 'Red'}\n`;
-    exportText += `Models: ${unit.minModelCount || 1} (min) / ${unit.currentModelCount || 1} (current)\n`;
-    exportText += `Surge Tokens: ${unit.surgeAttack ? 'Attack' : 'No Attack'}, ${unit.surgeDefense ? 'Defense' : 'No Defense'}\n\n`;
+    exportText += `Models: ${unit.minModelCount || 1} (min) / ${unit.currentModelCount || 1} (current)\n\n`;
 
-   // KEYWORDS
-  const allKeywords = this.getAllKeywords(unit, customKeywords, upgrades);
-  if (allKeywords.length > 0) {
-      exportText += `KEYWORDS:\n`;
+    // FACTION KEYWORDS (AoS)
+    if (isAoS && unit.factionKeywords?.length > 0) {
+      exportText += `FACTION KEYWORDS:\n`;
       exportText += `--------------------------------------------\n`;
+      unit.factionKeywords.forEach(kw => {
+        exportText += `- ${kw}\n`;
+      });
+      exportText += `\n`;
+    }
 
-      // Use the processed keywords directly
-      allKeywords.forEach(keyword => {
+    // KEYWORDS (Legion)
+    if (!isAoS) {
+      const allKeywords = this.getAllKeywords(unit, customKeywords, upgrades);
+      if (allKeywords.length > 0) {
+        exportText += `KEYWORDS:\n`;
+        exportText += `--------------------------------------------\n`;
+        allKeywords.forEach(keyword => {
           let keywordName = this.getKeywordDisplayName(keyword, customKeywords);
-
-          // Check if base keyword exists in the unit's keywords
           const baseKeyword = KeywordUtils.getKeywordBase(keyword);
           const isBaseKeyword = unit.keywords?.some(k =>
-              KeywordUtils.getKeywordBase(k) === baseKeyword
+            KeywordUtils.getKeywordBase(k) === baseKeyword
           );
-
           keywordName = isBaseKeyword ? keywordName : `${keywordName} (from upgrade)`;
-
           exportText += `- ${keywordName}\n`;
-      });
-
-      exportText += `\n`;
-  }
+        });
+        exportText += `\n`;
+      }
+    }
     
     // WEAPONS
     const weapons = this.getAllWeapons(unit, upgrades);
@@ -101,7 +116,6 @@ export default class ExportUtils {
         if (weapon.dice?.[AttackDice.WHITE] > 0) {
           exportText += `${weapon.dice[AttackDice.WHITE]} White, `;
         }
-        // Remove trailing comma and space
         exportText = exportText.replace(/,\s$/, '');
         exportText += `\n`;
         
@@ -124,8 +138,16 @@ export default class ExportUtils {
         exportText += `- ${ability.name}\n`;
         exportText += `  ${ability.description || ''}\n`;
         
+        if (ability.effectText) {
+          exportText += `  Effect: ${ability.effectText}\n`;
+        }
+        
         if (ability.rulesText) {
           exportText += `  Rules: ${ability.rulesText}\n`;
+        }
+        
+        if (ability.abilityKeywords?.length > 0) {
+          exportText += `  Keywords: ${ability.abilityKeywords.join(', ')}\n`;
         }
         
         if (ability.reminders?.length > 0) {
@@ -143,8 +165,8 @@ export default class ExportUtils {
       });
     }
     
-    // UPGRADES
-    if (unit.upgradeSlots?.length > 0) {
+    // UPGRADES (Legion only)
+    if (!isAoS && unit.upgradeSlots?.length > 0) {
       exportText += `UPGRADE SLOTS:\n`;
       exportText += `--------------------------------------------\n`;
       
@@ -182,30 +204,23 @@ export default class ExportUtils {
     return exportText;
   }
   
-  /**
-   * Creates a text export of a complete army with all unit details
-   * @param {Object} army The army to export
-   * @param {Array} unitDetails Array of unit details
-   * @param {Array} customKeywords Array of custom keywords
-   * @param {Array} upgrades Array of all upgrades
-   * @param {Array} abilities Array of all abilities
-   * @param {Array} customUnitTypes Array of custom unit types
-   * @returns {String} Formatted text of army data
-   */
-  static exportArmy(army, unitDetails = [], customKeywords = [], upgrades = [], abilities = [], customUnitTypes = []) {
+  static exportArmy(army, unitDetails = [], customKeywords = [], upgrades = [], abilities = [], customUnitTypes = [], commandCards = [], customContent = []) {
     if (!army) return '';
+    
+    const isAoS = army.gameSystem === GameSystems.AOS;
+    const FactionEnum = isAoS ? AoSFactions : Factions;
     
     let exportText = '';
     
     // HEADER SECTION
     exportText += `============================================\n`;
-    exportText += `STAR WARS LEGION - ARMY ROSTER\n`;
+    exportText += `${isAoS ? 'AGE OF SIGMAR' : 'STAR WARS LEGION'} - ARMY ROSTER\n`;
     exportText += `============================================\n\n`;
     
     // ARMY INFO
     exportText += `${army.name?.toUpperCase() || 'UNNAMED ARMY'}\n`;
     exportText += `--------------------------------------------\n`;
-    exportText += `Faction: ${Factions.getDisplayName(army.faction)}\n`;
+    exportText += `Faction: ${FactionEnum.getDisplayName(army.faction)}\n`;
     exportText += `Total Points: ${army.totalPoints || 0}\n`;
     exportText += `Total Units: ${unitDetails.length}\n\n`;
     
@@ -214,15 +229,106 @@ export default class ExportUtils {
       exportText += army.description + `\n\n`;
     }
     
+    // REGIMENTS (AoS)
+    if (isAoS && army.regiments && army.regiments.length > 0) {
+      exportText += `=== REGIMENTS ===\n\n`;
+      
+      army.regiments.forEach((regiment, index) => {
+        exportText += `REGIMENT ${index + 1}: ${regiment.name}\n`;
+        exportText += '-'.repeat(50) + '\n';
+        
+        // Commander
+        if (regiment.commander) {
+          const commander = unitDetails.find(u => u.id === regiment.commander);
+          if (commander) {
+            exportText += `Commander: ${commander.name}\n`;
+            
+            const equipment = regiment.heroEquipment?.[regiment.commander];
+            if (equipment) {
+              if (equipment.heroicTrait) {
+                const trait = customContent?.find(c => c.id === equipment.heroicTrait);
+                if (trait) exportText += `  - Heroic Trait: ${trait.name}\n`;
+              }
+              if (equipment.artefact) {
+                const art = customContent?.find(c => c.id === equipment.artefact);
+                if (art) exportText += `  - Artefact: ${art.name}\n`;
+              }
+            }
+          }
+        }
+        
+        // Sub-commanders
+        if (regiment.subCommanders && regiment.subCommanders.length > 0) {
+          exportText += `\nSub-commanders:\n`;
+          regiment.subCommanders.forEach(id => {
+            const unit = unitDetails.find(u => u.id === id);
+            if (unit) {
+              exportText += `  - ${unit.name}\n`;
+              
+              const equipment = regiment.heroEquipment?.[id];
+              if (equipment) {
+                if (equipment.heroicTrait) {
+                  const trait = customContent?.find(c => c.id === equipment.heroicTrait);
+                  if (trait) exportText += `    * Heroic Trait: ${trait.name}\n`;
+                }
+                if (equipment.artefact) {
+                  const art = customContent?.find(c => c.id === equipment.artefact);
+                  if (art) exportText += `    * Artefact: ${art.name}\n`;
+                }
+              }
+            }
+          });
+        }
+        
+        // Troops
+        if (regiment.troops && regiment.troops.length > 0) {
+          exportText += `\nTroops:\n`;
+          regiment.troops.forEach(id => {
+            const unit = unitDetails.find(u => u.id === id);
+            if (unit) {
+              exportText += `  - ${unit.name}`;
+              if (unit.isReinforced) exportText += ` (Reinforced)`;
+              exportText += `\n`;
+            }
+          });
+        }
+        
+        // Regiment Ability
+        if (regiment.regimentAbility) {
+          const ability = customContent?.find(c => c.id === regiment.regimentAbility);
+          if (ability) {
+            exportText += `\nRegiment Ability: ${ability.name}\n`;
+            if (ability.effectText) {
+              exportText += `  ${ability.effectText}\n`;
+            }
+          }
+        }
+        
+        exportText += '\n';
+      });
+    }
+
+    // Auxiliary units (AoS)
+    if (isAoS && army.auxiliaryUnits && army.auxiliaryUnits.length > 0) {
+      exportText += '=== AUXILIARY UNITS ===\n\n';
+      army.auxiliaryUnits.forEach(id => {
+        const unit = unitDetails.find(u => u.id === id);
+        if (unit) {
+          exportText += `- ${unit.name}\n`;
+        }
+      });
+      exportText += '\n';
+    }
+    
     // UNIT SUMMARY
     exportText += `UNIT SUMMARY:\n`;
     exportText += `--------------------------------------------\n`;
     
-    // Group units by type
     const unitsByType = {};
     
     unitDetails.forEach(unit => {
-      const type = this.getTypeDisplayName(unit.type, customUnitTypes);
+      const TypeEnum = isAoS ? AoSUnitTypes : UnitTypes;
+      const type = this.getTypeDisplayName(unit.type, customUnitTypes, TypeEnum);
       
       if (!unitsByType[type]) {
         unitsByType[type] = [];
@@ -231,12 +337,10 @@ export default class ExportUtils {
       unitsByType[type].push(unit);
     });
     
-    // Print units by type
     Object.entries(unitsByType).forEach(([type, units]) => {
       exportText += `${type} (${units.length}):\n`;
       
       units.forEach(unit => {
-        // Calculate total points including upgrades
         let totalPoints = unit.points || 0;
         
         if (unit.upgradeSlots) {
@@ -261,9 +365,7 @@ export default class ExportUtils {
     exportText += `DETAILED UNIT INFORMATION\n`;
     exportText += `============================================\n\n`;
     
-    // For each unit, get its abilities and upgrades
     unitDetails.forEach((unit, index) => {
-      // Get unit abilities
       const unitAbilities = [];
       if (unit.abilities?.length > 0) {
         unit.abilities.forEach(abilityId => {
@@ -274,7 +376,6 @@ export default class ExportUtils {
         });
       }
       
-      // Get unit upgrades
       const unitUpgrades = [];
       if (unit.upgradeSlots) {
         unit.upgradeSlots.forEach(slot => {
@@ -287,10 +388,8 @@ export default class ExportUtils {
         });
       }
       
-      // Export unit details
       exportText += this.exportUnit(unit, customKeywords, unitUpgrades, unitAbilities, customUnitTypes);
       
-      // Add separator between units
       if (index < unitDetails.length - 1) {
         exportText += `\n\n============================================\n\n`;
       }
@@ -299,22 +398,14 @@ export default class ExportUtils {
     return exportText;
   }
   
-  // Helper methods
-  
-  /**
-   * Gets the display name for a unit type, handling custom types
-   */
-  static getTypeDisplayName(type, customUnitTypes = []) {
-    if (Object.values(UnitTypes).includes(type)) {
-      return UnitTypes.getDisplayName(type);
+  static getTypeDisplayName(type, customUnitTypes = [], TypeEnum = UnitTypes) {
+    if (Object.values(TypeEnum).includes(type)) {
+      return TypeEnum.getDisplayName(type);
     }
     const customType = customUnitTypes.find(t => t.name === type);
     return customType ? customType.displayName : type;
   }
   
-  /**
-   * Gets the display name for a keyword, handling custom keywords
-   */
   static getKeywordDisplayName(keyword, customKeywords = []) {
     if (keyword.startsWith('custom:')) {
       const customId = keyword.replace('custom:', '');
@@ -324,19 +415,11 @@ export default class ExportUtils {
     return Keywords.getDisplayName(keyword);
   }
   
-  /**
-   * Gets all keywords including those from upgrades
-   */
   static getAllKeywords(unit, customKeywords = [], upgrades = []) {
-      if (!unit) return [];
-
-      // Use KeywordUtils to get all keywords with stacking applied
-      return KeywordUtils.getAllKeywords(unit, upgrades);
+    if (!unit) return [];
+    return KeywordUtils.getAllKeywords(unit, upgrades);
   }
   
-  /**
-   * Gets all weapons including those from upgrades
-   */
   static getAllWeapons(unit, upgrades = []) {
     if (!unit) return [];
     
@@ -360,11 +443,6 @@ export default class ExportUtils {
     return [...baseWeapons.map(w => ({ ...w, source: 'Base Unit' })), ...upgradeWeapons];
   }
   
-  /**
-   * Creates a download of a text file
-   * @param {String} content Text content to download
-   * @param {String} fileName Name of the file
-   */
   static downloadTextFile(content, fileName) {
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -374,7 +452,6 @@ export default class ExportUtils {
     link.href = url;
     link.click();
     
-    // Clean up
     URL.revokeObjectURL(url);
   }
 }

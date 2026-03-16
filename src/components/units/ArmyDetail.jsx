@@ -2,7 +2,7 @@
 import React, {useState, useEffect} from 'react';
 import {Card, Row, Col, Badge, Button, Alert, Table, ListGroup, Accordion} from 'react-bootstrap';
 import {useNavigate, Link} from 'react-router-dom';
-import {doc, getDoc, deleteDoc, collection, getDocs} from 'firebase/firestore';
+import {doc, getDoc, deleteDoc, collection, getDocs, query, where} from 'firebase/firestore';
 import {db} from '../../firebase/config';
 import {useAuth} from '../../contexts/AuthContext';
 import UnitTypes from '../../enums/UnitTypes';
@@ -23,6 +23,8 @@ import {useGameSystem} from '../../contexts/GameSystemContext';
 import AoSFactions from '../../enums/aos/AoSFactions';
 import AoSUnitTypes from '../../enums/aos/AoSUnitTypes';
 import GameSystems from '../../enums/GameSystems';
+import RegimentCard from '../aos/RegimentCard';
+import AoSContentTypes from '../../enums/aos/AoSContentTypes';
 
 const ArmyDetail = ({armyId}) => {
     const [army, setArmy] = useState(null);
@@ -36,6 +38,7 @@ const ArmyDetail = ({armyId}) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [armyContent, setArmyContent] = useState([]);
 
     const {currentUser} = useAuth();
     const {currentSystem} = useGameSystem();
@@ -165,6 +168,21 @@ const ArmyDetail = ({armyId}) => {
                         }
                     }
 
+                    // Fetch army content if AoS
+                    if (currentSystem === GameSystems.AOS && currentUser) {
+                    const contentRef = collection(db, 'users', currentUser.uid, 'armyContent');
+                    const contentQuery = query(
+                        contentRef,
+                        where('gameSystem', '==', GameSystems.AOS)
+                    );
+                    const contentSnapshot = await getDocs(contentQuery);
+                    const contentList = contentSnapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    setArmyContent(contentList);
+                    }
+
                     units.sort((a, b) => {
                         const typeOrder = {};
 
@@ -246,6 +264,11 @@ const ArmyDetail = ({armyId}) => {
 
     const calculateTotalPoints = () => {
         if (!unitDetails || unitDetails.length === 0) return 0;
+        
+        if (currentSystem === GameSystems.AOS && army.regiments) {
+            return ArmyPointsCalculator.calculateArmyPointsWithRegiments(army, unitDetails, armyContent);
+        }
+        
         return ArmyPointsCalculator.calculateArmyPoints(unitDetails, upgrades);
     };
 
@@ -259,7 +282,8 @@ const ArmyDetail = ({armyId}) => {
             upgrades,
             abilities,
             customUnitTypes,
-            commandCards
+            commandCards,
+            armyContent  
         );
 
         ExportUtils.downloadTextFile(armyText, `${army.name.replace(/\s+/g, '_')}_army.txt`);
@@ -391,6 +415,143 @@ const ArmyDetail = ({armyId}) => {
 
     const printArmy = () => {
         window.print();
+    };
+
+    const renderRegiments = () => {
+        if (currentSystem !== GameSystems.AOS) return null;
+
+        const regiments = army.regiments || [];
+        const auxiliaryUnits = (army.auxiliaryUnits || [])
+            .map(id => unitDetails.find(u => u.id === id))
+            .filter(Boolean);
+
+        return (
+            <>
+            <Card className="mb-4">
+                <Card.Header className={`faction-${army.faction}`}>
+                <div className="d-flex justify-content-between align-items-center">
+                    <h5 className="mb-0">
+                    <i className="bi bi-diagram-3-fill me-2"></i>
+                    Regiments ({regiments.length})
+                    </h5>
+                    <Button
+                    variant="outline-light"
+                    size="sm"
+                    onClick={() => navigate(`/armies/${armyId}/regiments`)}
+                    >
+                    <i className="bi bi-pencil me-2"></i>
+                    Manage Regiments
+                    </Button>
+                </div>
+                </Card.Header>
+                <Card.Body>
+                {regiments.length === 0 ? (
+                    <Alert variant="info">
+                    <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                        <strong>No Regiments Created</strong>
+                        <p className="mb-0 mt-2">
+                            Age of Sigmar armies must be organized into regiments. 
+                            Each regiment needs a commander (HERO) and 2-5 troops.
+                        </p>
+                        </div>
+                        <Button
+                        variant="primary"
+                        onClick={() => navigate(`/armies/${armyId}/regiments`)}
+                        >
+                        Create Regiment
+                        </Button>
+                    </div>
+                    </Alert>
+                ) : (
+                    <>
+                    {regiments.map(regiment => (
+                        <RegimentCard
+                        key={regiment.id}
+                        regiment={regiment}
+                        units={unitDetails}
+                        content={armyContent}
+                        showActions={false}
+                        />
+                    ))}
+                    </>
+                )}
+
+                {auxiliaryUnits.length > 0 && (
+                    <div className="mt-4">
+                    <h6 className="text-muted mb-2">
+                        <i className="bi bi-box me-2"></i>
+                        Auxiliary Units ({auxiliaryUnits.length})
+                    </h6>
+                    <Alert variant="secondary">
+                        <small>These units are not part of any regiment and do not benefit from regiment abilities.</small>
+                    </Alert>
+                    <ListGroup>
+                        {auxiliaryUnits.map(unit => (
+                        <ListGroup.Item key={unit.id} className="d-flex justify-content-between align-items-center">
+                            <div>
+                            <strong>{unit.name}</strong>
+                            <span className="ms-2 text-muted small">
+                                {AoSUnitTypes.getDisplayName(unit.type)}
+                            </span>
+                            </div>
+                            <Button
+                            as={Link}
+                            to={`/units/${unit.id}`}
+                            variant="link"
+                            size="sm"
+                            >
+                            View
+                            </Button>
+                        </ListGroup.Item>
+                        ))}
+                    </ListGroup>
+                    </div>
+                )}
+                </Card.Body>
+            </Card>
+
+            {/* Battle Traits & Army-wide Content */}
+            {(army.battleTraits?.length > 0 || army.battleFormations?.length > 0) && (
+                <Card className="mb-4">
+                <Card.Header>
+                    <h5 className="mb-0">
+                    <i className="bi bi-shield-fill-check me-2"></i>
+                    Army Abilities
+                    </h5>
+                </Card.Header>
+                <Card.Body>
+                    {army.battleTraits?.map(traitId => {
+                    const trait = armyContent.find(c => c.id === traitId);
+                    return trait ? (
+                        <Card key={traitId} className="mb-2" bg="light">
+                        <Card.Body>
+                            <h6>{trait.name}</h6>
+                            <p className="mb-0 small">{trait.effectText}</p>
+                        </Card.Body>
+                        </Card>
+                    ) : null;
+                    })}
+
+                    {army.battleFormations?.map(formationId => {
+                    const formation = armyContent.find(c => c.id === formationId);
+                    return formation ? (
+                        <Card key={formationId} className="mb-2" bg="light">
+                        <Card.Body>
+                            <h6>
+                            {formation.name}
+                            <Badge bg="danger" className="ms-2">Battle Formation</Badge>
+                            </h6>
+                            <p className="mb-0 small">{formation.effectText}</p>
+                        </Card.Body>
+                        </Card>
+                    ) : null;
+                    })}
+                </Card.Body>
+                </Card>
+            )}
+            </>
+        );
     };
 
     const renderCommandCards = () => {
@@ -731,7 +892,7 @@ const ArmyDetail = ({armyId}) => {
                 </Col>
             </Row>
 
-            {renderCommandCards()}
+            {renderRegiments()}
 
             <h3>Unit Details</h3>
 

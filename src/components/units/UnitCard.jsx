@@ -3,6 +3,7 @@ import {Card, Button, Row, Col, Badge, OverlayTrigger, Tooltip} from 'react-boot
 import {collection, getDocs, doc, getDoc} from 'firebase/firestore';
 import {db} from '../../firebase/config';
 import {useAuth} from '../../contexts/AuthContext';
+import AoSFactionKeywords from '../../enums/aos/AoSFactionKeywords';
 import Factions from '../../enums/Factions';
 import UnitTypes from '../../enums/UnitTypes';
 import DefenseDice from '../../enums/DefenseDice';
@@ -542,6 +543,24 @@ const UnitCard = ({unit, customUnitTypes}) => {
                                                         <div><strong>Base Size:</strong> {unit.baseSize}</div>
                                                     )}
                                                 </>
+                                            )}
+
+                                            {unit.factionKeywords && unit.factionKeywords.length > 0 && (
+                                                <div className="mb-2">
+                                                    <small className="text-muted d-block mb-1">Faction Keywords:</small>
+                                                    {unit.factionKeywords.map(kw => (
+                                                    <Badge 
+                                                        key={kw}
+                                                        className="me-1 mb-1"
+                                                        style={{ 
+                                                        backgroundColor: AoSFactionKeywords.getColor(kw),
+                                                        fontSize: '0.7rem'
+                                                        }}
+                                                    >
+                                                        {AoSFactionKeywords.getDisplayName(kw)}
+                                                    </Badge>
+                                                    ))}
+                                                </div>
                                             )}
                                         </div>
 

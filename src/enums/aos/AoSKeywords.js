@@ -13,6 +13,7 @@ const AoSKeywords = {
     WIZARD9: 'wizard9',
     WIZARD10: 'wizard10',
     PRIEST: 'priest',
+    PRIEST2: 'priest2',
     CHAMPION: 'champion',
     MUSICIAN: 'musician',
     STANDARD_BEARER: 'standard_bearer',
@@ -27,6 +28,7 @@ const AoSKeywords = {
     REINFORCEMENTS: 'reinforcements',
     UNLIMITED: 'unlimited',
     MANIFESTATION: 'manifestation',
+    BEAST: 'beast',
     UNIQUE: 'unique'
 };
 
@@ -44,7 +46,8 @@ AoSKeywords.getDisplayName = (keyword) => {
         [AoSKeywords.WIZARD8]: 'Wizard (8)',
         [AoSKeywords.WIZARD9]: 'Wizard (9)',
         [AoSKeywords.WIZARD10]: 'Wizard (10)',
-        [AoSKeywords.PRIEST]: 'Priest',
+        [AoSKeywords.PRIEST]: 'Priest (1)',
+        [AoSKeywords.PRIEST2]: 'Priest (2)',
         [AoSKeywords.CHAMPION]: 'Champion',
         [AoSKeywords.MUSICIAN]: 'Musician',
         [AoSKeywords.STANDARD_BEARER]: 'Standard Bearer',
@@ -59,6 +62,7 @@ AoSKeywords.getDisplayName = (keyword) => {
         [AoSKeywords.REINFORCEMENTS]: 'Reinforcements',
         [AoSKeywords.UNLIMITED]: 'Unlimited',
         [AoSKeywords.MANIFESTATION]: 'Manifestation',
+        [AoSKeywords.BEAST]: 'Beast',
         [AoSKeywords.UNIQUE]: 'Unique'
     };
     return names[keyword] || keyword;

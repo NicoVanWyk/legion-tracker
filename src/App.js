@@ -27,6 +27,9 @@ import ProfilePage from './pages/ProfilePage';
 import NotFound from './pages/NotFound';
 import CommandCards from './pages/CommandCards';
 import ArmyKeywordsPage from './pages/ArmyKeywordsPage';
+import RegimentManager from './components/aos/RegimentManager';
+import ArmyContentList from './components/aos/ArmyContentList';
+import ArmyContentForm from './components/aos/ArmyContentForm';
 
 // Custom Keywords
 import CustomKeywordList from './components/custom/CustomKeywordList';
@@ -101,6 +104,10 @@ function App() {
                                     <Route path="/armies/:armyId" element={<Armies/>}/>
                                     <Route path="/armies/create" element={<Armies/>}/>
                                     <Route path="/armies/edit/:armyId" element={<Armies/>}/>
+                                    <Route path="/armies/:armyId/regiments" element={<RegimentManager />} />
+                                    <Route path="/army-content" element={<ArmyContentList />} />
+                                    <Route path="/army-content/create" element={<ArmyContentForm />} />
+                                    <Route path="/army-content/edit/:contentId" element={<ArmyContentForm />} />
 
                                     {/* Army Command Cards (Legion) */}
                                     <Route path="/armies/:armyId/command-cards" element={<ArmyCommandCards/>}/>

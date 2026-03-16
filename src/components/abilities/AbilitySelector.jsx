@@ -8,6 +8,7 @@ import {useAuth} from '../../contexts/AuthContext';
 import ReminderTypes from '../../enums/ReminderTypes';
 import LoadingSpinner from '../layout/LoadingSpinner';
 import {useGameSystem} from '../../contexts/GameSystemContext';
+import AoSAbilityKeywords from '../../enums/aos/AoSAbilityKeywords';
 import GameSystems from '../../enums/GameSystems';
 import AoSPhases from '../../enums/aos/AoSPhases';
 import AoSAbilityFrequency from '../../enums/aos/AoSAbilityFrequency';
@@ -226,6 +227,23 @@ const AbilitySelector = ({selectedAbilities = [], onChange}) => {
                                             >
                                                 {ReminderTypes.getDisplayName(ability.timing)}
                                             </Badge>
+                                        )}
+
+                                        {isAoS && ability.abilityKeywords?.length > 0 && (
+                                            <div className="mt-1">
+                                                {ability.abilityKeywords.map(kw => (
+                                                <Badge 
+                                                    key={kw}
+                                                    className="me-1"
+                                                    style={{ 
+                                                    backgroundColor: AoSAbilityKeywords.getColor(kw),
+                                                    fontSize: '0.7rem'
+                                                    }}
+                                                >
+                                                    {AoSAbilityKeywords.getDisplayName(kw)}
+                                                </Badge>
+                                                ))}
+                                            </div>
                                         )}
                                     </div>
                                 </div>

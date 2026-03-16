@@ -39,7 +39,9 @@ const ArmyForm = () => {
         description: '',
         units: [],
         commandCards: [],
-        totalPoints: 0
+        totalPoints: 0,
+        regiments: [],
+        auxiliaryUnits: []
     });
 
     // Available units
@@ -67,6 +69,8 @@ const ArmyForm = () => {
                             ...armyData,
                             units: armyData.units || [],
                             commandCards: armyData.commandCards || [],
+                            regiments: armyData.regiments || [],
+                            auxiliaryUnits: armyData.auxiliaryUnits || [] 
                         });
 
                         const upgradesRef = collection(db, 'users', currentUser.uid, 'upgradeCards');
@@ -295,6 +299,8 @@ const ArmyForm = () => {
                 ...formData,
                 gameSystem: currentSystem,
                 userId: currentUser.uid,
+                regiments: formData.regiments || [],
+                auxiliaryUnits: formData.auxiliaryUnits || [] ,
                 updatedAt: serverTimestamp()
             };
 

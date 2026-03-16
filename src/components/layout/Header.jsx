@@ -66,20 +66,31 @@ const Header = () => {
                                             Custom Unit Types
                                         </NavDropdown.Item>
                                         <NavDropdown.Divider/>
+                                        
                                         <NavDropdown.Header>Cards & Abilities</NavDropdown.Header>
-                                        <NavDropdown.Item as={Link} to="/command-cards">
+                                        {currentSystem === GameSystems.LEGION && (
+                                            <NavDropdown.Item as={Link} to="/command-cards">
                                             <i className="bi bi-card-heading me-2"></i>
                                             Command Cards
-                                        </NavDropdown.Item>
+                                            </NavDropdown.Item>
+                                        )}
+                                        {currentSystem === GameSystems.AOS && (
+                                            <NavDropdown.Item as={Link} to="/army-content">
+                                            <i className="bi bi-book-fill me-2"></i>
+                                            Army Content
+                                            </NavDropdown.Item>
+                                        )}
                                         <NavDropdown.Item as={Link} to="/abilities">
                                             <i className="bi bi-stars me-2"></i>
                                             Abilities
                                         </NavDropdown.Item>
-                                        <NavDropdown.Item as={Link} to="/upgrades">
+                                        {currentSystem === GameSystems.LEGION && (
+                                            <NavDropdown.Item as={Link} to="/upgrades">
                                             <i className="bi bi-arrow-up-circle-fill me-2"></i>
                                             Upgrade Cards
-                                        </NavDropdown.Item>
-                                    </NavDropdown>
+                                            </NavDropdown.Item>
+                                        )}
+                                        </NavDropdown>
 
                                     <NavDropdown title="Battles" id="battles-dropdown">
                                         <NavDropdown.Item as={Link} to="/battles">My Battles</NavDropdown.Item>

@@ -20,6 +20,8 @@ import {useGameSystem} from '../../contexts/GameSystemContext';
 import AoSFactions from '../../enums/aos/AoSFactions';
 import AoSUnitTypes from '../../enums/aos/AoSUnitTypes';
 import GameSystems from '../../enums/GameSystems';
+import AoSFactionKeywords from '../../enums/aos/AoSFactionKeywords';
+import FactionKeywordSelector from '../aos/FactionKeywordSelector';
 
 const UnitForm = () => {
     const {currentSystem} = useGameSystem();
@@ -69,7 +71,8 @@ const UnitForm = () => {
         miniatures: '',
         notes: '',
         unitIcon: '',
-        cardBackground: ''
+        cardBackground: '',
+        factionKeywords: []
     });
 
     const [validated, setValidated] = useState(false);
@@ -102,7 +105,8 @@ const UnitForm = () => {
                         baseSize: unitData.baseSize || '32mm',
                         reinforceable: unitData.reinforceable || false,
                         unitIcon: unitData.unitIcon || '',
-                        cardBackground: unitData.cardBackground || ''
+                        cardBackground: unitData.cardBackground || '',
+                        factionKeywords: unitData.factionKeywords || []  
                     });
                 } else {
                     setError('Unit not found');
@@ -241,7 +245,8 @@ const UnitForm = () => {
                 gameSystem: currentSystem,
                 totalPoints: calculateTotalPoints(),
                 updatedAt: serverTimestamp(),
-                userId: currentUser.uid
+                userId: currentUser.uid,
+                factionKeywords: formData.factionKeywords 
             };
 
             if (unitId) {
@@ -325,6 +330,24 @@ const UnitForm = () => {
                                     </Form.Group>
                                 </Col>
                             </Row>
+
+                            {isAoS && (
+                                <Row className="mt-3">
+                                    <Col md={12}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Faction Keywords</Form.Label>
+                                        <FactionKeywordSelector
+                                        faction={formData.faction}
+                                        selected={formData.factionKeywords}
+                                        onChange={(keywords) => setFormData(prev => ({ ...prev, factionKeywords: keywords }))}
+                                        />
+                                        <Form.Text className="text-muted">
+                                        Keywords like Hero, Wizard, Priest, or faction-specific keywords
+                                        </Form.Text>
+                                    </Form.Group>
+                                    </Col>
+                                </Row>
+                            )}
 
                             {isLegion && (
                                 <>
