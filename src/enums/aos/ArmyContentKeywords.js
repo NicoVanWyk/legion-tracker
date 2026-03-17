@@ -2,6 +2,7 @@
     DEPLOY: 'DEPLOY',
     RELENTLESS_DISCIPLINE: 'RELENTLESS_DISCIPLINE',
     SPELL: 'SPELL',
+    PRAYER: 'PRAYER',
     UNLIMITED: 'UNLIMITED',
     SUMMON: 'SUMMON',
 
@@ -10,6 +11,7 @@
             DEPLOY: 'Deploy',
             RELENTLESS_DISCIPLINE: 'Relentless Discipline',
             SPELL: 'Spell',
+            PRAYER: 'Prayer',
             UNLIMITED: 'Unlimited',
             SUMMON: 'Summon',
         };
