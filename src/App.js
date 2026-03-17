@@ -30,6 +30,8 @@ import ArmyKeywordsPage from './pages/ArmyKeywordsPage';
 import RegimentManager from './components/aos/RegimentManager';
 import ArmyContentList from './components/aos/ArmyContentList';
 import ArmyContentForm from './components/aos/ArmyContentForm';
+import ArmyContentSelection from './components/aos/ArmyContentSelection';
+import HeroEnhancements from './components/aos/HeroEnhancements';
 
 // Custom Keywords
 import CustomKeywordList from './components/custom/CustomKeywordList';
@@ -114,6 +116,8 @@ function App() {
 
                                     {/* Army Keywords (AOS) */}
                                     <Route path="/armies/:armyId/keywords" element={<ArmyKeywords/>}/>
+                                    <Route path="/armies/:armyId/content" element={<ArmyContentSelection />} />
+                                    <Route path="/armies/:armyId/enhancements" element={<HeroEnhancements />} />
 
                                     {/* Command Card Routes (Legion) */}
                                     <Route path="/command-cards" element={<CommandCards/>}/>

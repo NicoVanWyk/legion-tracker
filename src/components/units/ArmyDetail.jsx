@@ -221,21 +221,26 @@ const ArmyDetail = ({armyId}) => {
 
             {isAoS && (
                 <>
+                    {isAoS && armyId && (
+                        <div className="d-flex gap-2 mb-3">
+                            <Button variant="outline-primary" onClick={() => navigate(`/armies/${armyId}/regiments`)}>
+                                <i className="bi bi-diagram-3 me-2"></i>Manage Regiments
+                            </Button>
+                            <Button variant="outline-primary" onClick={() => navigate(`/armies/${armyId}/content`)}>
+                                <i className="bi bi-book me-2"></i>Army Content
+                            </Button>
+                            <Button variant="outline-primary" onClick={() => navigate(`/armies/${armyId}/enhancements`)}>
+                                <i className="bi bi-gem me-2"></i>Hero Enhancements
+                            </Button>
+                        </div>
+                    )}
+
                     <Card className="mb-4">
                         <Card.Header className={`faction-${army.faction}`}>
-                            <div className="d-flex justify-content-between align-items-center">
-                                <h5 className="mb-0">
-                                    <i className="bi bi-diagram-3 me-2"></i>
-                                    Regiments ({regiments.length}/5)
-                                </h5>
-                                <Button
-                                    variant="outline-light"
-                                    size="sm"
-                                    onClick={() => navigate(`/armies/${armyId}/regiments`)}
-                                >
-                                    <i className="bi bi-gear me-2"></i>Manage
-                                </Button>
-                            </div>
+                            <h5 className="mb-0">
+                                <i className="bi bi-diagram-3 me-2"></i>
+                                Regiments ({regiments.length}/5)
+                            </h5>
                         </Card.Header>
                         <Card.Body>
                             {generalUnit && (

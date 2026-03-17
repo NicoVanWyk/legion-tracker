@@ -309,6 +309,11 @@ const UnitList = () => {
                                             <div className="mt-2 small text-muted">
                                                 <strong>Faction:</strong> {getFactionDisplayName(unit.faction)}
                                             </div>
+                                            {currentSystem === GameSystems.AOS && (
+                                                <div className="mt-2 small">
+                                                    <strong>Stats:</strong> {unit.move || 5}" / {unit.health || 1}H / {unit.save || 4}+ / {unit.control || 1}C
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="keyword-container mb-3"
