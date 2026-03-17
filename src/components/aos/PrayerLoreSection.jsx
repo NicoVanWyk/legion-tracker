@@ -8,6 +8,7 @@ const PrayerLoreSection = ({prayers, onUpdate}) => {
     const [newPrayer, setNewPrayer] = useState({
         name: '',
         prayerValue: 3,
+        description: '',
         range: '',
         effect: '',
         phase: AoSPhases.HERO,
@@ -50,6 +51,7 @@ const PrayerLoreSection = ({prayers, onUpdate}) => {
         setNewPrayer({
             name: '',
             prayerValue: 3,
+            description: '',
             range: '',
             effect: '',
             phase: AoSPhases.HERO,
@@ -70,6 +72,16 @@ const PrayerLoreSection = ({prayers, onUpdate}) => {
                                 placeholder="Prayer name"
                                 value={newPrayer.name}
                                 onChange={(e) => setNewPrayer(prev => ({...prev, name: e.target.value}))}
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-2">
+                            <Form.Label>Description</Form.Label>
+                            <Form.Control
+                                as="textarea"
+                                rows={2}
+                                placeholder="Brief description of the prayer"
+                                value={newPrayer.description}
+                                onChange={(e) => setNewPrayer(prev => ({...prev, description: e.target.value}))}
                             />
                         </Form.Group>
                     </Col>
@@ -173,6 +185,9 @@ const PrayerLoreSection = ({prayers, onUpdate}) => {
                             <ListGroup.Item key={i} className="d-flex justify-content-between align-items-start">
                                 <div className="flex-grow-1">
                                     <strong>{prayer.name}</strong> - Prayer {prayer.prayerValue}, {prayer.range}
+                                    {prayer.description && (
+                                        <div className="small text-muted mt-1">{prayer.description}</div>
+                                    )}
                                     <div className="small text-muted mt-1">
                                         <Badge bg="secondary"
                                                className="me-1">{AoSPhases.getDisplayName(prayer.phase)}</Badge>
