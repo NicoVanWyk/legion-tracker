@@ -1,6 +1,7 @@
+// src/components/regiments/RegimentManager.jsx
 import React, { useState, useEffect, useMemo } from 'react';
-import { Card, Button, Alert, Row, Col } from 'react-bootstrap';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Card, Button, Alert, Row, Col, Form } from 'react-bootstrap';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,10 +9,12 @@ import RegimentBuilder from './RegimentBuilder';
 import RegimentCard from './RegimentCard';
 import LoadingSpinner from '../layout/LoadingSpinner';
 import GameSystems from '../../enums/GameSystems';
+import AoSKeywords from '../../enums/aos/AoSKeywords';
 
 const RegimentManager = () => {
   const { armyId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser } = useAuth();
   
   const [army, setArmy] = useState(null);
@@ -23,6 +26,7 @@ const RegimentManager = () => {
   const [success, setSuccess] = useState('');
   const [editingRegiment, setEditingRegiment] = useState(null);
   const [showBuilder, setShowBuilder] = useState(false);
+  const [generalUnitId, setGeneralUnitId] = useState(null);
 
   useEffect(() => {
     const fetchArmyData = async () => {
@@ -47,6 +51,7 @@ const RegimentManager = () => {
         }
 
         setArmy(armyData);
+        setGeneralUnitId(armyData.generalUnitId || null);
 
         const unitPromises = (armyData.units || []).map(async (unitId) => {
           const unitRef = doc(db, 'users', currentUser.uid, 'units', unitId);
@@ -77,6 +82,13 @@ const RegimentManager = () => {
     fetchArmyData();
   }, [armyId, currentUser]);
 
+  useEffect(() => {
+    if (location.state?.editingRegiment && !showBuilder) {
+      setEditingRegiment(location.state.editingRegiment);
+      setShowBuilder(true);
+    }
+  }, [location.state]);
+
   const availableUnits = useMemo(() => {
     if (!army) return units;
     
@@ -84,8 +96,7 @@ const RegimentManager = () => {
     (army.regiments || []).forEach(reg => {
       if (editingRegiment?.id !== reg.id) {
         if (reg.commander) usedUnitIds.add(reg.commander);
-        (reg.subCommanders || []).forEach(id => usedUnitIds.add(id));
-        (reg.troops || []).forEach(id => usedUnitIds.add(id));
+        (reg.units || []).forEach(({unitId}) => usedUnitIds.add(unitId));
       }
     });
     (army.auxiliaryUnits || []).forEach(id => usedUnitIds.add(id));
@@ -160,6 +171,20 @@ const RegimentManager = () => {
     setEditingRegiment(null);
   };
 
+  const handleGeneralChange = async (newGeneralId) => {
+    setGeneralUnitId(newGeneralId || null);
+    
+    try {
+      const armyRef = doc(db, 'users', currentUser.uid, 'armies', armyId);
+      await updateDoc(armyRef, { generalUnitId: newGeneralId || null });
+      setSuccess('General updated');
+      setTimeout(() => setSuccess(''), 2000);
+    } catch (err) {
+      console.error('Error updating general:', err);
+      setError('Failed to update general');
+    }
+  };
+
   if (loading) return <LoadingSpinner text="Loading regiments..." />;
 
   if (error && !army) {
@@ -174,6 +199,8 @@ const RegimentManager = () => {
       </Alert>
     );
   }
+
+  const heroUnits = units.filter(u => u.keywords?.includes(AoSKeywords.HERO));
 
   return (
     <div>
@@ -205,6 +232,31 @@ const RegimentManager = () => {
       {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
       {success && <Alert variant="success" dismissible onClose={() => setSuccess('')}>{success}</Alert>}
 
+      {!showBuilder && (
+        <Card className="mb-4">
+          <Card.Header>
+            <h5 className="mb-0">Army General</h5>
+          </Card.Header>
+          <Card.Body>
+            <Form.Select
+              value={generalUnitId || ''}
+              onChange={(e) => handleGeneralChange(e.target.value)}
+            >
+              <option value="">No general selected</option>
+              {heroUnits.map(hero => (
+                <option key={hero.id} value={hero.id}>
+                  {hero.name}
+                  {hero.keywords?.includes(AoSKeywords.WARMASTER) && ' (WARMASTER)'}
+                </option>
+              ))}
+            </Form.Select>
+            <Form.Text className="text-muted">
+              The general's regiment gets 4 unit slots instead of 3
+            </Form.Text>
+          </Card.Body>
+        </Card>
+      )}
+
       {showBuilder ? (
         <RegimentBuilder
           regiment={editingRegiment}
@@ -213,6 +265,7 @@ const RegimentManager = () => {
           onSave={handleSaveRegiment}
           onCancel={handleCancelBuilder}
           saving={saving}
+          generalUnitId={generalUnitId}
         />
       ) : (
         <>
@@ -222,8 +275,8 @@ const RegimentManager = () => {
               <p>Age of Sigmar armies are organized into regiments. Each regiment must have:</p>
               <ul>
                 <li>1 Commander (HERO)</li>
-                <li>0-2 Sub-commanders (HEROES)</li>
-                <li>2-5 Troops (units, reinforced units count as 2)</li>
+                <li>0-3 Units (0-4 for general's regiment)</li>
+                <li>Heroes can join as sub-commanders if their battle profile allows</li>
                 <li>1 Regiment Ability (optional)</li>
               </ul>
             </Alert>
@@ -236,6 +289,7 @@ const RegimentManager = () => {
                     regiment={regiment}
                     units={units}
                     content={content}
+                    generalUnitId={generalUnitId}
                     onEdit={handleEditRegiment}
                     onDelete={handleDeleteRegiment}
                   />

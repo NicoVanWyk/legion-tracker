@@ -1,7 +1,6 @@
 // src/enums/aos/AoSKeywords.js
 const AoSKeywords = {
     FLY: 'fly',
-    WARD: 'ward',
     WIZARD1: 'wizard1',
     WIZARD2: 'wizard2',
     WIZARD3: 'wizard3',
@@ -28,6 +27,8 @@ const AoSKeywords = {
     REINFORCEMENTS: 'reinforcements',
     UNLIMITED: 'unlimited',
     MANIFESTATION: 'manifestation',
+    ENDLESSSPELL: 'endlessspell',
+    INVOCATION: 'invocation',
     BEAST: 'beast',
     UNIQUE: 'unique'
 };
@@ -35,7 +36,6 @@ const AoSKeywords = {
 AoSKeywords.getDisplayName = (keyword) => {
     const names = {
         [AoSKeywords.FLY]: 'Fly',
-        [AoSKeywords.WARD]: 'Ward',
         [AoSKeywords.WIZARD1]: 'Wizard (1)',
         [AoSKeywords.WIZARD2]: 'Wizard (2)',
         [AoSKeywords.WIZARD3]: 'Wizard (3)',
@@ -62,6 +62,8 @@ AoSKeywords.getDisplayName = (keyword) => {
         [AoSKeywords.REINFORCEMENTS]: 'Reinforcements',
         [AoSKeywords.UNLIMITED]: 'Unlimited',
         [AoSKeywords.MANIFESTATION]: 'Manifestation',
+        [AoSKeywords.ENDLESSSPELL]: 'Endless Spell',
+        [AoSKeywords.INVOCATION]: 'Invocation',
         [AoSKeywords.BEAST]: 'Beast',
         [AoSKeywords.UNIQUE]: 'Unique'
     };

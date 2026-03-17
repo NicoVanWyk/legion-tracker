@@ -1,3 +1,4 @@
+// src/components/aos/ArmyContentForm.jsx
 import React, {useState, useEffect, useCallback} from 'react';
 import {Form, Button, Card, Alert, Row, Col} from 'react-bootstrap';
 import {useNavigate, useParams} from 'react-router-dom';
@@ -8,10 +9,10 @@ import {useGameSystem} from '../../contexts/GameSystemContext';
 import AoSFactions from '../../enums/aos/AoSFactions';
 import AoSContentTypes from '../../enums/aos/AoSContentTypes';
 import GameSystems from '../../enums/GameSystems';
-import AoSKeywords from '../../enums/aos/AoSKeywords';
 import AoSAbilityFrequency from '../../enums/aos/AoSAbilityFrequency';
-import ArmyContentKeywordSelector from './ArmyContentKeywordSelector';
 import AoSPhases from '../../enums/aos/AoSPhases';
+import ArmyContentKeywordSelector from './ArmyContentKeywordSelector';
+import RequiredKeywordsSelector from './RequiredKeywordsSelector';
 import SpellLoreSection from './SpellLoreSection';
 import PrayerLoreSection from './PrayerLoreSection';
 import ManifestationLoreSection from './ManifestationLoreSection';
@@ -31,7 +32,7 @@ const ArmyContentForm = () => {
         faction: '',
         description: '',
         effectText: '',
-        restrictions: [],
+        requiredKeywords: [],
         pointsCost: 0,
         phase: AoSPhases.PASSIVE,
         frequency: AoSAbilityFrequency.UNLIMITED,
@@ -59,7 +60,7 @@ const ArmyContentForm = () => {
                     faction: data.faction || '',
                     description: data.description || '',
                     effectText: data.effectText || '',
-                    restrictions: data.restrictions || [],
+                    requiredKeywords: data.requiredKeywords || [],
                     pointsCost: data.pointsCost || 0,
                     phase: data.phase || AoSPhases.PASSIVE,
                     frequency: data.frequency || AoSAbilityFrequency.UNLIMITED,
@@ -100,15 +101,6 @@ const ArmyContentForm = () => {
         }));
     };
 
-    const handleRestrictionToggle = (restriction) => {
-        setFormData(prev => ({
-            ...prev,
-            restrictions: prev.restrictions.includes(restriction)
-                ? prev.restrictions.filter(r => r !== restriction)
-                : [...prev.restrictions, restriction]
-        }));
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -135,27 +127,18 @@ const ArmyContentForm = () => {
                 userId: currentUser.uid
             };
 
-            // Only add description/effectText for non-lore types
             if (formData.contentType !== AoSContentTypes.SPELL_LORE &&
                 formData.contentType !== AoSContentTypes.PRAYER_LORE &&
                 formData.contentType !== AoSContentTypes.MANIFESTATION) {
                 contentData.description = formData.description.trim();
                 contentData.effectText = formData.effectText.trim();
+                contentData.requiredKeywords = formData.requiredKeywords;
             }
 
-            // Add phase/frequency/keywords for all types (optional)
             contentData.phase = formData.phase;
             contentData.keywords = formData.keywords;
             contentData.frequency = formData.frequency;
 
-            // Only add restrictions for non-lore types
-            if (formData.contentType !== AoSContentTypes.SPELL_LORE &&
-                formData.contentType !== AoSContentTypes.PRAYER_LORE &&
-                formData.contentType !== AoSContentTypes.MANIFESTATION) {
-                contentData.restrictions = formData.restrictions;
-            }
-
-            // Add type-specific fields
             if (formData.contentType === AoSContentTypes.SPELL_LORE) {
                 contentData.spells = formData.spells;
             } else if (formData.contentType === AoSContentTypes.PRAYER_LORE) {
@@ -166,6 +149,8 @@ const ArmyContentForm = () => {
                 contentData.formationRequirements = formData.formationRequirements;
             } else if (formData.contentType === AoSContentTypes.COMMAND) {
                 contentData.commandValue = formData.commandValue;
+            } else if (formData.contentType === AoSContentTypes.ARTEFACT) {
+                contentData.pointsCost = formData.pointsCost;
             }
 
             if (contentId) {
@@ -182,14 +167,13 @@ const ArmyContentForm = () => {
                 );
                 setSuccess('Content created successfully!');
 
-                // Reset form
                 setFormData({
                     name: '',
                     contentType: AoSContentTypes.BATTLE_TRAIT,
                     faction: '',
                     description: '',
                     effectText: '',
-                    restrictions: [],
+                    requiredKeywords: [],
                     pointsCost: 0,
                     phase: AoSPhases.PASSIVE,
                     frequency: AoSAbilityFrequency.UNLIMITED,
@@ -197,7 +181,6 @@ const ArmyContentForm = () => {
                     spells: [],
                     prayers: [],
                     manifestations: [],
-                    manifestationType: 'ENDLESS_SPELL',
                     formationRequirements: '',
                     commandValue: 1
                 });
@@ -420,20 +403,14 @@ const ArmyContentForm = () => {
 
                     {showDescriptionAndEffect && (
                         <Form.Group className="mb-3">
-                            <Form.Label>Restrictions</Form.Label>
-                            <div>
-                                {[AoSKeywords.HERO, AoSKeywords.WIZARD1, AoSKeywords.PRIEST].map(kw => (
-                                    <Form.Check
-                                        key={kw}
-                                        inline
-                                        type="checkbox"
-                                        id={`restriction-${kw}`}
-                                        label={AoSKeywords.getDisplayName(kw)}
-                                        checked={formData.restrictions.includes(kw)}
-                                        onChange={() => handleRestrictionToggle(kw)}
-                                    />
-                                ))}
-                            </div>
+                            <Form.Label>Required Keywords</Form.Label>
+                            <RequiredKeywordsSelector
+                                selected={formData.requiredKeywords}
+                                onChange={(kw) => setFormData(prev => ({...prev, requiredKeywords: kw}))}
+                            />
+                            <Form.Text className="text-muted">
+                                Heroes must have ALL of these keywords to take this enhancement
+                            </Form.Text>
                         </Form.Group>
                     )}
 

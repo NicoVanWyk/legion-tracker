@@ -15,6 +15,7 @@ const AoSFactionKeywords = {
   
   // Ossiarch Bonereapers
   OSSIARCH_BONEREAPERS: 'OSSIARCH_BONEREAPERS',
+  MORTISAN: 'MORTISAN',
   MORTIS_PRAETORIANS: 'MORTIS_PRAETORIANS',
   PETRIFEX_ELITE: 'PETRIFEX_ELITE',
   STALLIARCH_LORDS: 'STALLIARCH_LORDS',
@@ -35,6 +36,7 @@ const AoSFactionKeywords = {
       THE_BLACKTALONS: 'The Blacktalons',
       WARRIOR_CHAMBER: 'Warrior Chamber',
       OSSIARCH_BONEREAPERS: 'Ossiarch Bonereapers',
+      MORTISAN: 'Mortisan',
       MORTIS_PRAETORIANS: 'Mortis Praetorians',
       PETRIFEX_ELITE: 'Petrifex Elite',
       STALLIARCH_LORDS: 'Stalliarch Lords',
@@ -71,7 +73,7 @@ const AoSFactionKeywords = {
       'SACROSANCT_CHAMBER', 'THE_BLACKTALONS', 'WARRIOR_CHAMBER'
     ];
     const ossiarch = [
-      'DEATH', 'OSSIARCH_BONEREAPERS', 'MORTIS_PRAETORIANS', 'PETRIFEX_ELITE',
+      'DEATH', 'OSSIARCH_BONEREAPERS', 'MORTISAN', 'MORTIS_PRAETORIANS', 'PETRIFEX_ELITE',
       'STALLIARCH_LORDS', 'IVORY_HOST', 'NULL_MYRIAD', 'CREMATORIANS'
     ];
 

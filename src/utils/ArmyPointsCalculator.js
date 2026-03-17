@@ -53,25 +53,17 @@ class ArmyPointsCalculator {
             if (unit) total += unit.points || 0;
         }
         
-        // Sub-commanders
-        (regiment.subCommanders || []).forEach(id => {
-            const unit = units.find(u => u.id === id);
+        // All units
+        (regiment.units || []).forEach(({unitId}) => {
+            const unit = units.find(u => u.id === unitId);
             if (unit) total += unit.points || 0;
         });
         
-        // Troops
-        (regiment.troops || []).forEach(id => {
-            const unit = units.find(u => u.id === id);
-            if (unit) total += unit.points || 0;
-        });
-        
-        // Artefact costs from hero equipment
+        // Artefact costs
         Object.values(regiment.heroEquipment || {}).forEach(equipment => {
             if (equipment.artefact) {
                 const artefact = content.find(c => c.id === equipment.artefact);
-                if (artefact && artefact.pointsCost) {
-                    total += artefact.pointsCost;
-                }
+                if (artefact?.pointsCost) total += artefact.pointsCost;
             }
         });
         
@@ -81,18 +73,30 @@ class ArmyPointsCalculator {
     static calculateArmyPointsWithRegiments(army, units, content = []) {
         let total = 0;
         
-        // Regiment points
         (army.regiments || []).forEach(regiment => {
             total += ArmyPointsCalculator.calculateRegimentPoints(regiment, units, content);
         });
         
-        // Auxiliary unit points
         (army.auxiliaryUnits || []).forEach(id => {
             const unit = units.find(u => u.id === id);
             if (unit) total += unit.points || 0;
         });
         
         return total;
+    }
+
+    static validateUnitPointsCap(unit, armyPointsLimit) {
+        const unitPoints = unit.points || 0;
+        const maxAllowed = armyPointsLimit / 2;
+        
+        if (unitPoints > maxAllowed) {
+            return {
+                valid: false,
+                error: `${unit.name} costs ${unitPoints} pts, exceeds 50% of army limit (${maxAllowed} pts)`
+            };
+        }
+        
+        return { valid: true };
     }
 }
 

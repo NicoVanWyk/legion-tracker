@@ -4,21 +4,22 @@ import { Link } from 'react-router-dom';
 import AoSFactionKeywords from '../../enums/aos/AoSFactionKeywords';
 import AoSKeywords from '../../enums/aos/AoSKeywords';
 
-const RegimentCard = ({ regiment, units, content = [], onEdit, onDelete, showActions = true }) => {
+const RegimentCard = ({ regiment, units, content = [], onEdit, onDelete, showActions = true, generalUnitId }) => {
   const [expanded, setExpanded] = useState(false);
 
   const getUnit = (unitId) => units.find(u => u.id === unitId);
   const getContent = (contentId) => content.find(c => c.id === contentId);
 
   const commander = getUnit(regiment.commander);
-  const subCommanders = (regiment.subCommanders || []).map(getUnit).filter(Boolean);
-  const troops = (regiment.troops || []).map(getUnit).filter(Boolean);
+  const isGeneralRegiment = regiment.commander === generalUnitId;
+  const maxSlots = isGeneralRegiment ? 4 : 3;
   const regimentAbility = getContent(regiment.regimentAbility);
 
+  // Migration: handle old format
+  const regimentUnits = regiment.units || [];
+  
   const getTroopSlots = () => {
-    return troops.reduce((total, unit) => {
-      return total + (unit?.isReinforced ? 2 : 1);
-    }, 0);
+    return regimentUnits.length; // Each unit = 1 slot in 4E
   };
 
   const getHeroEquipment = (unitId) => {
@@ -36,7 +37,7 @@ const RegimentCard = ({ regiment, units, content = [], onEdit, onDelete, showAct
           <i className={`bi bi-people-fill me-2`}></i>
           <h5 className="mb-0">{regiment.name || 'Unnamed Regiment'}</h5>
           <Badge bg="secondary" className="ms-3">
-            {getTroopSlots()}/5 Troops
+            {getTroopSlots()}/{maxSlots} Units
           </Badge>
           {regimentAbility && (
             <Badge bg="info" className="ms-2">
@@ -140,128 +141,89 @@ const RegimentCard = ({ regiment, units, content = [], onEdit, onDelete, showAct
             )}
           </div>
 
-          {/* Sub-commanders */}
-          {subCommanders.length > 0 && (
-            <div className="mb-3">
-              <h6 className="text-muted mb-2">
-                <i className="bi bi-stars me-2"></i>
-                Sub-commanders ({subCommanders.length}/2)
-              </h6>
-              <ListGroup>
-                {subCommanders.map(unit => (
-                  <ListGroup.Item key={unit.id}>
-                    <div className="d-flex justify-content-between align-items-start">
-                      <div>
-                        <strong>{unit.name}</strong>
-                        <div className="small text-muted mt-1">
-                          {unit.keywords?.slice(0, 3).map(kw => (
-                              <Badge
-                                  key={kw}
-                                  bg="secondary"
-                                  className="me-1"
-                                  style={{fontSize: '0.7rem'}}
-                              >
-                                {AoSKeywords.getDisplayName(kw)}
-                              </Badge>
-                          ))}
-                          {unit.subfaction && (
-                              <Badge bg="primary" className="ms-1" style={{fontSize: '0.7rem'}}>
-                                {AoSFactionKeywords.getDisplayName(unit.subfaction)}
-                              </Badge>
-                          )}
-                          {unit.grandAlliance && (
-                              <Badge bg="secondary" className="ms-1" style={{fontSize: '0.7rem'}}>
-                                {AoSFactionKeywords.getDisplayName(unit.grandAlliance)}
-                              </Badge>
-                          )}
-                        </div>
-                        {getHeroEquipment(unit.id).heroicTrait && (
-                          <div className="mt-2">
-                            <Badge bg="warning" text="dark">
-                              <i className="bi bi-star me-1"></i>
-                              {getContent(getHeroEquipment(unit.id).heroicTrait)?.name}
-                            </Badge>
-                          </div>
-                        )}
-                        {getHeroEquipment(unit.id).artefact && (
-                          <div className="mt-1">
-                            <Badge bg="primary">
-                              <i className="bi bi-gem me-1"></i>
-                              {getContent(getHeroEquipment(unit.id).artefact)?.name}
-                            </Badge>
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        as={Link}
-                        to={`/units/${unit.id}`}
-                        variant="link"
-                        size="sm"
-                      >
-                        View
-                      </Button>
-                    </div>
-                  </ListGroup.Item>
-                ))}
-              </ListGroup>
-            </div>
-          )}
-
-          {/* Troops */}
+          {/* Units */}
           <div className="mb-3">
             <h6 className="text-muted mb-2">
               <i className="bi bi-people me-2"></i>
-              Troops ({getTroopSlots()}/5 slots)
+              Units ({getTroopSlots()}/{maxSlots} slots)
             </h6>
-            {troops.length > 0 ? (
+            {regimentUnits.length > 0 ? (
               <ListGroup>
-                {troops.map(unit => (
-                  <ListGroup.Item key={unit.id}>
-                    <div className="d-flex justify-content-between align-items-start">
-                      <div>
-                        <strong>{unit.name}</strong>
-                        {unit.isReinforced && (
-                          <Badge bg="success" className="ms-2">Reinforced (2 slots)</Badge>
-                        )}
-                        <div className="small text-muted mt-1">
-                          {unit.keywords?.slice(0, 3).map(kw => (
+                {regimentUnits.map(({unitId, isSubCommander}, index) => {
+                  const unit = getUnit(unitId);
+                  if (!unit) return null;
+
+                  return (
+                    <ListGroup.Item key={index}>
+                      <div className="d-flex justify-content-between align-items-start">
+                        <div>
+                          <strong>{unit.name}</strong>
+                          {isSubCommander && (
+                            <Badge bg="info" className="ms-2">Sub-commander</Badge>
+                          )}
+                          {unit.isReinforced && (
+                            <Badge bg="success" className="ms-2">Reinforced</Badge>
+                          )}
+                          <div className="small text-muted mt-1">
+                            {unit.keywords?.slice(0, 3).map(kw => (
                               <Badge
-                                  key={kw}
-                                  bg="secondary"
-                                  className="me-1"
-                                  style={{fontSize: '0.7rem'}}
+                                key={kw}
+                                bg="secondary"
+                                className="me-1"
+                                style={{fontSize: '0.7rem'}}
                               >
                                 {AoSKeywords.getDisplayName(kw)}
                               </Badge>
-                          ))}
-                          {unit.subfaction && (
+                            ))}
+                            {unit.subfaction && (
                               <Badge bg="primary" className="ms-1" style={{fontSize: '0.7rem'}}>
                                 {AoSFactionKeywords.getDisplayName(unit.subfaction)}
                               </Badge>
-                          )}
-                          {unit.grandAlliance && (
+                            )}
+                            {unit.grandAlliance && (
                               <Badge bg="secondary" className="ms-1" style={{fontSize: '0.7rem'}}>
                                 {AoSFactionKeywords.getDisplayName(unit.grandAlliance)}
                               </Badge>
+                            )}
+                          </div>
+                          {isSubCommander && (
+                            <>
+                              {getHeroEquipment(unit.id).heroicTrait && (
+                                <div className="mt-2">
+                                  <Badge bg="warning" text="dark">
+                                    <i className="bi bi-star me-1"></i>
+                                    {getContent(getHeroEquipment(unit.id).heroicTrait)?.name}
+                                  </Badge>
+                                </div>
+                              )}
+                              {getHeroEquipment(unit.id).artefact && (
+                                <div className="mt-1">
+                                  <Badge bg="primary">
+                                    <i className="bi bi-gem me-1"></i>
+                                    {getContent(getHeroEquipment(unit.id).artefact)?.name}
+                                  </Badge>
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
+                        <Button
+                          as={Link}
+                          to={`/units/${unit.id}`}
+                          variant="link"
+                          size="sm"
+                        >
+                          View
+                        </Button>
                       </div>
-                      <Button
-                        as={Link}
-                        to={`/units/${unit.id}`}
-                        variant="link"
-                        size="sm"
-                      >
-                        View
-                      </Button>
-                    </div>
-                  </ListGroup.Item>
-                ))}
+                    </ListGroup.Item>
+                  );
+                })}
               </ListGroup>
             ) : (
-              <div className="text-warning">
-                <i className="bi bi-exclamation-triangle me-2"></i>
-                No troops assigned (minimum 2 required)
+              <div className="text-muted">
+                <i className="bi bi-info-circle me-2"></i>
+                No units assigned
               </div>
             )}
           </div>

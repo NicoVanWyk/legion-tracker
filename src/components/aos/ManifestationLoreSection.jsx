@@ -10,9 +10,6 @@ const ManifestationLoreSection = ({manifestations, onUpdate}) => {
         description: '',
         manifestationType: 'ENDLESS_SPELL',
         summoningCost: 0,
-        move: 0,
-        save: 0,
-        health: 0,
         effect: '',
         phase: AoSPhases.HERO,
         keywords: [],
@@ -56,9 +53,6 @@ const ManifestationLoreSection = ({manifestations, onUpdate}) => {
             description: '',
             manifestationType: 'ENDLESS_SPELL',
             summoningCost: 0,
-            move: 0,
-            save: 0,
-            health: 0,
             effect: '',
             phase: AoSPhases.HERO,
             keywords: [],
@@ -122,45 +116,6 @@ const ManifestationLoreSection = ({manifestations, onUpdate}) => {
                                 onChange={(e) => setNewManifestation(prev => ({
                                     ...prev,
                                     summoningCost: parseInt(e.target.value) || 0
-                                }))}
-                            />
-                        </Form.Group>
-                    </Col>
-                    <Col md={2}>
-                        <Form.Group>
-                            <Form.Label>Move</Form.Label>
-                            <Form.Control
-                                type="number"
-                                value={newManifestation.move}
-                                onChange={(e) => setNewManifestation(prev => ({
-                                    ...prev,
-                                    move: parseInt(e.target.value) || 0
-                                }))}
-                            />
-                        </Form.Group>
-                    </Col>
-                    <Col md={2}>
-                        <Form.Group>
-                            <Form.Label>Save</Form.Label>
-                            <Form.Control
-                                type="number"
-                                value={newManifestation.save}
-                                onChange={(e) => setNewManifestation(prev => ({
-                                    ...prev,
-                                    save: parseInt(e.target.value) || 0
-                                }))}
-                            />
-                        </Form.Group>
-                    </Col>
-                    <Col md={2}>
-                        <Form.Group>
-                            <Form.Label>Health</Form.Label>
-                            <Form.Control
-                                type="number"
-                                value={newManifestation.health}
-                                onChange={(e) => setNewManifestation(prev => ({
-                                    ...prev,
-                                    health: parseInt(e.target.value) || 0
                                 }))}
                             />
                         </Form.Group>
@@ -236,9 +191,6 @@ const ManifestationLoreSection = ({manifestations, onUpdate}) => {
                                     <div className="small text-muted mt-1">
                                         <Badge bg="warning" text="dark"
                                                className="me-1">Summon: {manifestation.summoningCost}</Badge>
-                                        <Badge bg="secondary" className="me-1">Move: {manifestation.move}"</Badge>
-                                        <Badge bg="secondary" className="me-1">Save: {manifestation.save}+</Badge>
-                                        <Badge bg="danger" className="me-1">Health: {manifestation.health}</Badge>
                                         <Badge bg="info"
                                                className="me-1">{AoSPhases.getDisplayName(manifestation.phase)}</Badge>
                                         {manifestation.keywords?.map(kw => (
