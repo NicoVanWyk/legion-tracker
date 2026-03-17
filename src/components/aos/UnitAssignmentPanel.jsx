@@ -1,286 +1,223 @@
-import React, { useState, useEffect } from 'react';
-import { Form, Button, Card, Alert, Row, Col } from 'react-bootstrap';
-import UnitAssignmentPanel from './UnitAssignmentPanel';
-import AoSFactionKeywords from '../../enums/aos/AoSFactionKeywords';
-import AoSContentTypes from '../../enums/aos/AoSContentTypes';
+import React from 'react';
+import {Card, ListGroup, Badge, Button, Row, Col} from 'react-bootstrap';
+import AoSKeywords from '../../enums/aos/AoSKeywords';
+import AoSUnitTypes from '../../enums/aos/AoSUnitTypes';
 
-const RegimentBuilder = ({ 
-  regiment, 
-  availableUnits, 
-  availableContent = [],
-  onSave, 
-  onCancel,
-  saving 
-}) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    commander: null,
-    subCommanders: [],
-    troops: [],
-    regimentAbility: null,
-    heroEquipment: {}
-  });
-  const [errors, setErrors] = useState([]);
+const UnitAssignmentPanel = ({
+                                 availableUnits,
+                                 commander,
+                                 subCommanders = [],
+                                 troops = [],
+                                 onAssignment
+                             }) => {
+    const getUnit = (id) => availableUnits.find(u => u.id === id);
 
-  useEffect(() => {
-    if (regiment) {
-      setFormData({
-        name: regiment.name || '',
-        commander: regiment.commander || null,
-        subCommanders: regiment.subCommanders || [],
-        troops: regiment.troops || [],
-        regimentAbility: regiment.regimentAbility || null,
-        heroEquipment: regiment.heroEquipment || {}
-      });
-    }
-  }, [regiment]);
+    const assignedIds = new Set([commander, ...subCommanders, ...troops].filter(Boolean));
+    const unassignedUnits = availableUnits.filter(u => !assignedIds.has(u.id));
+    const isHero = (unit) => unit?.keywords?.includes(AoSKeywords.HERO);
 
-  const validate = () => {
-    const errors = [];
+    const handleAssignCommander = (unitId) => {
+        onAssignment('commander', [unitId]);
+    };
 
-    if (!formData.name.trim()) {
-      errors.push('Regiment name is required');
-    }
-
-    if (!formData.commander) {
-      errors.push('Commander is required');
-    } else {
-      const commander = availableUnits.find(u => u.id === formData.commander);
-      if (!commander?.factionKeywords?.includes(AoSFactionKeywords.HERO)) {
-        errors.push('Commander must be a HERO');
-      }
-    }
-
-    if (formData.subCommanders.length > 2) {
-      errors.push('Maximum 2 sub-commanders allowed');
-    }
-
-    formData.subCommanders.forEach(id => {
-      const unit = availableUnits.find(u => u.id === id);
-      if (!unit?.factionKeywords?.includes(AoSFactionKeywords.HERO)) {
-        errors.push(`Sub-commander ${unit?.name} must be a HERO`);
-      }
-    });
-
-    const troopSlots = formData.troops.reduce((total, id) => {
-      const unit = availableUnits.find(u => u.id === id);
-      return total + (unit?.isReinforced ? 2 : 1);
-    }, 0);
-
-    if (troopSlots < 2) {
-      errors.push('Minimum 2 troop slots required');
-    }
-    if (troopSlots > 5) {
-      errors.push('Maximum 5 troop slots allowed');
-    }
-
-    return errors;
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const validationErrors = validate();
-    
-    if (validationErrors.length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
-
-    setErrors([]);
-    onSave(formData);
-  };
-
-  const handleUnitAssignment = (slotType, unitIds) => {
-    if (slotType === 'commander') {
-      setFormData(prev => ({ ...prev, commander: unitIds[0] || null }));
-    } else if (slotType === 'subCommanders') {
-      setFormData(prev => ({ ...prev, subCommanders: unitIds.slice(0, 2) }));
-    } else if (slotType === 'troops') {
-      setFormData(prev => ({ ...prev, troops: unitIds }));
-    }
-  };
-
-  const handleHeroEquipment = (unitId, equipmentType, contentId) => {
-    setFormData(prev => ({
-      ...prev,
-      heroEquipment: {
-        ...prev.heroEquipment,
-        [unitId]: {
-          ...(prev.heroEquipment[unitId] || {}),
-          [equipmentType]: contentId
+    const handleAssignSubCommander = (unitId) => {
+        if (subCommanders.length < 2) {
+            onAssignment('subCommanders', [...subCommanders, unitId]);
         }
-      }
-    }));
-  };
+    };
 
-  const getTroopSlots = () => {
-    return formData.troops.reduce((total, id) => {
-      const unit = availableUnits.find(u => u.id === id);
-      return total + (unit?.isReinforced ? 2 : 1);
-    }, 0);
-  };
+    const handleRemoveSubCommander = (unitId) => {
+        onAssignment('subCommanders', subCommanders.filter(id => id !== unitId));
+    };
 
-  const getHeroes = () => {
-    const heroes = [];
-    if (formData.commander) heroes.push(formData.commander);
-    heroes.push(...formData.subCommanders);
-    return heroes;
-  };
+    const handleAssignTroop = (unitId) => {
+        const unit = getUnit(unitId);
+        const currentSlots = troops.reduce((total, id) => {
+            const u = getUnit(id);
+            return total + (u?.isReinforced ? 2 : 1);
+        }, 0);
+        const newSlots = unit?.isReinforced ? 2 : 1;
 
-  const regimentAbilities = availableContent.filter(c => 
-    c.contentType === AoSContentTypes.REGIMENT_ABILITY
-  );
+        if (currentSlots + newSlots <= 5) {
+            onAssignment('troops', [...troops, unitId]);
+        }
+    };
 
-  const heroicTraits = availableContent.filter(c => 
-    c.contentType === AoSContentTypes.HEROIC_TRAIT
-  );
+    const handleRemoveTroop = (unitId) => {
+        onAssignment('troops', troops.filter(id => id !== unitId));
+    };
 
-  const artefacts = availableContent.filter(c => 
-    c.contentType === AoSContentTypes.ARTEFACT
-  );
+    const getTroopSlots = () => {
+        return troops.reduce((total, id) => {
+            const unit = getUnit(id);
+            return total + (unit?.isReinforced ? 2 : 1);
+        }, 0);
+    };
 
-  return (
-    <Card>
-      <Card.Header>
-        <h4 className="mb-0">{regiment ? 'Edit Regiment' : 'Create Regiment'}</h4>
-      </Card.Header>
-      <Card.Body>
-        {errors.length > 0 && (
-          <Alert variant="danger">
-            <strong>Validation Errors:</strong>
-            <ul className="mb-0 mt-2">
-              {errors.map((err, i) => <li key={i}>{err}</li>)}
-            </ul>
-          </Alert>
-        )}
-
-        <Form onSubmit={handleSubmit}>
-          <Form.Group className="mb-4">
-            <Form.Label>Regiment Name*</Form.Label>
-            <Form.Control
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="e.g., Vanguard Strike Force"
-              required
-            />
-          </Form.Group>
-
-          <UnitAssignmentPanel
-            availableUnits={availableUnits}
-            commander={formData.commander}
-            subCommanders={formData.subCommanders}
-            troops={formData.troops}
-            onAssignment={handleUnitAssignment}
-          />
-
-          <Row className="mt-4">
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Regiment Ability (Optional)</Form.Label>
-                <Form.Select
-                  value={formData.regimentAbility || ''}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    regimentAbility: e.target.value || null 
-                  }))}
-                >
-                  <option value="">None</option>
-                  {regimentAbilities.map(ability => (
-                    <option key={ability.id} value={ability.id}>
-                      {ability.name}
-                    </option>
-                  ))}
-                </Form.Select>
-                {regimentAbilities.length === 0 && (
-                  <Form.Text className="text-muted">
-                    No regiment abilities available. Create them in Army Content.
-                  </Form.Text>
+    const UnitListItem = ({unit, onAssign, variant = 'primary', disabled = false}) => (
+        <ListGroup.Item className="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{unit.name}</strong>
+                <div className="small text-muted">
+                    {AoSUnitTypes.getDisplayName(unit.type)} • {unit.points} pts
+                    {unit.isReinforced && <Badge bg="success" className="ms-2">Reinforced</Badge>}
+                </div>
+                {unit.keywords && unit.keywords.length > 0 && (
+                    <div className="mt-1">
+                        {unit.keywords.slice(0, 3).map(kw => (
+                            <Badge key={kw} bg="secondary" className="me-1" style={{fontSize: '0.65rem'}}>
+                                {AoSKeywords.getDisplayName(kw)}
+                            </Badge>
+                        ))}
+                    </div>
                 )}
-              </Form.Group>
+            </div>
+            <Button variant={variant} size="sm" onClick={() => onAssign(unit.id)} disabled={disabled}>
+                Assign
+            </Button>
+        </ListGroup.Item>
+    );
+
+    const AssignedUnitItem = ({unit, onRemove}) => (
+        <ListGroup.Item className="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{unit.name}</strong>
+                <div className="small text-muted">
+                    {unit.points} pts
+                    {unit.isReinforced && <Badge bg="success" className="ms-2">Reinforced (2 slots)</Badge>}
+                </div>
+            </div>
+            <Button variant="outline-danger" size="sm" onClick={() => onRemove(unit.id)}>
+                Remove
+            </Button>
+        </ListGroup.Item>
+    );
+
+    return (
+        <Row>
+            <Col md={8}>
+                <Card className="mb-3">
+                    <Card.Header className="bg-warning text-dark">
+                        <strong>Commander (Required)</strong>
+                    </Card.Header>
+                    <Card.Body className="p-2">
+                        {commander ? (
+                            <ListGroup variant="flush">
+                                <AssignedUnitItem
+                                    unit={getUnit(commander)}
+                                    onRemove={() => onAssignment('commander', [])}
+                                />
+                            </ListGroup>
+                        ) : (
+                            <div className="text-danger p-2">
+                                <i className="bi bi-exclamation-triangle me-2"></i>
+                                No commander assigned
+                            </div>
+                        )}
+                    </Card.Body>
+                </Card>
+
+                <Card className="mb-3">
+                    <Card.Header>
+                        <strong>Sub-commanders ({subCommanders.length}/2)</strong>
+                    </Card.Header>
+                    <Card.Body className="p-2">
+                        {subCommanders.length === 0 ? (
+                            <div className="text-muted p-2">No sub-commanders assigned</div>
+                        ) : (
+                            <ListGroup variant="flush">
+                                {subCommanders.map(id => (
+                                    <AssignedUnitItem
+                                        key={id}
+                                        unit={getUnit(id)}
+                                        onRemove={handleRemoveSubCommander}
+                                    />
+                                ))}
+                            </ListGroup>
+                        )}
+                    </Card.Body>
+                </Card>
+
+                <Card className="mb-3">
+                    <Card.Header className="bg-primary text-white">
+                        <strong>Troops ({getTroopSlots()}/5 slots, need 2-5)</strong>
+                    </Card.Header>
+                    <Card.Body className="p-2">
+                        {troops.length === 0 ? (
+                            <div className="text-warning p-2">
+                                <i className="bi bi-exclamation-triangle me-2"></i>
+                                No troops assigned (minimum 2 slots required)
+                            </div>
+                        ) : (
+                            <ListGroup variant="flush">
+                                {troops.map(id => (
+                                    <AssignedUnitItem key={id} unit={getUnit(id)} onRemove={handleRemoveTroop}/>
+                                ))}
+                            </ListGroup>
+                        )}
+                    </Card.Body>
+                </Card>
             </Col>
-          </Row>
 
-          {getHeroes().length > 0 && (
-            <Card className="mb-4">
-              <Card.Header>
-                <h5 className="mb-0">Hero Equipment</h5>
-              </Card.Header>
-              <Card.Body>
-                {getHeroes().map(heroId => {
-                  const hero = availableUnits.find(u => u.id === heroId);
-                  if (!hero) return null;
+            <Col md={4}>
+                <Card>
+                    <Card.Header>
+                        <strong>Available Units ({unassignedUnits.length})</strong>
+                    </Card.Header>
+                    <Card.Body className="p-0" style={{maxHeight: '600px', overflowY: 'auto'}}>
+                        {unassignedUnits.length === 0 ? (
+                            <div className="p-3 text-muted">All units assigned</div>
+                        ) : (
+                            <>
+                                {unassignedUnits.filter(isHero).length > 0 && (
+                                    <>
+                                        <div className="px-3 pt-3 pb-1 bg-light">
+                                            <small className="text-muted">HEROES</small>
+                                        </div>
+                                        <ListGroup variant="flush">
+                                            {unassignedUnits.filter(isHero).map(unit => (
+                                                <UnitListItem
+                                                    key={unit.id}
+                                                    unit={unit}
+                                                    onAssign={(id) => {
+                                                        if (!commander) {
+                                                            handleAssignCommander(id);
+                                                        } else if (subCommanders.length < 2) {
+                                                            handleAssignSubCommander(id);
+                                                        }
+                                                    }}
+                                                    variant={!commander ? 'warning' : 'info'}
+                                                    disabled={commander && subCommanders.length >= 2}
+                                                />
+                                            ))}
+                                        </ListGroup>
+                                    </>
+                                )}
 
-                  return (
-                    <Card key={heroId} className="mb-3" bg="light">
-                      <Card.Body>
-                        <h6>{hero.name}</h6>
-                        <Row>
-                          <Col md={6}>
-                            <Form.Group className="mb-2">
-                              <Form.Label className="small">Heroic Trait</Form.Label>
-                              <Form.Select
-                                size="sm"
-                                value={formData.heroEquipment[heroId]?.heroicTrait || ''}
-                                onChange={(e) => handleHeroEquipment(heroId, 'heroicTrait', e.target.value || null)}
-                              >
-                                <option value="">None</option>
-                                {heroicTraits.map(trait => (
-                                  <option key={trait.id} value={trait.id}>
-                                    {trait.name}
-                                  </option>
-                                ))}
-                              </Form.Select>
-                            </Form.Group>
-                          </Col>
-                          <Col md={6}>
-                            <Form.Group className="mb-2">
-                              <Form.Label className="small">Artefact</Form.Label>
-                              <Form.Select
-                                size="sm"
-                                value={formData.heroEquipment[heroId]?.artefact || ''}
-                                onChange={(e) => handleHeroEquipment(heroId, 'artefact', e.target.value || null)}
-                              >
-                                <option value="">None</option>
-                                {artefacts.map(art => (
-                                  <option key={art.id} value={art.id}>
-                                    {art.name}
-                                  </option>
-                                ))}
-                              </Form.Select>
-                            </Form.Group>
-                          </Col>
-                        </Row>
-                      </Card.Body>
-                    </Card>
-                  );
-                })}
-              </Card.Body>
-            </Card>
-          )}
-
-          <Alert variant="info">
-            <strong>Regiment Summary:</strong>
-            <ul className="mb-0 mt-2">
-              <li>Commander: {formData.commander ? '✓' : '✗ Required'}</li>
-              <li>Sub-commanders: {formData.subCommanders.length}/2</li>
-              <li>Troops: {getTroopSlots()}/5 slots (need 2-5)</li>
-              <li>Regiment Ability: {formData.regimentAbility ? '✓' : 'None'}</li>
-            </ul>
-          </Alert>
-
-          <div className="d-flex justify-content-between">
-            <Button variant="secondary" onClick={onCancel} disabled={saving}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" disabled={saving}>
-              {saving ? 'Saving...' : 'Save Regiment'}
-            </Button>
-          </div>
-        </Form>
-      </Card.Body>
-    </Card>
-  );
+                                {unassignedUnits.filter(u => !isHero(u)).length > 0 && (
+                                    <>
+                                        <div className="px-3 pt-3 pb-1 bg-light">
+                                            <small className="text-muted">TROOPS</small>
+                                        </div>
+                                        <ListGroup variant="flush">
+                                            {unassignedUnits.filter(u => !isHero(u)).map(unit => (
+                                                <UnitListItem
+                                                    key={unit.id}
+                                                    unit={unit}
+                                                    onAssign={handleAssignTroop}
+                                                    disabled={getTroopSlots() >= 5}
+                                                />
+                                            ))}
+                                        </ListGroup>
+                                    </>
+                                )}
+                            </>
+                        )}
+                    </Card.Body>
+                </Card>
+            </Col>
+        </Row>
+    );
 };
 
-export default RegimentBuilder;
+export default UnitAssignmentPanel;

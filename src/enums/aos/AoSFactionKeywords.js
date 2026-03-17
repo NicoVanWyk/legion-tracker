@@ -22,15 +22,6 @@ const AoSFactionKeywords = {
   NULL_MYRIAD: 'NULL_MYRIAD',
   CREMATORIANS: 'CREMATORIANS',
 
-  // Universal Keywords
-  HERO: 'HERO',
-  WIZARD: 'WIZARD',
-  PRIEST: 'PRIEST',
-  WARD: 'WARD',
-  FLY: 'FLY',
-  MONSTER: 'MONSTER',
-  WAR_MACHINE: 'WAR_MACHINE',
-
   getDisplayName: (keyword) => {
     const names = {
       ORDER: 'Order',
@@ -49,14 +40,7 @@ const AoSFactionKeywords = {
       STALLIARCH_LORDS: 'Stalliarch Lords',
       IVORY_HOST: 'Ivory Host',
       NULL_MYRIAD: 'Null Myriad',
-      CREMATORIANS: 'Crematorians',
-      HERO: 'Hero',
-      WIZARD: 'Wizard',
-      PRIEST: 'Priest',
-      WARD: 'Ward',
-      FLY: 'Fly',
-      MONSTER: 'Monster',
-      WAR_MACHINE: 'War Machine'
+      CREMATORIANS: 'Crematorians'
     };
     return names[keyword] || keyword.replace(/_/g, ' ');
   },
@@ -64,11 +48,9 @@ const AoSFactionKeywords = {
   getType: (keyword) => {
     const grandAlliances = ['ORDER', 'CHAOS', 'DEATH', 'DESTRUCTION'];
     const factions = ['STORMCAST_ETERNALS', 'OSSIARCH_BONEREAPERS'];
-    const universal = ['HERO', 'WIZARD', 'PRIEST', 'WARD', 'FLY', 'MONSTER', 'WAR_MACHINE'];
 
     if (grandAlliances.includes(keyword)) return 'GRAND_ALLIANCE';
     if (factions.includes(keyword)) return 'FACTION';
-    if (universal.includes(keyword)) return 'UNIVERSAL';
     return 'SUB_FACTION';
   },
 

@@ -21,7 +21,6 @@ import AoSFactions from '../../enums/aos/AoSFactions';
 import AoSUnitTypes from '../../enums/aos/AoSUnitTypes';
 import GameSystems from '../../enums/GameSystems';
 import AoSFactionKeywords from '../../enums/aos/AoSFactionKeywords';
-import FactionKeywordSelector from '../aos/FactionKeywordSelector';
 
 const UnitForm = () => {
     const {currentSystem} = useGameSystem();
@@ -60,6 +59,8 @@ const UnitForm = () => {
         control: 1,
         baseSize: '32mm',
         reinforceable: false,
+        grandAlliance: '',
+        subfaction: '',
         // Common
         speed: 2,
         minModelCount: 1,
@@ -71,8 +72,7 @@ const UnitForm = () => {
         miniatures: '',
         notes: '',
         unitIcon: '',
-        cardBackground: '',
-        factionKeywords: []
+        cardBackground: ''
     });
 
     const [validated, setValidated] = useState(false);
@@ -104,9 +104,10 @@ const UnitForm = () => {
                         control: unitData.control || 1,
                         baseSize: unitData.baseSize || '32mm',
                         reinforceable: unitData.reinforceable || false,
+                        grandAlliance: unitData.grandAlliance || '',
+                        subfaction: unitData.subfaction || '',
                         unitIcon: unitData.unitIcon || '',
-                        cardBackground: unitData.cardBackground || '',
-                        factionKeywords: unitData.factionKeywords || []  
+                        cardBackground: unitData.cardBackground || ''
                     });
                 } else {
                     setError('Unit not found');
@@ -245,8 +246,7 @@ const UnitForm = () => {
                 gameSystem: currentSystem,
                 totalPoints: calculateTotalPoints(),
                 updatedAt: serverTimestamp(),
-                userId: currentUser.uid,
-                factionKeywords: formData.factionKeywords 
+                userId: currentUser.uid
             };
 
             if (unitId) {
@@ -333,18 +333,47 @@ const UnitForm = () => {
 
                             {isAoS && (
                                 <Row className="mt-3">
-                                    <Col md={12}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Faction Keywords</Form.Label>
-                                        <FactionKeywordSelector
-                                        faction={formData.faction}
-                                        selected={formData.factionKeywords}
-                                        onChange={(keywords) => setFormData(prev => ({ ...prev, factionKeywords: keywords }))}
-                                        />
-                                        <Form.Text className="text-muted">
-                                        Keywords like Hero, Wizard, Priest, or faction-specific keywords
-                                        </Form.Text>
-                                    </Form.Group>
+                                    <Col md={6}>
+                                        <Form.Group>
+                                            <Form.Label>Grand Alliance</Form.Label>
+                                            <Form.Select
+                                                name="grandAlliance"
+                                                value={formData.grandAlliance}
+                                                onChange={handleChange}
+                                            >
+                                                <option value="">Select...</option>
+                                                <option value={AoSFactionKeywords.ORDER}>Order</option>
+                                                <option value={AoSFactionKeywords.CHAOS}>Chaos</option>
+                                                <option value={AoSFactionKeywords.DEATH}>Death</option>
+                                                <option value={AoSFactionKeywords.DESTRUCTION}>Destruction</option>
+                                            </Form.Select>
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Group>
+                                            <Form.Label>Subfaction (Optional)</Form.Label>
+                                            <Form.Select
+                                                name="subfaction"
+                                                value={formData.subfaction}
+                                                onChange={handleChange}
+                                            >
+                                                <option value="">None</option>
+                                                {AoSFactionKeywords.getKeywordsByFaction(
+                                                    formData.faction === 'stormcast_eternals' ? 'STORMCAST_ETERNALS' :
+                                                        formData.faction === 'ossiarch_bonereapers' ? 'OSSIARCH_BONEREAPERS' : ''
+                                                )
+                                                    .filter(kw => AoSFactionKeywords.getType(kw) === 'SUB_FACTION')
+                                                    .map(kw => (
+                                                        <option key={kw} value={kw}>
+                                                            {AoSFactionKeywords.getDisplayName(kw)}
+                                                        </option>
+                                                    ))
+                                                }
+                                            </Form.Select>
+                                            <Form.Text className="text-muted">
+                                                e.g., The Blacktalons, Mortis Praetorians
+                                            </Form.Text>
+                                        </Form.Group>
                                     </Col>
                                 </Row>
                             )}
@@ -594,8 +623,14 @@ const UnitForm = () => {
                 </Tab>
 
                 <Tab eventKey="keywords" title="Keywords">
-                    <Card><Card.Body><KeywordSelector selectedKeywords={formData.keywords}
-                                                      onChange={handleKeywordsChange}/></Card.Body></Card>
+                    <Card>
+                        <Card.Body>
+                            <KeywordSelector selectedKeywords={formData.keywords} onChange={handleKeywordsChange}/>
+                            <Form.Text className="text-muted">
+                                {isAoS ? 'Include HERO, WIZARD, PRIEST, FLY, MONSTER, etc.' : 'Select unit keywords'}
+                            </Form.Text>
+                        </Card.Body>
+                    </Card>
                 </Tab>
 
                 <Tab eventKey="weapons" title="Weapons">

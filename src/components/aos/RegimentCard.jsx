@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, Badge, ListGroup, Button, Collapse } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import AoSFactionKeywords from '../../enums/aos/AoSFactionKeywords';
+import AoSKeywords from '../../enums/aos/AoSKeywords';
 
 const RegimentCard = ({ regiment, units, content = [], onEdit, onDelete, showActions = true }) => {
   const [expanded, setExpanded] = useState(false);
@@ -153,19 +154,26 @@ const RegimentCard = ({ regiment, units, content = [], onEdit, onDelete, showAct
                       <div>
                         <strong>{unit.name}</strong>
                         <div className="small text-muted mt-1">
-                          {unit.factionKeywords?.map(kw => (
-                            <Badge 
-                              key={kw} 
-                              bg="secondary" 
-                              className="me-1"
-                              style={{ 
-                                backgroundColor: AoSFactionKeywords.getColor(kw),
-                                fontSize: '0.7rem'
-                              }}
-                            >
-                              {AoSFactionKeywords.getDisplayName(kw)}
-                            </Badge>
+                          {unit.keywords?.slice(0, 3).map(kw => (
+                              <Badge
+                                  key={kw}
+                                  bg="secondary"
+                                  className="me-1"
+                                  style={{fontSize: '0.7rem'}}
+                              >
+                                {AoSKeywords.getDisplayName(kw)}
+                              </Badge>
                           ))}
+                          {unit.subfaction && (
+                              <Badge bg="primary" className="ms-1" style={{fontSize: '0.7rem'}}>
+                                {AoSFactionKeywords.getDisplayName(unit.subfaction)}
+                              </Badge>
+                          )}
+                          {unit.grandAlliance && (
+                              <Badge bg="secondary" className="ms-1" style={{fontSize: '0.7rem'}}>
+                                {AoSFactionKeywords.getDisplayName(unit.grandAlliance)}
+                              </Badge>
+                          )}
                         </div>
                         {getHeroEquipment(unit.id).heroicTrait && (
                           <div className="mt-2">
@@ -216,19 +224,26 @@ const RegimentCard = ({ regiment, units, content = [], onEdit, onDelete, showAct
                           <Badge bg="success" className="ms-2">Reinforced (2 slots)</Badge>
                         )}
                         <div className="small text-muted mt-1">
-                          {unit.factionKeywords?.map(kw => (
-                            <Badge 
-                              key={kw} 
-                              bg="secondary" 
-                              className="me-1"
-                              style={{ 
-                                backgroundColor: AoSFactionKeywords.getColor(kw),
-                                fontSize: '0.7rem'
-                              }}
-                            >
-                              {AoSFactionKeywords.getDisplayName(kw)}
-                            </Badge>
+                          {unit.keywords?.slice(0, 3).map(kw => (
+                              <Badge
+                                  key={kw}
+                                  bg="secondary"
+                                  className="me-1"
+                                  style={{fontSize: '0.7rem'}}
+                              >
+                                {AoSKeywords.getDisplayName(kw)}
+                              </Badge>
                           ))}
+                          {unit.subfaction && (
+                              <Badge bg="primary" className="ms-1" style={{fontSize: '0.7rem'}}>
+                                {AoSFactionKeywords.getDisplayName(unit.subfaction)}
+                              </Badge>
+                          )}
+                          {unit.grandAlliance && (
+                              <Badge bg="secondary" className="ms-1" style={{fontSize: '0.7rem'}}>
+                                {AoSFactionKeywords.getDisplayName(unit.grandAlliance)}
+                              </Badge>
+                          )}
                         </div>
                       </div>
                       <Button
