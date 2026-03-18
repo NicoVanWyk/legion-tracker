@@ -4,16 +4,46 @@ import {Form, Button, Card, Alert, Row, Col, ListGroup, Badge} from 'react-boots
 import AoSKeywords from '../../enums/aos/AoSKeywords';
 import AoSContentTypes from '../../enums/aos/AoSContentTypes';
 
-const RegimentBuilder = ({regiment, availableUnits = [], availableContent = [], onSave, onCancel, saving, generalUnitId}) => {
+const RegimentBuilder = ({
+                             regiment,
+                             availableUnits = [],
+                             availableContent = [],
+                             onSave,
+                             onCancel,
+                             saving,
+                             generalUnitId
+                         }) => {
+
     const isGeneralRegiment = regiment?.commander === generalUnitId;
     const [formData, setFormData] = useState({
         name: '',
         commander: null,
-        units: [], // NEW: replaces subCommanders + troops
+        units: [], // {unitId, isSubCommander, isReinforced, reinforcingUnitId}
         regimentAbility: null,
         heroEquipment: {}
     });
     const [errors, setErrors] = useState([]);
+
+    useEffect(() => {
+        if (regiment) {
+            setFormData({
+                name: regiment.name || '',
+                commander: regiment.commander || null,
+                units: (regiment.units || []).map(u => ({
+                    unitId: u.unitId,
+                    isSubCommander: u.isSubCommander || false,
+                    isReinforced: u.isReinforced || false,
+                    reinforcingUnitId: u.reinforcingUnitId || null
+                })),
+                regimentAbility: regiment.regimentAbility || null,
+                heroEquipment: regiment.heroEquipment || {}
+            });
+        }
+    }, [regiment]);
+
+    const getTroopSlots = () => {
+        return formData.units.length;
+    };
 
     const validate = () => {
         const errors = [];
@@ -32,31 +62,23 @@ const RegimentBuilder = ({regiment, availableUnits = [], availableContent = [], 
         }
 
         const maxSlots = isGeneralRegiment ? 4 : 3;
-        if (formData.units.length > maxSlots) {
-            errors.push(`Maximum ${maxSlots} unit slots allowed`);
+        const usedSlots = getTroopSlots();
+        if (usedSlots > maxSlots) {
+            errors.push(`Maximum ${maxSlots} unit slots allowed (currently using ${usedSlots})`);
         }
 
-        formData.units.forEach(({unitId, isSubCommander}) => {
+        formData.units.forEach(({unitId, isSubCommander, isReinforced, reinforcingUnitId}) => {
             const unit = availableUnits.find(u => u.id === unitId);
             if (isSubCommander && !unit?.keywords?.includes(AoSKeywords.HERO)) {
                 errors.push(`${unit?.name} must be a HERO to be sub-commander`);
+            }
+            if (isReinforced && !reinforcingUnitId) {
+                errors.push(`${unit?.name} is marked as reinforced but no reinforcing unit selected`);
             }
         });
 
         return errors;
     };
-
-    useEffect(() => {
-        if (regiment) {
-            setFormData({
-                name: regiment.name || '',
-                commander: regiment.commander || null,
-                units: regiment.units || [],
-                regimentAbility: regiment.regimentAbility || null,
-                heroEquipment: regiment.heroEquipment || {}
-            });
-        }
-    }, [regiment]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -74,7 +96,7 @@ const RegimentBuilder = ({regiment, availableUnits = [], availableContent = [], 
     const handleAddUnit = (unitId) => {
         setFormData(prev => ({
             ...prev,
-            units: [...prev.units, { unitId, isSubCommander: false }]
+            units: [...prev.units, {unitId, isSubCommander: false, isReinforced: false, reinforcingUnitId: null}]
         }));
     };
 
@@ -88,10 +110,63 @@ const RegimentBuilder = ({regiment, availableUnits = [], availableContent = [], 
     const handleToggleSubCommander = (index) => {
         setFormData(prev => ({
             ...prev,
-            units: prev.units.map((u, i) => 
+            units: prev.units.map((u, i) =>
                 i === index ? {...u, isSubCommander: !u.isSubCommander} : u
             )
         }));
+    };
+
+    const handleToggleReinforced = (index) => {
+        const unit = availableUnits.find(u => u.id === formData.units[index].unitId);
+        if (!unit?.reinforceable) return;
+
+        setFormData(prev => ({
+            ...prev,
+            units: prev.units.map((u, i) =>
+                i === index ? {...u, isReinforced: !u.isReinforced, reinforcingUnitId: null} : u
+            )
+        }));
+    };
+
+    const handleSetReinforcingUnit = (index, reinforcingId) => {
+        setFormData(prev => ({
+            ...prev,
+            units: prev.units.map((u, i) =>
+                i === index ? {...u, reinforcingUnitId: reinforcingId || null} : u
+            )
+        }));
+    };
+
+    const getAvailableReinforcingUnits = (baseUnitId) => {
+        const baseUnit = availableUnits.find(u => u.id === baseUnitId);
+        if (!baseUnit) return [];
+
+        // Extract base name (first 2-3 words, or words before common suffixes)
+        const getBaseName = (name) => {
+            const words = name.split(' ');
+            // Take first 2 words as base, or until we hit common differentiators
+            const stopWords = ['Desert', 'Volcano', 'Prime', 'Alpha', 'Beta', 'I', 'II', 'III'];
+            const baseWords = [];
+            for (const word of words) {
+                if (stopWords.includes(word)) break;
+                baseWords.push(word);
+                if (baseWords.length >= 2) break; // Max 2 words for base name
+            }
+            return baseWords.join(' ');
+        };
+
+        const baseName = getBaseName(baseUnit.name);
+
+        const usedIds = new Set([
+            formData.commander,
+            ...formData.units.map(u => u.unitId),
+            ...formData.units.map(u => u.reinforcingUnitId).filter(Boolean)
+        ]);
+
+        return availableUnits.filter(u => {
+            const candidateBase = getBaseName(u.name);
+            return candidateBase === baseName && !usedIds.has(u.id);
+        });
     };
 
     const handleHeroEquipment = (unitId, equipmentType, contentId) => {
@@ -101,7 +176,7 @@ const RegimentBuilder = ({regiment, availableUnits = [], availableContent = [], 
                 ...prev.heroEquipment,
                 [unitId]: {
                     ...(prev.heroEquipment[unitId] || {}),
-                    [equipmentType]: contentId
+                    [equipmentType]: contentId || null
                 }
             }
         }));
@@ -183,21 +258,26 @@ const RegimentBuilder = ({regiment, availableUnits = [], availableContent = [], 
                     {/* Units */}
                     <Card className="mb-3">
                         <Card.Header>
-                            <h5 className="mb-0">Units ({formData.units.length}/{maxSlots} slots)</h5>
+                            <h5 className="mb-0">Units ({getTroopSlots()}/{maxSlots} slots)</h5>
                         </Card.Header>
                         <Card.Body>
                             {formData.units.length === 0 ? (
                                 <Alert variant="info">No units added yet</Alert>
                             ) : (
                                 <ListGroup className="mb-3">
-                                    {formData.units.map(({unitId, isSubCommander}, index) => {
+                                    {formData.units.map(({
+                                                             unitId,
+                                                             isSubCommander,
+                                                             isReinforced,
+                                                             reinforcingUnitId
+                                                         }, index) => {
                                         const unit = availableUnits.find(u => u.id === unitId);
                                         if (!unit) return null;
 
                                         return (
                                             <ListGroup.Item key={index}>
-                                                <div className="d-flex justify-content-between align-items-center">
-                                                    <div>
+                                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                                    <div className="flex-grow-1">
                                                         <strong>{unit.name}</strong>
                                                         {unit.keywords?.includes(AoSKeywords.HERO) && (
                                                             <Form.Check
@@ -206,6 +286,16 @@ const RegimentBuilder = ({regiment, availableUnits = [], availableContent = [], 
                                                                 label="Sub-commander"
                                                                 checked={isSubCommander}
                                                                 onChange={() => handleToggleSubCommander(index)}
+                                                                className="ms-3"
+                                                            />
+                                                        )}
+                                                        {unit.reinforceable && !isSubCommander && (
+                                                            <Form.Check
+                                                                type="checkbox"
+                                                                inline
+                                                                label="Reinforced"
+                                                                checked={isReinforced}
+                                                                onChange={() => handleToggleReinforced(index)}
                                                                 className="ms-3"
                                                             />
                                                         )}
@@ -218,13 +308,28 @@ const RegimentBuilder = ({regiment, availableUnits = [], availableContent = [], 
                                                         Remove
                                                     </Button>
                                                 </div>
+                                                {isReinforced && (
+                                                    <Form.Select
+                                                        size="sm"
+                                                        value={reinforcingUnitId || ''}
+                                                        onChange={(e) => handleSetReinforcingUnit(index, e.target.value)}
+                                                        className="mt-2"
+                                                    >
+                                                        <option value="">Select reinforcing unit...</option>
+                                                        {getAvailableReinforcingUnits(unitId).map(u => (
+                                                            <option key={u.id} value={u.id}>
+                                                                {u.name} ({u.points} pts)
+                                                            </option>
+                                                        ))}
+                                                    </Form.Select>
+                                                )}
                                             </ListGroup.Item>
                                         );
                                     })}
                                 </ListGroup>
                             )}
 
-                            {formData.units.length < maxSlots && (
+                            {getTroopSlots() < maxSlots && (
                                 <Form.Select
                                     onChange={(e) => {
                                         if (e.target.value) {
@@ -237,6 +342,7 @@ const RegimentBuilder = ({regiment, availableUnits = [], availableContent = [], 
                                     {availableUnits
                                         .filter(u => u.id !== formData.commander)
                                         .filter(u => !formData.units.some(({unitId}) => unitId === u.id))
+                                        .filter(u => !formData.units.some(({reinforcingUnitId}) => reinforcingUnitId === u.id))
                                         .map(unit => (
                                             <option key={unit.id} value={unit.id}>
                                                 {unit.name} ({unit.points} pts)
@@ -288,7 +394,9 @@ const RegimentBuilder = ({regiment, availableUnits = [], availableContent = [], 
                                             <Card.Body>
                                                 <h6>
                                                     {hero.name}
-                                                    {isUnique && <Badge bg="warning" text="dark" className="ms-2">UNIQUE (No Enhancements)</Badge>}
+                                                    {isUnique &&
+                                                        <Badge bg="warning" text="dark" className="ms-2">UNIQUE (No
+                                                            Enhancements)</Badge>}
                                                 </h6>
                                                 {!isUnique && (
                                                     <Row>
@@ -298,7 +406,7 @@ const RegimentBuilder = ({regiment, availableUnits = [], availableContent = [], 
                                                                 <Form.Select
                                                                     size="sm"
                                                                     value={formData.heroEquipment[heroId]?.heroicTrait || ''}
-                                                                    onChange={(e) => handleHeroEquipment(heroId, 'heroicTrait', e.target.value || null)}
+                                                                    onChange={(e) => handleHeroEquipment(heroId, 'heroicTrait', e.target.value)}
                                                                 >
                                                                     <option value="">None</option>
                                                                     {heroicTraits.map(trait => (
@@ -315,7 +423,7 @@ const RegimentBuilder = ({regiment, availableUnits = [], availableContent = [], 
                                                                 <Form.Select
                                                                     size="sm"
                                                                     value={formData.heroEquipment[heroId]?.artefact || ''}
-                                                                    onChange={(e) => handleHeroEquipment(heroId, 'artefact', e.target.value || null)}
+                                                                    onChange={(e) => handleHeroEquipment(heroId, 'artefact', e.target.value)}
                                                                 >
                                                                     <option value="">None</option>
                                                                     {artefacts.map(art => (
@@ -340,7 +448,7 @@ const RegimentBuilder = ({regiment, availableUnits = [], availableContent = [], 
                         <strong>Regiment Summary:</strong>
                         <ul className="mb-0 mt-2">
                             <li>Commander: {formData.commander ? '✓' : '✗ Required'}</li>
-                            <li>Units: {formData.units.length}/{maxSlots} slots</li>
+                            <li>Units: {getTroopSlots()}/{maxSlots} slots</li>
                             <li>Regiment Ability: {formData.regimentAbility ? '✓' : 'None'}</li>
                         </ul>
                     </Alert>
