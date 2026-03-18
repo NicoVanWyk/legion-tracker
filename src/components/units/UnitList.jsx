@@ -1,8 +1,7 @@
-// src/components/units/UnitList.js - Updated with export button
 import React, {useState, useEffect} from 'react';
 import {Card, Button, Badge, Alert, Row, Col, Form} from 'react-bootstrap';
 import {Link, useNavigate} from 'react-router-dom';
-import {collection, getDocs, query, orderBy} from 'firebase/firestore';
+import {collection, getDocs, query, orderBy, where} from 'firebase/firestore';
 import {db} from '../../firebase/config';
 import {useAuth} from '../../contexts/AuthContext';
 import UnitTypes from '../../enums/UnitTypes';
@@ -12,36 +11,42 @@ import LoadingSpinner from '../layout/LoadingSpinner';
 import KeywordUtils from '../../utils/KeywordUtils';
 import ExportUtils from '../../utils/ExportUtils';
 import {useGameSystem} from '../../contexts/GameSystemContext';
-import {where} from 'firebase/firestore';
 import AoSFactions from '../../enums/aos/AoSFactions';
 import AoSUnitTypes from '../../enums/aos/AoSUnitTypes';
+import AoSFactionKeywords from '../../enums/aos/AoSFactionKeywords';
 import GameSystems from '../../enums/GameSystems';
 
 const UnitList = () => {
-    const [units, setUnits] = useState([]);
-    const [upgrades, setUpgrades] = useState([]);
-    const [customKeywords, setCustomKeywords] = useState([]);
-    const [customUnitTypes, setCustomUnitTypes] = useState([]);
-    const [filteredUnits, setFilteredUnits] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterFaction, setFilterFaction] = useState('all');
-    const [filterType, setFilterType] = useState('all');
-    const [abilities, setAbilities] = useState([]);
     const {currentUser} = useAuth();
     const {currentSystem} = useGameSystem();
     const navigate = useNavigate();
 
-    // Fetch data on component mount
+    const [units, setUnits] = useState([]);
+    const [upgrades, setUpgrades] = useState([]);
+    const [customKeywords, setCustomKeywords] = useState([]);
+    const [customUnitTypes, setCustomUnitTypes] = useState([]);
+    const [abilities, setAbilities] = useState([]);
+    const [filteredUnits, setFilteredUnits] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterFaction, setFilterFaction] = useState('all');
+    const [filterType, setFilterType] = useState('all');
+    const [filterSubfaction, setFilterSubfaction] = useState('all');
+    const [filterGrandAlliance, setFilterGrandAlliance] = useState('all');
+
+    const isAoS = currentSystem === GameSystems.AOS;
+    const FactionEnum = isAoS ? AoSFactions : Factions;
+    const TypeEnum = isAoS ? AoSUnitTypes : UnitTypes;
+
     useEffect(() => {
         fetchData();
     }, [currentUser, currentSystem]);
 
-    // Filter units whenever filtering criteria changes
     useEffect(() => {
         filterUnitsList();
-    }, [units, filterFaction, filterType, searchTerm]);
+    }, [units, filterFaction, filterType, filterSubfaction, filterGrandAlliance, searchTerm]);
 
     const fetchData = async () => {
         if (!currentUser) return;
@@ -49,50 +54,26 @@ const UnitList = () => {
         try {
             setLoading(true);
 
-            // Fetch units
             const unitsRef = collection(db, 'users', currentUser.uid, 'units');
-            const unitsQuery = query(
-                unitsRef,
-                where('gameSystem', '==', currentSystem),
-                orderBy('name', 'asc')
-            );
+            const unitsQuery = query(unitsRef, where('gameSystem', '==', currentSystem), orderBy('name', 'asc'));
             const unitsSnapshot = await getDocs(unitsQuery);
-            const unitsList = unitsSnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const unitsList = unitsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
 
-            // Fetch upgrades (needed for keyword effects)
             const upgradesRef = collection(db, 'users', currentUser.uid, 'upgradeCards');
             const upgradesSnapshot = await getDocs(upgradesRef);
-            const upgradesList = upgradesSnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const upgradesList = upgradesSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
 
-            // Fetch custom keywords
             const keywordsRef = collection(db, 'users', currentUser.uid, 'customKeywords');
             const keywordsSnapshot = await getDocs(keywordsRef);
-            const keywordsList = keywordsSnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const keywordsList = keywordsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
 
-            // Fetch custom unit types
             const typesRef = collection(db, 'users', currentUser.uid, 'customUnitTypes');
             const typesSnapshot = await getDocs(typesRef);
-            const typesList = typesSnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const typesList = typesSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
 
-            // Fetch abilities
             const abilitiesRef = collection(db, 'users', currentUser.uid, 'abilities');
             const abilitiesSnapshot = await getDocs(abilitiesRef);
-            const abilitiesList = abilitiesSnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const abilitiesList = abilitiesSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
 
             setUnits(unitsList);
             setUpgrades(upgradesList);
@@ -102,7 +83,7 @@ const UnitList = () => {
             setError('');
         } catch (err) {
             console.error('Error fetching data:', err);
-            setError('Failed to fetch units. Please try again later.');
+            setError('Failed to fetch units.');
         } finally {
             setLoading(false);
         }
@@ -119,12 +100,23 @@ const UnitList = () => {
             filtered = filtered.filter(u => u.type === filterType);
         }
 
+        if (filterSubfaction !== 'all') {
+            filtered = filtered.filter(u =>
+                Array.isArray(u.subfaction)
+                    ? u.subfaction.includes(filterSubfaction)
+                    : u.subfaction === filterSubfaction
+            );
+        }
+
+        if (filterGrandAlliance !== 'all') {
+            filtered = filtered.filter(u => u.grandAlliance === filterGrandAlliance);
+        }
+
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
             filtered = filtered.filter(u =>
                 u.name.toLowerCase().includes(term) ||
                 u.notes?.toLowerCase().includes(term) ||
-                // Also search in keywords
                 getAllKeywords(u).some(k => getKeywordDisplay(k).toString().toLowerCase().includes(term))
             );
         }
@@ -132,10 +124,7 @@ const UnitList = () => {
         setFilteredUnits(filtered);
     };
 
-    // Get all keywords including those from upgrades, with stacking applied
-    const getAllKeywords = (unit) => {
-        return KeywordUtils.getAllKeywords(unit, upgrades);
-    };
+    const getAllKeywords = (unit) => KeywordUtils.getAllKeywords(unit, upgrades);
 
     const getKeywordDisplay = (keyword) => {
         if (keyword.startsWith('custom:')) {
@@ -147,81 +136,71 @@ const UnitList = () => {
     };
 
     const getTypeDisplayName = (type) => {
-        const typeEnum = currentSystem === GameSystems.LEGION ? UnitTypes : AoSUnitTypes;
-        if (Object.values(typeEnum).includes(type)) {
-            return typeEnum.getDisplayName(type);
+        if (Object.values(TypeEnum).includes(type)) {
+            return TypeEnum.getDisplayName(type);
         }
         const customType = customUnitTypes.find(t => t.name === type);
         return customType ? customType.displayName : type;
     };
 
-    const getFactionDisplayName = (faction) => {
-        const factionEnum = currentSystem === GameSystems.LEGION ? Factions : AoSFactions;
-        return factionEnum.getDisplayName(faction);
-    };
-
     const getTotalPoints = (unit) => {
         let total = unit.points || 0;
-
-        // Add points from equipped upgrades
         unit.upgradeSlots?.forEach(slot => {
             slot.equippedUpgrades?.forEach(upgradeId => {
                 const upgrade = upgrades.find(u => u.id === upgradeId);
                 if (upgrade) total += upgrade.pointsCost || 0;
             });
         });
-
         return total;
     };
 
-    // Handle exporting a unit directly from the list
+    const getUniqueSubfactions = () => {
+        const allSubfactions = new Set();
+        units.forEach(u => {
+            if (Array.isArray(u.subfaction)) {
+                u.subfaction.forEach(sf => allSubfactions.add(sf));
+            } else if (u.subfaction) {
+                allSubfactions.add(u.subfaction);
+            }
+        });
+        return [...allSubfactions].sort();
+    };
+
+    const getUniqueGrandAlliances = () => {
+        return [...new Set(units.map(u => u.grandAlliance).filter(Boolean))].sort();
+    };
+
     const handleExportUnit = (unit) => {
         if (!unit) return;
-
-        // Get the unit's equipped upgrades and abilities
         const unitUpgrades = upgrades.filter(upgrade =>
-            unit.upgradeSlots?.some(slot =>
-                slot.equippedUpgrades?.includes(upgrade.id)
-            )
+            unit.upgradeSlots?.some(slot => slot.equippedUpgrades?.includes(upgrade.id))
         );
-
-        const unitAbilities = abilities.filter(ability =>
-            unit.abilities?.includes(ability.id)
-        );
-
-        // Use ExportUtils to generate text content
-        const unitText = ExportUtils.exportUnit(
-            unit,
-            customKeywords,
-            unitUpgrades,
-            unitAbilities,
-            customUnitTypes
-        );
-
-        // Download the file
+        const unitAbilities = abilities.filter(ability => unit.abilities?.includes(ability.id));
+        const unitText = ExportUtils.exportUnit(unit, customKeywords, unitUpgrades, unitAbilities, customUnitTypes);
         ExportUtils.downloadTextFile(unitText, `${unit.name.replace(/\s+/g, '_')}_unit.txt`);
     };
 
-    if (loading) {
-        return <LoadingSpinner text="Loading units..."/>;
-    }
+    const handleClearFilters = () => {
+        setSearchTerm('');
+        setFilterFaction('all');
+        setFilterType('all');
+        setFilterSubfaction('all');
+        setFilterGrandAlliance('all');
+    };
 
-    const FactionEnum = currentSystem === GameSystems.LEGION ? Factions : AoSFactions;
-    const TypeEnum = currentSystem === GameSystems.LEGION ? UnitTypes : AoSUnitTypes;
+    if (loading) return <LoadingSpinner text="Loading units..."/>;
 
     return (
         <Card>
             <Card.Header className="d-flex justify-content-between align-items-center">
                 <h4 className="mb-0">My Units</h4>
-                <Button as={Link} to="/units/create" variant="primary">
-                    Create New Unit
-                </Button>
+                <Button as={Link} to="/units/create" variant="primary">Create New Unit</Button>
             </Card.Header>
             <Card.Body>
                 {error && <Alert variant="danger">{error}</Alert>}
 
                 <Row className="mb-3">
-                    <Col md={4}>
+                    <Col md={3}>
                         <Form.Group>
                             <Form.Label>Search</Form.Label>
                             <Form.Control
@@ -232,43 +211,64 @@ const UnitList = () => {
                             />
                         </Form.Group>
                     </Col>
-                    <Col md={4}>
+                    <Col md={2}>
                         <Form.Group>
                             <Form.Label>Faction</Form.Label>
-                            <Form.Select
-                                value={filterFaction}
-                                onChange={(e) => setFilterFaction(e.target.value)}
-                            >
+                            <Form.Select value={filterFaction} onChange={(e) => setFilterFaction(e.target.value)}>
                                 <option value="all">All Factions</option>
                                 {Object.values(FactionEnum).filter(f => typeof f === 'string').map(faction => (
-                                    <option key={faction} value={faction}>
-                                        {FactionEnum.getDisplayName(faction)}
-                                    </option>
+                                    <option key={faction} value={faction}>{FactionEnum.getDisplayName(faction)}</option>
                                 ))}
                             </Form.Select>
                         </Form.Group>
                     </Col>
-                    <Col md={4}>
+                    <Col md={2}>
                         <Form.Group>
                             <Form.Label>Unit Type</Form.Label>
-                            <Form.Select
-                                value={filterType}
-                                onChange={(e) => setFilterType(e.target.value)}
-                            >
+                            <Form.Select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
                                 <option value="all">All Types</option>
-                                {/* System unit types */}
                                 {Object.values(TypeEnum).filter(t => typeof t !== 'function' && typeof t === 'string').map(type => (
-                                    <option key={type} value={type}>
-                                        {TypeEnum.getDisplayName(type)}
-                                    </option>
+                                    <option key={type} value={type}>{TypeEnum.getDisplayName(type)}</option>
                                 ))}
-                                {/* Custom unit types */}
                                 {customUnitTypes.map(t => (
-                                    <option key={t.id} value={t.name}>
-                                        {t.displayName}
-                                    </option>
+                                    <option key={t.id} value={t.name}>{t.displayName}</option>
                                 ))}
                             </Form.Select>
+                        </Form.Group>
+                    </Col>
+                    {isAoS && (
+                        <>
+                            <Col md={2}>
+                                <Form.Group>
+                                    <Form.Label>Subfaction</Form.Label>
+                                    <Form.Select value={filterSubfaction}
+                                                 onChange={(e) => setFilterSubfaction(e.target.value)}>
+                                        <option value="all">All Subfactions</option>
+                                        {getUniqueSubfactions().map(sf => (
+                                            <option key={sf} value={sf}>{AoSFactionKeywords.getDisplayName(sf)}</option>
+                                        ))}
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                            <Col md={2}>
+                                <Form.Group>
+                                    <Form.Label>Grand Alliance</Form.Label>
+                                    <Form.Select value={filterGrandAlliance}
+                                                 onChange={(e) => setFilterGrandAlliance(e.target.value)}>
+                                        <option value="all">All Alliances</option>
+                                        {getUniqueGrandAlliances().map(ga => (
+                                            <option key={ga} value={ga}>{AoSFactionKeywords.getDisplayName(ga)}</option>
+                                        ))}
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                        </>
+                    )}
+                    <Col md={1}>
+                        <Form.Group>
+                            <Form.Label>&nbsp;</Form.Label>
+                            <Button variant="outline-secondary" className="w-100"
+                                    onClick={handleClearFilters}>Clear</Button>
                         </Form.Group>
                     </Col>
                 </Row>
@@ -276,9 +276,7 @@ const UnitList = () => {
                 {units.length === 0 ? (
                     <Alert variant="info" className="text-center">
                         <p className="mb-3">You haven't created any units yet.</p>
-                        <Button as={Link} to="/units/create" variant="primary">
-                            Create Your First Unit
-                        </Button>
+                        <Button as={Link} to="/units/create" variant="primary">Create Your First Unit</Button>
                     </Alert>
                 ) : filteredUnits.length === 0 ? (
                     <Alert variant="warning" className="text-center">
@@ -288,17 +286,12 @@ const UnitList = () => {
                     <Row xs={1} md={2} lg={3} className="g-4">
                         {filteredUnits.map(unit => (
                             <Col key={unit.id}>
-                                <Card
-                                    className={`h-100 faction-${unit.faction}-border`}
-                                    onClick={() => navigate(`/units/${unit.id}`)}
-                                    style={{cursor: 'pointer'}}
-                                >
+                                <Card className={`h-100 faction-${unit.faction}-border`}
+                                      onClick={() => navigate(`/units/${unit.id}`)} style={{cursor: 'pointer'}}>
                                     <Card.Header className={`faction-${unit.faction}`}>
                                         <div className="d-flex justify-content-between align-items-center">
                                             <h5 className="mb-0">{unit.name}</h5>
-                                            <Badge bg="warning" text="dark">
-                                                {getTotalPoints(unit)} pts
-                                            </Badge>
+                                            <Badge bg="warning" text="dark">{getTotalPoints(unit)} pts</Badge>
                                         </div>
                                     </Card.Header>
                                     <Card.Body className="d-flex flex-column">
@@ -307,11 +300,25 @@ const UnitList = () => {
                                                    className="me-2">{getTypeDisplayName(unit.type)}</Badge>
                                             {unit.isVehicle && <Badge bg="info">Vehicle</Badge>}
                                             <div className="mt-2 small text-muted">
-                                                <strong>Faction:</strong> {getFactionDisplayName(unit.faction)}
+                                                <strong>Faction:</strong> {FactionEnum.getDisplayName(unit.faction)}
                                             </div>
-                                            {currentSystem === GameSystems.AOS && (
+                                            {isAoS && (
+                                                (Array.isArray(unit.subfaction) && unit.subfaction.length > 0) ||
+                                                (typeof unit.subfaction === 'string' && unit.subfaction !== '')
+                                            ) && (
+                                                <div className="mt-1">
+                                                    {(Array.isArray(unit.subfaction) ? unit.subfaction : [unit.subfaction]).map(sf => (
+                                                        <Badge key={sf} bg="info" className="me-1 mb-1"
+                                                               style={{fontSize: '0.7rem'}}>
+                                                            {AoSFactionKeywords.getDisplayName(sf)}
+                                                        </Badge>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {isAoS && (
                                                 <div className="mt-2 small">
-                                                    <strong>Stats:</strong> {unit.move || 5}" / {unit.health || 1}H / {unit.save || 4}+ / {unit.control || 1}C
+                                                    <strong>Stats:</strong> {unit.move || 5}" / {unit.health || 1}H
+                                                    / {unit.save || 4}+ / {unit.control || 1}C
                                                 </div>
                                             )}
                                         </div>
@@ -324,15 +331,12 @@ const UnitList = () => {
                                                     {getAllKeywords(unit).map((keyword, index) => (
                                                         <Badge
                                                             key={`${unit.id}-kw-${index}`}
-                                                            bg={keyword.startsWith('custom:') ? 'info' : (
-                                                                unit.keywords && unit.keywords.includes(keyword) ? 'secondary' : 'success'
-                                                            )}
+                                                            bg={keyword.startsWith('custom:') ? 'info' : (unit.keywords && unit.keywords.includes(keyword) ? 'secondary' : 'success')}
                                                             className="me-1 mb-1"
                                                         >
                                                             {getKeywordDisplay(keyword)}
-                                                            {!unit.keywords?.includes(keyword) && (
-                                                                <span className="ms-1" title="From Upgrade">+</span>
-                                                            )}
+                                                            {!unit.keywords?.includes(keyword) &&
+                                                                <span className="ms-1" title="From Upgrade">+</span>}
                                                         </Badge>
                                                     ))}
                                                 </div>
@@ -342,53 +346,32 @@ const UnitList = () => {
                                         </div>
 
                                         <div className="mt-auto">
-                                            {/* Weapons count */}
                                             <div className="d-flex justify-content-between align-items-center">
                                                 <div>
                                                     {unit.weapons?.length > 0 && (
-                                                        <small className="text-muted me-2">
-                                                            {unit.weapons.length} weapon{unit.weapons.length !== 1 ? 's' : ''}
-                                                        </small>
+                                                        <small
+                                                            className="text-muted me-2">{unit.weapons.length} weapon{unit.weapons.length !== 1 ? 's' : ''}</small>
                                                     )}
                                                     {unit.upgradeSlots?.some(slot => slot.equippedUpgrades?.length > 0) && (
                                                         <Badge bg="info" className="me-1">
-                                                            {unit.upgradeSlots.reduce((total, slot) =>
-                                                                total + (slot.equippedUpgrades?.length || 0), 0)
-                                                            } upgrades
+                                                            {unit.upgradeSlots.reduce((total, slot) => total + (slot.equippedUpgrades?.length || 0), 0)} upgrades
                                                         </Badge>
                                                     )}
                                                 </div>
                                                 <div className="d-flex">
-                                                    <Button
-                                                        variant="outline-secondary"
-                                                        size="sm"
-                                                        className="me-2"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleExportUnit(unit);
-                                                        }}
-                                                    >
-                                                        <i className="bi bi-download"></i> Export
+                                                    <Button variant="outline-secondary" size="sm" className="me-2"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleExportUnit(unit);
+                                                            }}>
+                                                        <i className="bi bi-download"></i>
                                                     </Button>
-                                                    <Button
-                                                        variant="outline-primary"
-                                                        size="sm"
-                                                        className="me-2"
-                                                        as={Link}
-                                                        to={`/units/edit/${unit.id}`}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    >
-                                                        Edit
-                                                    </Button>
-                                                    <Button
-                                                        variant="outline-secondary"
-                                                        size="sm"
-                                                        as={Link}
-                                                        to={`/units/${unit.id}`}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    >
-                                                        View
-                                                    </Button>
+                                                    <Button variant="outline-primary" size="sm" className="me-2"
+                                                            as={Link} to={`/units/edit/${unit.id}`}
+                                                            onClick={(e) => e.stopPropagation()}>Edit</Button>
+                                                    <Button variant="outline-secondary" size="sm" as={Link}
+                                                            to={`/units/${unit.id}`}
+                                                            onClick={(e) => e.stopPropagation()}>View</Button>
                                                 </div>
                                             </div>
                                         </div>

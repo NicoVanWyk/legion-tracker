@@ -292,7 +292,7 @@ const UnitCard = ({unit, customUnitTypes}) => {
     const totalPoints = calculateTotalPoints();
     const factionColor = FactionEnum.getColor ? FactionEnum.getColor(unit.faction) : '#6c757d';
 
-    const StatValue = ({original, modified, statName, modPrefix = true}) => {
+    const StatValue = ({original, modified, statName}) => {
         const hasChange = original !== modified;
         const sourcesText = hasChange ? getUpgradeSourcesForStat(statName) : null;
 
@@ -439,6 +439,20 @@ const UnitCard = ({unit, customUnitTypes}) => {
                                             <div><strong>Faction:</strong> {FactionEnum.getDisplayName(unit.faction)}
                                             </div>
 
+                                            {isAoS && Array.isArray(unit.subfaction) && unit.subfaction.length > 0 && (
+                                                <div className="mt-1">
+                                                    <strong>Subfaction{unit.subfaction.length > 1 ? 's' : ''}:</strong>
+                                                    <div className="mt-1">
+                                                        {unit.subfaction.map(sf => (
+                                                            <Badge key={sf} bg="info" className="me-1 mb-1"
+                                                                   style={{fontSize: '0.75rem'}}>
+                                                                {AoSFactionKeywords.getDisplayName(sf)}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {isLegion && (
                                                 <>
                                                     <div>
@@ -549,16 +563,16 @@ const UnitCard = ({unit, customUnitTypes}) => {
                                                 <div className="mb-2">
                                                     <small className="text-muted d-block mb-1">Faction Keywords:</small>
                                                     {unit.factionKeywords.map(kw => (
-                                                    <Badge 
-                                                        key={kw}
-                                                        className="me-1 mb-1"
-                                                        style={{ 
-                                                        backgroundColor: AoSFactionKeywords.getColor(kw),
-                                                        fontSize: '0.7rem'
-                                                        }}
-                                                    >
-                                                        {AoSFactionKeywords.getDisplayName(kw)}
-                                                    </Badge>
+                                                        <Badge
+                                                            key={kw}
+                                                            className="me-1 mb-1"
+                                                            style={{
+                                                                backgroundColor: AoSFactionKeywords.getColor(kw),
+                                                                fontSize: '0.7rem'
+                                                            }}
+                                                        >
+                                                            {AoSFactionKeywords.getDisplayName(kw)}
+                                                        </Badge>
                                                     ))}
                                                 </div>
                                             )}

@@ -10,15 +10,15 @@ import LegionStatsSection from './LegionStatsSection';
 import ModelCountSection from './ModelCountSection';
 
 const BasicInfoTab = ({
-    formData,
-    setFormData,
-    handleChange,
-    handleCheckboxChange,
-    customUnitTypes,
-    calculateTotalPoints,
-    isAoS,
-    isLegion
-}) => {
+                          formData,
+                          setFormData,
+                          handleChange,
+                          handleCheckboxChange,
+                          customUnitTypes,
+                          calculateTotalPoints,
+                          isAoS,
+                          isLegion
+                      }) => {
     const FactionEnum = isLegion ? Factions : AoSFactions;
     const TypeEnum = isLegion ? UnitTypes : AoSUnitTypes;
 
@@ -96,26 +96,39 @@ const BasicInfoTab = ({
                         <Col md={6}>
                             <Form.Group>
                                 <Form.Label>Subfaction (Optional)</Form.Label>
-                                <Form.Select
-                                    name="subfaction"
-                                    value={formData.subfaction}
-                                    onChange={handleChange}
-                                >
-                                    <option value="">None</option>
+                                <div className="border rounded p-2" style={{maxHeight: '200px', overflowY: 'auto'}}>
                                     {AoSFactionKeywords.getKeywordsByFaction(
                                         formData.faction === 'stormcast_eternals' ? 'STORMCAST_ETERNALS' :
                                             formData.faction === 'ossiarch_bonereapers' ? 'OSSIARCH_BONEREAPERS' : ''
                                     )
                                         .filter(kw => AoSFactionKeywords.getType(kw) === 'SUB_FACTION')
                                         .map(kw => (
-                                            <option key={kw} value={kw}>
-                                                {AoSFactionKeywords.getDisplayName(kw)}
-                                            </option>
+                                            <Form.Check
+                                                key={kw}
+                                                type="checkbox"
+                                                id={`subfaction-${kw}`}
+                                                label={AoSFactionKeywords.getDisplayName(kw)}
+                                                checked={Array.isArray(formData.subfaction) ? formData.subfaction.includes(kw) : formData.subfaction === kw}
+                                                onChange={(e) => {
+                                                    const currentSubfactions = Array.isArray(formData.subfaction) ? formData.subfaction : (formData.subfaction ? [formData.subfaction] : []);
+                                                    const newSubfactions = e.target.checked
+                                                        ? [...currentSubfactions, kw]
+                                                        : currentSubfactions.filter(s => s !== kw);
+                                                    setFormData(prev => ({...prev, subfaction: newSubfactions}));
+                                                }}
+                                            />
                                         ))
                                     }
-                                </Form.Select>
+                                    {AoSFactionKeywords.getKeywordsByFaction(
+                                        formData.faction === 'stormcast_eternals' ? 'STORMCAST_ETERNALS' :
+                                            formData.faction === 'ossiarch_bonereapers' ? 'OSSIARCH_BONEREAPERS' : ''
+                                    ).filter(kw => AoSFactionKeywords.getType(kw) === 'SUB_FACTION').length === 0 && (
+                                        <div className="text-muted small">No subfactions available for this
+                                            faction</div>
+                                    )}
+                                </div>
                                 <Form.Text className="text-muted">
-                                    e.g., The Blacktalons, Mortis Praetorians
+                                    Select one or more subfactions (e.g., The Blacktalons, Mortis Praetorians)
                                 </Form.Text>
                             </Form.Group>
                         </Col>

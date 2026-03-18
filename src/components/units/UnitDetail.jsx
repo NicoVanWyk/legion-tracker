@@ -21,6 +21,7 @@ import KeywordUtils from '../../utils/KeywordUtils';
 import {useGameSystem} from '../../contexts/GameSystemContext';
 import AoSFactions from '../../enums/aos/AoSFactions';
 import AoSUnitTypes from '../../enums/aos/AoSUnitTypes';
+import AoSFactionKeywords from '../../enums/aos/AoSFactionKeywords';
 import GameSystems from '../../enums/GameSystems';
 
 const UnitDetail = ({unitId}) => {
@@ -372,6 +373,20 @@ const UnitDetail = ({unitId}) => {
                                                 <strong>Faction:</strong> {getFactionDisplayName(unit.faction)}
                                             </p>
                                         </Col>
+                                        {isAoS && Array.isArray(unit.subfaction) && unit.subfaction.length > 0 && (
+                                            <Col md={3}>
+                                                <p>
+                                                    <strong>Subfaction{unit.subfaction.length > 1 ? 's' : ''}:</strong>
+                                                    <div className="mt-1">
+                                                        {unit.subfaction.map(sf => (
+                                                            <Badge key={sf} bg="info" className="me-1 mb-1">
+                                                                {AoSFactionKeywords.getDisplayName(sf)}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
+                                                </p>
+                                            </Col>
+                                        )}
                                         <Col md={3}>
                                             <p>
                                                 <strong>Points:</strong> {unit.points || 0}
@@ -380,7 +395,8 @@ const UnitDetail = ({unitId}) => {
                                                 )}
                                             </p>
                                         </Col>
-                                        <Col md={6}>
+                                        <Col
+                                            md={isAoS && Array.isArray(unit.subfaction) && unit.subfaction.length > 0 ? 3 : 6}>
                                             {isLegion && (
                                                 <p>
                                                     <strong>Stats:</strong>{' '}

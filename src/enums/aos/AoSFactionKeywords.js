@@ -12,6 +12,8 @@ const AoSFactionKeywords = {
   SACROSANCT_CHAMBER: 'SACROSANCT_CHAMBER',
   THE_BLACKTALONS: 'THE_BLACKTALONS',
   WARRIOR_CHAMBER: 'WARRIOR_CHAMBER',
+  VANGUARD_CHAMBER: 'VANGUARD_CHAMBER',
+  IDONETH_DEEPKIN: 'IDONETH_DEEPKIN',
   
   // Ossiarch Bonereapers
   OSSIARCH_BONEREAPERS: 'OSSIARCH_BONEREAPERS',
@@ -35,6 +37,8 @@ const AoSFactionKeywords = {
       SACROSANCT_CHAMBER: 'Sacrosanct Chamber',
       THE_BLACKTALONS: 'The Blacktalons',
       WARRIOR_CHAMBER: 'Warrior Chamber',
+      VANGUARD_CHAMBER: 'Vanguard Chamber',
+      IDONETH_DEEPKIN: 'Idoneth Deepkin',
       OSSIARCH_BONEREAPERS: 'Ossiarch Bonereapers',
       MORTISAN: 'Mortisan',
       MORTIS_PRAETORIANS: 'Mortis Praetorians',
@@ -70,7 +74,8 @@ const AoSFactionKeywords = {
   getKeywordsByFaction: (faction) => {
     const stormcast = [
       'ORDER', 'STORMCAST_ETERNALS', 'EXTREMIS_CHAMBER', 'RUINATION_CHAMBER',
-      'SACROSANCT_CHAMBER', 'THE_BLACKTALONS', 'WARRIOR_CHAMBER'
+      'SACROSANCT_CHAMBER', 'THE_BLACKTALONS', 'WARRIOR_CHAMBER', "VANGUARD_CHAMBER",
+        "IDONETH_DEEPKIN"
     ];
     const ossiarch = [
       'DEATH', 'OSSIARCH_BONEREAPERS', 'MORTISAN', 'MORTIS_PRAETORIANS', 'PETRIFEX_ELITE',

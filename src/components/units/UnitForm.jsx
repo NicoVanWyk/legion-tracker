@@ -1,6 +1,5 @@
-// src/components/units/UnitForm.jsx
 import React, {useState, useEffect} from 'react';
-import {Form, Button, Card, Alert, Tab, Tabs} from 'react-bootstrap';
+import {Form, Button, Alert, Tab, Tabs} from 'react-bootstrap';
 import {useNavigate, useParams} from 'react-router-dom';
 import {doc, collection, addDoc, updateDoc, getDoc, getDocs, serverTimestamp} from 'firebase/firestore';
 import {db} from '../../firebase/config';
@@ -59,7 +58,7 @@ const UnitForm = () => {
         baseSize: '32mm',
         reinforceable: false,
         grandAlliance: '',
-        subfaction: '',
+        subfaction: [],
         speed: 2,
         minModelCount: 1,
         currentModelCount: 1,
@@ -108,7 +107,7 @@ const UnitForm = () => {
                         baseSize: unitData.baseSize || '32mm',
                         reinforceable: unitData.reinforceable || false,
                         grandAlliance: unitData.grandAlliance || '',
-                        subfaction: unitData.subfaction || '',
+                        subfaction: Array.isArray(unitData.subfaction) ? unitData.subfaction : (unitData.subfaction ? [unitData.subfaction] : []),
                         unitIcon: unitData.unitIcon || '',
                         cardBackground: unitData.cardBackground || '',
                         battleProfile: unitData.battleProfile || {
