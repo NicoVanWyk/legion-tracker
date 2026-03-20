@@ -753,6 +753,46 @@ const UnitCard = ({unit, customUnitTypes}) => {
                                                 <li key={index} className="list-group-item p-2 bg-transparent">
                                                     <div className="fw-bold">{ability.name}</div>
                                                     <div className="small">{ability.description}</div>
+                                                    {ability.effects && (() => {
+                                                        const effects = ability.effects || {};
+                                                        const mods = effects.statModifiers || {};
+                                                        const hasEffects = Object.keys(mods).length > 0 ||
+                                                            effects.modelCountChange ||
+                                                            effects.addKeywords?.length > 0 ||
+                                                            effects.addWeapons?.length > 0;
+
+                                                        return hasEffects ? (
+                                                            <div className="small mt-1">
+                                                                {Object.entries(mods)
+                                                                    .filter(([_, value]) => value !== undefined && value !== null && value !== 0)
+                                                                    .map(([key, value], idx) => {
+                                                                        let statName = key.charAt(0).toUpperCase() + key.slice(1);
+                                                                        if (typeof value === 'boolean') {
+                                                                            return <Badge key={idx} bg="success"
+                                                                                          className="me-1 mb-1">Adds {statName}</Badge>;
+                                                                        }
+                                                                        const prefix = value > 0 ? '+' : '';
+                                                                        return <Badge key={idx} bg="success"
+                                                                                      className="me-1 mb-1">{statName} {prefix}{value}</Badge>;
+                                                                    })}
+                                                                {typeof effects.modelCountChange === 'number' && effects.modelCountChange !== 0 && (
+                                                                    <Badge bg="success" className="me-1 mb-1">
+                                                                        Models {effects.modelCountChange > 0 ? '+' : ''}{effects.modelCountChange}
+                                                                    </Badge>
+                                                                )}
+                                                                {Array.isArray(effects.addKeywords) && effects.addKeywords.length > 0 && (
+                                                                    <Badge bg="success" className="me-1 mb-1">
+                                                                        Adds {effects.addKeywords.length} Keyword{effects.addKeywords.length !== 1 ? 's' : ''}
+                                                                    </Badge>
+                                                                )}
+                                                                {Array.isArray(effects.addWeapons) && effects.addWeapons.length > 0 && (
+                                                                    <Badge bg="success" className="me-1 mb-1">
+                                                                        Adds {effects.addWeapons.length} Weapon{effects.addWeapons.length !== 1 ? 's' : ''}
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                        ) : null;
+                                                    })()}
                                                 </li>
                                             ))}
                                         </ul>

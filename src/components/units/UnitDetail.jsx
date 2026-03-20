@@ -1,5 +1,19 @@
 import React, {useState, useEffect} from 'react';
-import {Card, Row, Col, Badge, Button, Alert, ListGroup, Accordion, Tab, Tabs} from 'react-bootstrap';
+import {
+    Card,
+    Row,
+    Col,
+    Badge,
+    Button,
+    Alert,
+    ListGroup,
+    Accordion,
+    Tab,
+    Tabs,
+    Form,
+    OverlayTrigger,
+    Tooltip
+} from 'react-bootstrap';
 import {Link, useNavigate} from 'react-router-dom';
 import {doc, getDoc, deleteDoc, collection, getDocs} from 'firebase/firestore';
 import {db} from '../../firebase/config';
@@ -118,6 +132,15 @@ const UnitDetail = ({unitId}) => {
             );
         }
         return Keywords.getDisplayName(keyword);
+    };
+
+    const getKeywordDefinition = (keyword) => {
+        if (keyword.startsWith('custom:')) {
+            const customId = keyword.replace('custom:', '');
+            const customKeyword = customKeywords.find(k => k.id === customId);
+            return customKeyword?.definition || customKeyword?.description || 'Custom keyword';
+        }
+        return Keywords.getDefinition ? Keywords.getDefinition(keyword) : null;
     };
 
     const getTypeDisplayName = (type) => {
@@ -493,26 +516,91 @@ const UnitDetail = ({unitId}) => {
                                         <Card.Body>
                                             {getAllKeywords().length > 0 ? (
                                                 <div>
-                                                    {getAllKeywords().map((keyword, index) => (
-                                                        <Badge
-                                                            key={index}
-                                                            bg={keyword.startsWith('custom:') ? 'info' : (
-                                                                unit.keywords && unit.keywords.includes(keyword) ? 'secondary' : 'success'
-                                                            )}
-                                                            className="me-2 mb-2 p-2"
-                                                        >
-                                                            {getKeywordDisplay(keyword)}
-                                                            {!unit.keywords?.includes(keyword) && (
-                                                                <span className="ms-1" title="From Upgrade">+</span>
-                                                            )}
-                                                        </Badge>
-                                                    ))}
+                                                    {getAllKeywords().map((keyword, index) => {
+                                                        const definition = getKeywordDefinition(keyword);
+                                                        const keywordBadge = (
+                                                            <Badge
+                                                                key={index}
+                                                                bg={keyword.startsWith('custom:') ? 'info' : (
+                                                                    unit.keywords && unit.keywords.includes(keyword) ? 'secondary' : 'success'
+                                                                )}
+                                                                className="me-2 mb-2 p-2"
+                                                            >
+                                                                {getKeywordDisplay(keyword)}
+                                                                {!unit.keywords?.includes(keyword) && (
+                                                                    <span className="ms-1" title="From Upgrade">+</span>
+                                                                )}
+                                                            </Badge>
+                                                        );
+
+                                                        return definition ? (
+                                                            <OverlayTrigger
+                                                                key={index}
+                                                                placement="top"
+                                                                trigger={['hover', 'click']}
+                                                                overlay={
+                                                                    <Tooltip id={`tooltip-keyword-${index}`}>
+                                                                        {definition}
+                                                                    </Tooltip>
+                                                                }
+                                                            >
+                                                                {keywordBadge}
+                                                            </OverlayTrigger>
+                                                        ) : keywordBadge;
+                                                    })}
                                                 </div>
                                             ) : (
                                                 <p className="text-muted">No keywords assigned to this unit.</p>
                                             )}
                                         </Card.Body>
                                     </Card>
+
+                                    {isAoS && unit.battleProfile && (unit.battleProfile.allowedKeywords?.length > 0 || unit.battleProfile.canSubCommander || unit.battleProfile.allowsSubCommanders) && (
+                                        <Card className="mb-4">
+                                            <Card.Header>
+                                                <h5 className="mb-0">Regiment Rules</h5>
+                                            </Card.Header>
+                                            <Card.Body>
+                                                {unit.battleProfile.allowedKeywords?.length > 0 && (
+                                                    <div className="mb-3">
+                                                        <strong>Allowed Unit Keywords:</strong>
+                                                        <div className="mt-2">
+                                                            {unit.battleProfile.allowedKeywords.map(kw => (
+                                                                <Badge key={kw} bg="primary" className="me-2 mb-2">
+                                                                    {AoSFactionKeywords.getDisplayName(kw) || kw}
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                        <Form.Text className="text-muted">
+                                                            Units must have at least one of these keywords to join this
+                                                            hero's regiment
+                                                        </Form.Text>
+                                                    </div>
+                                                )}
+
+                                                {unit.battleProfile.canSubCommander && (
+                                                    <div className="mb-2">
+                                                        <Badge bg="info">Can Join as Sub-Commander</Badge>
+                                                        <Form.Text className="text-muted d-block mt-1">
+                                                            This hero can join another hero's regiment as a
+                                                            sub-commander
+                                                        </Form.Text>
+                                                    </div>
+                                                )}
+
+                                                {unit.battleProfile.allowsSubCommanders && (
+                                                    <div>
+                                                        <Badge bg="success">Allows Sub-Commanders</Badge>
+                                                        <span
+                                                            className="ms-2">Max: {unit.battleProfile.maxSubCommanders || 1}</span>
+                                                        <Form.Text className="text-muted d-block mt-1">
+                                                            This hero's regiment can include sub-commanders
+                                                        </Form.Text>
+                                                    </div>
+                                                )}
+                                            </Card.Body>
+                                        </Card>
+                                    )}
                                 </Col>
 
                                 <Col md={6}>
@@ -579,34 +667,96 @@ const UnitDetail = ({unitId}) => {
                                     </Card.Header>
                                     <Card.Body>
                                         <Accordion>
-                                            {abilities.map((ability, index) => (
-                                                <Accordion.Item key={ability.id} eventKey={index.toString()}>
-                                                    <Accordion.Header>
-                                                        <strong>{ability.name}</strong>
-                                                    </Accordion.Header>
-                                                    <Accordion.Body>
-                                                        <p className="mb-2 text-muted">{ability.description}</p>
-                                                        <div className="mb-2">{ability.rulesText}</div>
-                                                        {ability.reminders?.length > 0 && (
-                                                            <div className="mt-3">
-                                                                <strong className="small">Reminders:</strong>
-                                                                <div className="mt-1">
-                                                                    {ability.reminders.map((reminder, idx) => (
-                                                                        <div key={idx}
-                                                                             className="small text-muted mb-1">
-                                                                            • {reminder.text}
-                                                                            {reminder.condition && (
-                                                                                <span
-                                                                                    className="fst-italic"> ({reminder.condition})</span>
-                                                                            )}
-                                                                        </div>
-                                                                    ))}
+                                            {abilities.map((ability, index) => {
+                                                const effects = ability.effects || {};
+                                                const mods = effects.statModifiers || {};
+                                                const hasEffects = Object.keys(mods).length > 0 ||
+                                                    effects.modelCountChange ||
+                                                    (effects.addKeywords && effects.addKeywords.length > 0) ||
+                                                    (effects.addWeapons && effects.addWeapons.length > 0);
+
+                                                return (
+                                                    <Accordion.Item key={ability.id} eventKey={index.toString()}>
+                                                        <Accordion.Header>
+                                                            <strong>{ability.name}</strong>
+                                                            {hasEffects &&
+                                                                <Badge bg="success" className="ms-2">Has
+                                                                    Effects</Badge>}
+                                                        </Accordion.Header>
+                                                        <Accordion.Body>
+                                                            {ability.description && (
+                                                                <p className="mb-2 text-muted">{ability.description}</p>
+                                                            )}
+
+                                                            {ability.effectText && (
+                                                                <div className="mb-2">
+                                                                    <strong>Effect:</strong> {ability.effectText}
                                                                 </div>
-                                                            </div>
-                                                        )}
-                                                    </Accordion.Body>
-                                                </Accordion.Item>
-                                            ))}
+                                                            )}
+
+                                                            {ability.rulesText && (
+                                                                <div className="mb-2">{ability.rulesText}</div>
+                                                            )}
+
+                                                            {hasEffects && (
+                                                                <div className="mt-3">
+                                                                    <strong className="small">Effects:</strong>
+                                                                    <div className="mt-1">
+                                                                        {Object.entries(mods)
+                                                                            .filter(([_, value]) => value !== undefined && value !== null && value !== 0)
+                                                                            .map(([key, value], idx) => {
+                                                                                const statName = key.charAt(0).toUpperCase() + key.slice(1);
+                                                                                if (typeof value === 'boolean') {
+                                                                                    return <Badge key={idx} bg="success"
+                                                                                                  className="me-1 mb-1">Adds {statName}</Badge>;
+                                                                                }
+                                                                                const prefix = value > 0 ? '+' : '';
+                                                                                return <Badge key={idx} bg="success"
+                                                                                              className="me-1 mb-1">{statName} {prefix}{value}</Badge>;
+                                                                            })}
+
+                                                                        {typeof effects.modelCountChange === 'number' && effects.modelCountChange !== 0 && (
+                                                                            <Badge bg="success" className="me-1 mb-1">
+                                                                                Models {effects.modelCountChange > 0 ? '+' : ''}{effects.modelCountChange}
+                                                                            </Badge>
+                                                                        )}
+
+                                                                        {effects.addKeywords && effects.addKeywords.length > 0 && (
+                                                                            <Badge bg="success" className="me-1 mb-1">
+                                                                                Adds {effects.addKeywords.length} Keyword{effects.addKeywords.length !== 1 ? 's' : ''}
+                                                                            </Badge>
+                                                                        )}
+
+                                                                        {effects.addWeapons && effects.addWeapons.length > 0 && (
+                                                                            <Badge bg="success" className="me-1 mb-1">
+                                                                                Adds {effects.addWeapons.length} Weapon{effects.addWeapons.length !== 1 ? 's' : ''}
+                                                                            </Badge>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {ability.reminders && ability.reminders.length > 0 && (
+                                                                <div className="mt-3">
+                                                                    <strong className="small">Reminders:</strong>
+                                                                    <div className="mt-1">
+                                                                        {ability.reminders.map((reminder, idx) => (
+                                                                            <div key={idx}
+                                                                                 className="small text-muted mb-1">
+                                                                                • {reminder.text}
+                                                                                {reminder.condition && (
+                                                                                    <span
+                                                                                        className="fst-italic"> ({reminder.condition})</span>
+                                                                                )}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </Accordion.Body>
+                                                    </Accordion.Item>
+                                                );
+                                            })}
                                         </Accordion>
                                     </Card.Body>
                                 </Card>

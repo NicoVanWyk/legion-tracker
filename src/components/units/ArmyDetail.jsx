@@ -120,6 +120,11 @@ const ArmyDetail = ({armyId}) => {
     };
 
     const getKeywordDisplay = (keyword) => {
+        // Handle non-string keywords
+        if (!keyword || typeof keyword !== 'string') {
+            return keyword;
+        }
+
         if (keyword.startsWith('custom:')) {
             const customId = keyword.replace('custom:', '');
             const customKeyword = customKeywords.find(k => k.id === customId);
@@ -278,6 +283,7 @@ const ArmyDetail = ({armyId}) => {
                                         units={units}
                                         content={armyContent}
                                         generalUnitId={army.generalUnitId}
+                                        customKeywords={customKeywords}
                                         onEdit={handleEditRegiment}
                                         onDelete={handleDeleteRegiment}
                                     />

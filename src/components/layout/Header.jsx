@@ -93,9 +93,24 @@ const Header = () => {
                                         </NavDropdown>
 
                                     <NavDropdown title="Battles" id="battles-dropdown">
-                                        <NavDropdown.Item as={Link} to="/battles">My Battles</NavDropdown.Item>
-                                        <NavDropdown.Item as={Link} to="/battles/create">Start New
-                                            Battle</NavDropdown.Item>
+                                        {currentSystem === GameSystems.LEGION && (
+                                            <>
+                                                <NavDropdown.Item as={Link} to="/battles">My Battles</NavDropdown.Item>
+                                                <NavDropdown.Item as={Link} to="/battles/create">Start New
+                                                    Battle</NavDropdown.Item>
+                                            </>
+                                        )}
+
+                                        {currentSystem === GameSystems.AOS && (
+                                            <>
+                                                <NavDropdown.Item as={Link} to="/aos/battles">My
+                                                    Battles</NavDropdown.Item>
+                                                <NavDropdown.Item as={Link} to="/aos/battles/create">Start AoS
+                                                    Battle</NavDropdown.Item>
+                                                <NavDropdown.Item as={Link} to="/aos/battle-invitations">Battle
+                                                    Invitations</NavDropdown.Item>
+                                            </>
+                                        )}
                                     </NavDropdown>
 
                                     <Nav.Link as={Link} to="/social">Social</Nav.Link>

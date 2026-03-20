@@ -19,6 +19,7 @@ const AoSFactionKeywords = {
   OSSIARCH_BONEREAPERS: 'OSSIARCH_BONEREAPERS',
   MORTISAN: 'MORTISAN',
   MORTIS_PRAETORIANS: 'MORTIS_PRAETORIANS',
+  KAINANS_REAPERS: 'KAINANS_REAPERS',
   PETRIFEX_ELITE: 'PETRIFEX_ELITE',
   STALLIARCH_LORDS: 'STALLIARCH_LORDS',
   IVORY_HOST: 'IVORY_HOST',
@@ -43,6 +44,7 @@ const AoSFactionKeywords = {
       MORTISAN: 'Mortisan',
       MORTIS_PRAETORIANS: 'Mortis Praetorians',
       PETRIFEX_ELITE: 'Petrifex Elite',
+      KAINANS_REAPERS: "Kainan's Reapers",
       STALLIARCH_LORDS: 'Stalliarch Lords',
       IVORY_HOST: 'Ivory Host',
       NULL_MYRIAD: 'Null Myriad',
@@ -79,7 +81,7 @@ const AoSFactionKeywords = {
     ];
     const ossiarch = [
       'DEATH', 'OSSIARCH_BONEREAPERS', 'MORTISAN', 'MORTIS_PRAETORIANS', 'PETRIFEX_ELITE',
-      'STALLIARCH_LORDS', 'IVORY_HOST', 'NULL_MYRIAD', 'CREMATORIANS'
+      'STALLIARCH_LORDS', 'IVORY_HOST', 'NULL_MYRIAD', 'CREMATORIANS', "KAINANS_REAPERS",
     ];
 
     if (faction === 'STORMCAST_ETERNALS') return stormcast;

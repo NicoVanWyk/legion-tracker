@@ -20,7 +20,11 @@ const RegimentCard = ({
     const getContent = (contentId) => content.find(c => c.id === contentId);
 
     const getKeywordDisplay = (keyword) => {
-        if (keyword?.startsWith('custom:')) {
+        if (!keyword || typeof keyword !== 'string') {
+            return keyword || '';
+        }
+
+        if (keyword.startsWith('custom:')) {
             const customId = keyword.replace('custom:', '');
             const customKeyword = customKeywords.find(k => k.id === customId);
             return customKeyword?.name || keyword;
@@ -108,7 +112,7 @@ const RegimentCard = ({
                                         <div>
                                             <strong>{commander.name}</strong>
                                             <div className="small text-muted mt-1">
-                                                {commander.factionKeywords?.map(kw => (
+                                                {commander.factionKeywords?.filter(kw => typeof kw === 'string').map(kw => (
                                                     <Badge
                                                         key={kw}
                                                         bg="secondary"
@@ -190,7 +194,7 @@ const RegimentCard = ({
                                                         </Badge>
                                                     )}
                                                     <div className="small text-muted mt-1">
-                                                        {unit.keywords?.slice(0, 3).map(kw => (
+                                                        {unit.keywords?.filter(kw => typeof kw === 'string').slice(0, 3).map(kw => (
                                                             <Badge
                                                                 key={kw}
                                                                 bg="secondary"
@@ -200,13 +204,21 @@ const RegimentCard = ({
                                                                 {getKeywordDisplay(kw)}
                                                             </Badge>
                                                         ))}
-                                                        {unit.subfaction && (
+                                                        {Array.isArray(unit.subfaction) && unit.subfaction.length > 0 && (
+                                                            unit.subfaction.slice(0, 2).map(sf => (
+                                                                <Badge key={sf} bg="primary" className="ms-1"
+                                                                       style={{fontSize: '0.7rem'}}>
+                                                                    {AoSFactionKeywords.getDisplayName(sf)}
+                                                                </Badge>
+                                                            ))
+                                                        )}
+                                                        {typeof unit.subfaction === 'string' && unit.subfaction && (
                                                             <Badge bg="primary" className="ms-1"
                                                                    style={{fontSize: '0.7rem'}}>
                                                                 {AoSFactionKeywords.getDisplayName(unit.subfaction)}
                                                             </Badge>
                                                         )}
-                                                        {unit.grandAlliance && (
+                                                        {unit.grandAlliance && typeof unit.grandAlliance === 'string' && (
                                                             <Badge bg="secondary" className="ms-1"
                                                                    style={{fontSize: '0.7rem'}}>
                                                                 {AoSFactionKeywords.getDisplayName(unit.grandAlliance)}

@@ -61,6 +61,11 @@ import ArmyKeywords from './components/aos/ArmyKeywords';
 // Battles
 import BattleEditForm from './components/battles/BattleEditForm';
 import SharedBattleTracker from './components/battles/SharedBattleTracker';
+import AoSBattleCreate from './components/aos/battles/AoSBattleCreate';
+import AoSBattleTracker from './components/aos/battles/AoSBattleTracker';
+import AoSSharedBattleTracker from './components/aos/battles/AoSSharedBattleTracker';
+import AoSBattleInvitations from './components/aos/battles/AoSBattleInvitations';
+import AoSBattleList from "./components/aos/battles/AoSBattleList";
 
 // Import Bootstrap CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -138,6 +143,11 @@ function App() {
                                     <Route path="/battles/:battleId/edit" element={<BattleEditForm/>}/>
                                     <Route path="/battles/create" element={<Battles/>}/>
                                     <Route path="/shared-battles/:battleId" element={<SharedBattleTracker/>}/>
+                                    <Route path="/aos/battles/create" element={<AoSBattleCreate/>}/>
+                                    <Route path="/aos/battles/:battleId" element={<AoSBattleTracker/>}/>
+                                    <Route path="/aos/shared-battles/:battleId" element={<AoSSharedBattleTracker/>}/>
+                                    <Route path="/aos/battle-invitations" element={<AoSBattleInvitations/>}/>
+                                    <Route path="/aos/battles" element={<AoSBattleList/>}/>
 
                                     {/* Abilities Routes */}
                                     <Route path="/abilities" element={<AbilityList/>}/>

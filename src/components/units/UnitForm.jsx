@@ -72,7 +72,12 @@ const UnitForm = () => {
         cardBackground: '',
         battleProfile: {
             allowedKeywords: [],
-            canSubCommander: false
+            canSubCommander: false,
+            allowsSubCommanders: false,
+            maxSubCommanders: 1,
+            isRegimentOfRenown: false,
+            requiredUnits: [],
+            requiredRegimentAbility: ''
         }
     });
 
@@ -112,7 +117,12 @@ const UnitForm = () => {
                         cardBackground: unitData.cardBackground || '',
                         battleProfile: unitData.battleProfile || {
                             allowedKeywords: [],
-                            canSubCommander: false
+                            canSubCommander: false,
+                            allowsSubCommanders: false,
+                            maxSubCommanders: 1,
+                            isRegimentOfRenown: false,
+                            requiredUnits: [],
+                            requiredRegimentAbility: ''
                         }
                     });
                 } else {
@@ -280,6 +290,7 @@ const UnitForm = () => {
                             battleProfile={formData.battleProfile}
                             onChange={(profile) => setFormData(prev => ({...prev, battleProfile: profile}))}
                             faction={formData.faction}
+                            unitId={unitId}
                         />
                     </Tab>
                 )}

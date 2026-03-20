@@ -237,6 +237,9 @@ const ArmyContentForm = () => {
             case AoSContentTypes.HEROIC_TRAIT:
                 return renderPhaseAndKeywords();
 
+            case AoSContentTypes.REGIMENT_ABILITY:
+                return renderPhaseAndKeywords();
+
             case AoSContentTypes.SPELL_LORE:
                 return (
                     <SpellLoreSection
