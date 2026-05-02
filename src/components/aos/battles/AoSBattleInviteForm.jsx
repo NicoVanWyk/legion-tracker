@@ -3,8 +3,9 @@ import {Modal, Form, Button, Alert, ListGroup} from 'react-bootstrap';
 import {collection, query, where, getDocs, addDoc, serverTimestamp} from 'firebase/firestore';
 import {db} from '../../../firebase/config';
 import {useAuth} from '../../../contexts/AuthContext';
+import GameSystems from '../../../enums/GameSystems';
 
-const AoSBattleInviteForm = ({show, onHide, onInviteSent}) => {
+const AoSBattleInviteForm = ({show, onHide, onInviteSent, existingBattle = null, existingBattleId = null}) => {
     const [friends, setFriends] = useState([]);
     const [armies, setArmies] = useState([]);
     const [selectedFriend, setSelectedFriend] = useState('');
@@ -33,7 +34,7 @@ const AoSBattleInviteForm = ({show, onHide, onInviteSent}) => {
 
             const armiesQuery = query(
                 collection(db, 'users', currentUser.uid, 'armies'),
-                where('gameSystem', '==', 'AOS')
+                where('gameSystem', '==', GameSystems.AOS)
             );
             const armiesSnapshot = await getDocs(armiesQuery);
             setArmies(armiesSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
@@ -43,44 +44,87 @@ const AoSBattleInviteForm = ({show, onHide, onInviteSent}) => {
     };
 
     const sendInvitation = async () => {
-        if (!selectedFriend || !selectedArmy) {
-            setError('Please select a friend and an army');
+        if (!selectedFriend) {
+            setError('Please select a friend');
+            return;
+        }
+
+        if (!existingBattle && !selectedArmy) {
+            setError('Please select an army');
             return;
         }
 
         try {
             setLoading(true);
+            let battleRef;
+            let battleData;
 
-            const sharedBattleData = {
-                name: battleName || `${currentUser.displayName || 'Player 1'} vs ${friends.find(f => f.id === selectedFriend)?.username}`,
-                gameSystem: 'AOS',
-                battlePointsLimit: battlePoints,
+            if (existingBattle && existingBattleId) {
+                // Inviting to existing battle - convert to shared battle
+                battleData = {
+                    name: existingBattle.name,
+                    gameSystem: GameSystems.AOS,
+                    battlePointsLimit: existingBattle.battlePointsLimit,
 
-                participants: {
-                    [currentUser.uid]: {
-                        role: 'player1',
-                        armyId: selectedArmy,
-                        username: currentUser.displayName || currentUser.email
-                    }
-                },
+                    participants: {
+                        [currentUser.uid]: {
+                            role: 'player1',
+                            armyId: existingBattle.player1.armyId,
+                            username: currentUser.displayName || currentUser.email
+                        }
+                    },
 
-                invitations: [{
-                    userId: selectedFriend,
-                    status: 'pending',
-                    invitedAt: serverTimestamp()
-                }],
+                    invitations: [{
+                        userId: selectedFriend,
+                        status: 'pending',
+                        invitedAt: new Date()
+                    }],
 
-                battleData: {
-                    currentPhase: 'SETUP',
-                    currentRound: 1,
-                    isActive: false
-                },
+                    battleData: {
+                        ...existingBattle,
+                        isSharedBattle: true,
+                        isActive: false
+                    },
 
-                createdBy: currentUser.uid,
-                createdAt: serverTimestamp()
-            };
+                    createdBy: currentUser.uid,
+                    createdAt: new Date(),
+                    originalBattleId: existingBattleId
+                };
 
-            const battleRef = await addDoc(collection(db, 'aos-shared-battles'), sharedBattleData);
+                battleRef = await addDoc(collection(db, 'aos-shared-battles'), battleData);
+            } else {
+                // Creating new battle
+                battleData = {
+                    name: battleName || `${currentUser.displayName || 'Player 1'} vs ${friends.find(f => f.id === selectedFriend)?.username}`,
+                    gameSystem: GameSystems.AOS,
+                    battlePointsLimit: battlePoints,
+
+                    participants: {
+                        [currentUser.uid]: {
+                            role: 'player1',
+                            armyId: selectedArmy,
+                            username: currentUser.displayName || currentUser.email
+                        }
+                    },
+
+                    invitations: [{
+                        userId: selectedFriend,
+                        status: 'pending',
+                        invitedAt: new Date()
+                    }],
+
+                    battleData: {
+                        currentPhase: 'SETUP',
+                        currentRound: 1,
+                        isActive: false
+                    },
+
+                    createdBy: currentUser.uid,
+                    createdAt: new Date()
+                };
+
+                battleRef = await addDoc(collection(db, 'aos-shared-battles'), battleData);
+            }
 
             await addDoc(collection(db, 'aos-battle-invitations'), {
                 fromUserId: currentUser.uid,
@@ -88,9 +132,9 @@ const AoSBattleInviteForm = ({show, onHide, onInviteSent}) => {
                 toUserId: selectedFriend,
                 battleId: battleRef.id,
                 message: message || 'Join me for an Age of Sigmar battle!',
-                battlePoints: battlePoints,
+                battlePoints: existingBattle?.battlePointsLimit || battlePoints,
                 status: 'pending',
-                createdAt: serverTimestamp(),
+                createdAt: new Date(),
                 expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
             });
 
@@ -101,9 +145,10 @@ const AoSBattleInviteForm = ({show, onHide, onInviteSent}) => {
             setSelectedArmy('');
             setBattleName('');
             setMessage('');
+            setError('');
         } catch (err) {
             console.error('Error sending invitation:', err);
-            setError('Failed to send invitation');
+            setError('Failed to send invitation: ' + err.message);
         } finally {
             setLoading(false);
         }
@@ -112,30 +157,46 @@ const AoSBattleInviteForm = ({show, onHide, onInviteSent}) => {
     return (
         <Modal show={show} onHide={onHide} centered>
             <Modal.Header closeButton>
-                <Modal.Title>Invite to AoS Battle</Modal.Title>
+                <Modal.Title>
+                    {existingBattle ? 'Invite to Existing Battle' : 'Invite to AoS Battle'}
+                </Modal.Title>
             </Modal.Header>
             <Modal.Body>
                 {error && <Alert variant="danger">{error}</Alert>}
 
-                <Form.Group className="mb-3">
-                    <Form.Label>Battle Name</Form.Label>
-                    <Form.Control
-                        type="text"
-                        value={battleName}
-                        onChange={(e) => setBattleName(e.target.value)}
-                        placeholder="Optional"
-                    />
-                </Form.Group>
+                {existingBattle && (
+                    <Alert variant="info" className="mb-3">
+                        You're inviting someone to join: <strong>{existingBattle.name}</strong>
+                        <br/>
+                        Your army: <strong>{existingBattle.player1.armyName}</strong>
+                        <br/>
+                        Points: <strong>{existingBattle.battlePointsLimit}</strong>
+                    </Alert>
+                )}
 
-                <Form.Group className="mb-3">
-                    <Form.Label>Battle Size (Points)</Form.Label>
-                    <Form.Control
-                        type="number"
-                        step="500"
-                        value={battlePoints}
-                        onChange={(e) => setBattlePoints(parseInt(e.target.value))}
-                    />
-                </Form.Group>
+                {!existingBattle && (
+                    <>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Battle Name</Form.Label>
+                            <Form.Control
+                                type="text"
+                                value={battleName}
+                                onChange={(e) => setBattleName(e.target.value)}
+                                placeholder="Optional"
+                            />
+                        </Form.Group>
+
+                        <Form.Group className="mb-3">
+                            <Form.Label>Battle Size (Points)</Form.Label>
+                            <Form.Control
+                                type="number"
+                                step="500"
+                                value={battlePoints}
+                                onChange={(e) => setBattlePoints(parseInt(e.target.value))}
+                            />
+                        </Form.Group>
+                    </>
+                )}
 
                 <Form.Group className="mb-3">
                     <Form.Label>Select Friend</Form.Label>
@@ -152,20 +213,22 @@ const AoSBattleInviteForm = ({show, onHide, onInviteSent}) => {
                     </Form.Select>
                 </Form.Group>
 
-                <Form.Group className="mb-3">
-                    <Form.Label>Your Army</Form.Label>
-                    <Form.Select
-                        value={selectedArmy}
-                        onChange={(e) => setSelectedArmy(e.target.value)}
-                    >
-                        <option value="">Choose your army...</option>
-                        {armies.map(army => (
-                            <option key={army.id} value={army.id}>
-                                {army.name} ({army.totalPoints || 0} pts)
-                            </option>
-                        ))}
-                    </Form.Select>
-                </Form.Group>
+                {!existingBattle && (
+                    <Form.Group className="mb-3">
+                        <Form.Label>Your Army</Form.Label>
+                        <Form.Select
+                            value={selectedArmy}
+                            onChange={(e) => setSelectedArmy(e.target.value)}
+                        >
+                            <option value="">Choose your army...</option>
+                            {armies.map(army => (
+                                <option key={army.id} value={army.id}>
+                                    {army.name} ({army.totalPoints || 0} pts)
+                                </option>
+                            ))}
+                        </Form.Select>
+                    </Form.Group>
+                )}
 
                 <Form.Group className="mb-3">
                     <Form.Label>Message (Optional)</Form.Label>
@@ -185,7 +248,7 @@ const AoSBattleInviteForm = ({show, onHide, onInviteSent}) => {
                 <Button
                     variant="primary"
                     onClick={sendInvitation}
-                    disabled={loading || !selectedFriend || !selectedArmy}
+                    disabled={loading || !selectedFriend || (!existingBattle && !selectedArmy)}
                 >
                     {loading ? 'Sending...' : 'Send Invitation'}
                 </Button>

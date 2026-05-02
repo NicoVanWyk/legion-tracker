@@ -7,6 +7,7 @@ import {useAuth} from '../../../contexts/AuthContext';
 import AoSBattlePhases from '../../../enums/aos/AoSBattlePhases';
 import AoSGrandStrategies from '../../../enums/aos/AoSGrandStrategies';
 import LoadingSpinner from '../../layout/LoadingSpinner';
+import AoSBattleInviteForm from './AoSBattleInviteForm';
 
 const AoSBattleList = () => {
     const [battles, setBattles] = useState([]);
@@ -14,6 +15,7 @@ const AoSBattleList = () => {
     const [error, setError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [showCompleted, setShowCompleted] = useState(false);
+    const [showInviteModal, setShowInviteModal] = useState(false);
     const {currentUser} = useAuth();
 
     useEffect(() => {
@@ -103,6 +105,24 @@ const AoSBattleList = () => {
                                     </Form.Group>
                                 </Col>
 
+                                <Col md={3} className="text-end">
+                                    <Form.Label className="d-block">&nbsp;</Form.Label>
+                                    <Button
+                                        variant="success"
+                                        className="me-2"
+                                        onClick={() => setShowInviteModal(true)}
+                                    >
+                                        Invite to Battle
+                                    </Button>
+                                    <Button
+                                        as={Link}
+                                        to="/aos/battles/create"
+                                        variant="primary"
+                                    >
+                                        New Battle
+                                    </Button>
+                                </Col>
+
                                 <Col md={3} className="mb-3 mb-md-0">
                                     <Form.Group>
                                         <Form.Label>&nbsp;</Form.Label>
@@ -115,22 +135,20 @@ const AoSBattleList = () => {
                                         />
                                     </Form.Group>
                                 </Col>
-
-                                <Col md={3} className="text-end">
-                                    <Form.Label className="d-block">&nbsp;</Form.Label>
-                                    <Button
-                                        as={Link}
-                                        to="/aos/battles/create"
-                                        variant="primary"
-                                    >
-                                        New Battle
-                                    </Button>
-                                </Col>
                             </Row>
                         </Card.Body>
                     </Card>
                 </Col>
             </Row>
+
+            <AoSBattleInviteForm 
+                show={showInviteModal}
+                onHide={() => setShowInviteModal(false)}
+                onInviteSent={() => {
+                    setShowInviteModal(false);
+                    // Optionally show a success message
+                }}
+            />
 
             {error && (
                 <Row className="mb-4">

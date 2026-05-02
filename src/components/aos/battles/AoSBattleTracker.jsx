@@ -11,6 +11,7 @@ import AoSUnitTracker from './AoSUnitTracker';
 import AoSCommandPanel from './AoSCommandPanel';
 import AoSPhaseControls from './AoSPhaseControls';
 import AoSPhaseReference from './AoSPhaseReference';
+import AoSBattleInviteForm from './AoSBattleInviteForm';
 import LoadingSpinner from '../../layout/LoadingSpinner';
 
 const AoSBattleTracker = () => {
@@ -22,6 +23,7 @@ const AoSBattleTracker = () => {
     const [error, setError] = useState('');
     const [showEndBattleModal, setShowEndBattleModal] = useState(false);
     const [selectedWinner, setSelectedWinner] = useState(null);
+    const [showInviteModal, setShowInviteModal] = useState(false);
 
     useEffect(() => {
         fetchBattle();
@@ -192,6 +194,15 @@ const AoSBattleTracker = () => {
 
             <Row className="mt-3">
                 <Col className="text-end">
+                    {!battle.player2.userId && (
+                        <Button 
+                            variant="info" 
+                            className="me-2"
+                            onClick={() => setShowInviteModal(true)}
+                        >
+                            Invite Player 2
+                        </Button>
+                    )}
                     <Button variant="warning" onClick={() => setShowEndBattleModal(true)}>
                         End Battle
                     </Button>
@@ -292,6 +303,17 @@ const AoSBattleTracker = () => {
                     </Button>
                 </Modal.Footer>
             </Modal>
+
+            <AoSBattleInviteForm 
+                show={showInviteModal}
+                onHide={() => setShowInviteModal(false)}
+                existingBattle={battle}
+                existingBattleId={battleId}
+                onInviteSent={() => {
+                    setShowInviteModal(false);
+                    // Optionally navigate to shared battle or show success message
+                }}
+            />
         </Container>
     );
 };
