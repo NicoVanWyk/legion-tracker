@@ -16,6 +16,8 @@ import LoadingSpinner from '../layout/LoadingSpinner';
 import ReminderPanel from '../reminders/ReminderPanel';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import MobileBattleTracker from './MobileBattleTracker';
+import BattleMap from './BattleMap';
+import GameSystems from '../../enums/GameSystems';
 
 const BattleTracker = ({ battleId }) => {
     const navigate = useNavigate();
@@ -522,6 +524,15 @@ const BattleTracker = ({ battleId }) => {
                                 onAdvancePhase={handleAdvancePhase}
                                 onChangeActivePlayer={handleChangeActivePlayer}
                                 onEndBattle={() => setConfirmEndBattle(true)}
+                            />
+
+                            <BattleMap
+                                battle={battle}
+                                onUnitUpdate={handleUnitUpdate}
+                                isDeploymentPhase={
+                                    battle.currentPhase === 'setup' ||
+                                    (battle.currentPhase === BattlePhases.COMMAND && battle.currentRound <= 1)
+                                }
                             />
 
                             {/* Show command cards for current round if selected */}

@@ -37,6 +37,7 @@ import AoSFactions from '../../enums/aos/AoSFactions';
 import AoSUnitTypes from '../../enums/aos/AoSUnitTypes';
 import AoSFactionKeywords from '../../enums/aos/AoSFactionKeywords';
 import GameSystems from '../../enums/GameSystems';
+import KeywordBadge from './KeywordBadge';
 
 const UnitDetail = ({unitId}) => {
     const [unit, setUnit] = useState(null);
@@ -516,38 +517,22 @@ const UnitDetail = ({unitId}) => {
                                         <Card.Body>
                                             {getAllKeywords().length > 0 ? (
                                                 <div>
-                                                    {getAllKeywords().map((keyword, index) => {
-                                                        const definition = getKeywordDefinition(keyword);
-                                                        const keywordBadge = (
-                                                            <Badge
-                                                                key={index}
-                                                                bg={keyword.startsWith('custom:') ? 'info' : (
-                                                                    unit.keywords && unit.keywords.includes(keyword) ? 'secondary' : 'success'
-                                                                )}
-                                                                className="me-2 mb-2 p-2"
-                                                            >
-                                                                {getKeywordDisplay(keyword)}
-                                                                {!unit.keywords?.includes(keyword) && (
-                                                                    <span className="ms-1" title="From Upgrade">+</span>
-                                                                )}
-                                                            </Badge>
-                                                        );
-
-                                                        return definition ? (
-                                                            <OverlayTrigger
-                                                                key={index}
-                                                                placement="top"
-                                                                trigger={['hover', 'click']}
-                                                                overlay={
-                                                                    <Tooltip id={`tooltip-keyword-${index}`}>
-                                                                        {definition}
-                                                                    </Tooltip>
-                                                                }
-                                                            >
-                                                                {keywordBadge}
-                                                            </OverlayTrigger>
-                                                        ) : keywordBadge;
-                                                    })}
+                                                    {getAllKeywords().map((keyword, index) => (
+                                                        <KeywordBadge
+                                                            key={index}
+                                                            keyword={keyword}
+                                                            customKeywords={customKeywords}
+                                                            bg={keyword.startsWith('custom:') ? 'info'
+                                                                : unit.keywords?.includes(keyword) ? 'secondary'
+                                                                    : 'success'}
+                                                            className="me-1 mb-1"
+                                                        >
+                                                            {getKeywordDisplay(keyword)}
+                                                            {!unit.keywords?.includes(keyword) && (
+                                                                <span className="ms-1" title="From Upgrade">+</span>
+                                                            )}
+                                                        </KeywordBadge>
+                                                    ))}
                                                 </div>
                                             ) : (
                                                 <p className="text-muted">No keywords assigned to this unit.</p>

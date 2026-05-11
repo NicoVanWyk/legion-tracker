@@ -24,7 +24,8 @@ const BattleEditForm = () => {
             primary: '',
             secondary: '',
             deployment: ''
-        }
+        },
+        mapConfig: {width: 24, height: 12},
     });
 
     // Load battle data
@@ -45,7 +46,13 @@ const BattleEditForm = () => {
                             primary: battleData.objectives?.primary || '',
                             secondary: battleData.objectives?.secondary || '',
                             deployment: battleData.objectives?.deployment || ''
-                        }
+                        },
+                        mapConfig: battleData.mapConfig?.widthTools != null
+                            ? battleData.mapConfig
+                            : {
+                                widthTools: Math.round((battleData.mapConfig?.width || 24) / 3),
+                                heightTools: Math.round((battleData.mapConfig?.height || 12) / 3),
+                            }
                     });
                 } else {
                     setError('Battle not found');
@@ -95,6 +102,7 @@ const BattleEditForm = () => {
                 bluePlayer: formData.bluePlayer,
                 redPlayer: formData.redPlayer,
                 objectives: formData.objectives,
+                mapConfig: formData.mapConfig,
                 lastUpdated: serverTimestamp()
             });
 
@@ -171,6 +179,55 @@ const BattleEditForm = () => {
                                 </Form.Group>
                             </Col>
                         </Row>
+
+                        <Card className="mb-4">
+                            <Card.Header><h5 className="mb-0">Battle Map Size</h5></Card.Header>
+                            <Card.Body>
+                                <Row>
+                                    <Col md={3}>
+                                        <Form.Group className="mb-3">
+                                            <Form.Label>Length (move tools)</Form.Label>
+                                            <Form.Control type="number" min={2} max={16}
+                                                          value={formData.mapConfig.widthTools}
+                                                          onChange={e => setFormData(prev => ({
+                                                              ...prev,
+                                                              mapConfig: {
+                                                                  ...prev.mapConfig,
+                                                                  widthTools: parseInt(e.target.value) || 8
+                                                              }
+                                                          }))}/>
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={3}>
+                                        <Form.Group className="mb-3">
+                                            <Form.Label>Width (move tools)</Form.Label>
+                                            <Form.Control type="number" min={2} max={8}
+                                                          value={formData.mapConfig.heightTools}
+                                                          onChange={e => setFormData(prev => ({
+                                                              ...prev,
+                                                              mapConfig: {
+                                                                  ...prev.mapConfig,
+                                                                  heightTools: parseInt(e.target.value) || 4
+                                                              }
+                                                          }))}/>
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={6} className="d-flex align-items-center">
+                                        <div>
+                                            <small className="text-muted d-block">
+                                                Enter the map size in full SWL movement tools (76mm each) — the map
+                                                is divided into thirds internally (~27mm per tile).
+                                            </small>
+                                            <small className="text-muted">
+                                                → {(formData.mapConfig.widthTools || 8) * 3}
+                                                × {(formData.mapConfig.heightTools || 4) * 3} tiles total.
+                                                Standard 6′×3′ table = 8×4 tools.
+                                            </small>
+                                        </div>
+                                    </Col>
+                                </Row>
+                            </Card.Body>
+                        </Card>
 
                         <Card className="mb-4">
                             <Card.Header>

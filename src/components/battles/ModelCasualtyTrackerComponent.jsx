@@ -336,17 +336,6 @@ const ModelTrackerDemo = () => {
                     upgrades={upgrades}
                     onUpdateModels={handleUpdateModels}
                 />
-
-                <div className="mt-6 bg-white rounded-lg shadow-md border border-gray-200">
-                    <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
-                        <h3 className="font-bold">Current Unit State (Debug)</h3>
-                    </div>
-                    <div className="p-4">
-            <pre className="text-xs bg-gray-50 p-3 rounded overflow-auto">
-              {JSON.stringify(unit.models, null, 2)}
-            </pre>
-                    </div>
-                </div>
             </div>
         </div>
     );

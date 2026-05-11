@@ -60,6 +60,8 @@ const UnitForm = () => {
         grandAlliance: '',
         subfaction: [],
         speed: 2,
+        battleMapSizeX: 1,   // length (tiles) — 1 tile ≈ 27mm = ⅓ move tool
+        battleMapSizeY: 1,   // width  (tiles)
         minModelCount: 1,
         currentModelCount: 1,
         keywords: [],
@@ -105,6 +107,8 @@ const UnitForm = () => {
                         courage: unitData.isVehicle ? 0 : (unitData.courage !== undefined ? unitData.courage : 1),
                         resilience: unitData.isVehicle ? (unitData.resilience !== undefined ? unitData.resilience : 0) : 0,
                         health: unitData.health || unitData.wounds || 1,
+                        battleMapSizeX: unitData.battleMapSizeX || 1,
+                        battleMapSizeY: unitData.battleMapSizeY || 1,
                         move: unitData.move || 5,
                         save: unitData.save || 4,
                         control: unitData.control || 1,
@@ -182,7 +186,8 @@ const UnitForm = () => {
         const {name, value} = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: ['points', 'wounds', 'courage', 'resilience', 'speed', 'minModelCount', 'health', 'move', 'save', 'control', 'banishment'].includes(name)
+            [name]: ['points', 'wounds', 'courage', 'resilience', 'speed', 'battleMapSizeX', 'battleMapSizeY',
+                'minModelCount', 'health', 'move', 'save', 'control', 'banishment'].includes(name)
                 ? (value === '' ? 0 : parseInt(value, 10))
                 : value
         }));

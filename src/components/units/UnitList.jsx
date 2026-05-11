@@ -15,6 +15,7 @@ import AoSFactions from '../../enums/aos/AoSFactions';
 import AoSUnitTypes from '../../enums/aos/AoSUnitTypes';
 import AoSFactionKeywords from '../../enums/aos/AoSFactionKeywords';
 import GameSystems from '../../enums/GameSystems';
+import KeywordBadge from './KeywordBadge';
 
 const UnitList = () => {
     const {currentUser} = useAuth();
@@ -321,6 +322,24 @@ const UnitList = () => {
                                                     / {unit.save || 4}+ / {unit.control || 1}C
                                                 </div>
                                             )}
+                                            {!isAoS && (
+                                                <div className="mt-2 small d-flex align-items-center gap-2">
+                                                    <span><strong>Spd</strong> {unit.speed || 2}</span>
+                                                    <span>
+                                                        <strong>| Def</strong>{' '}
+                                                        <span
+                                                            className={`fw-bold ${unit.defense === 'red' ? 'text-danger' : 'text-secondary'}`}>
+                                                            {(unit.defense || 'white').charAt(0).toUpperCase()}
+                                                        </span>
+                                                    </span>
+                                                    <span><strong>| {unit.wounds || 1}W</strong></span>
+                                                    {(unit.battleMapSize || 1) > 1 && (
+                                                        <Badge bg="light" text="dark" style={{fontSize: '0.65rem'}}>
+                                                            {unit.battleMapSize}-tile base
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="keyword-container mb-3"
@@ -329,15 +348,17 @@ const UnitList = () => {
                                             {getAllKeywords(unit).length > 0 ? (
                                                 <div className="d-flex flex-wrap">
                                                     {getAllKeywords(unit).map((keyword, index) => (
-                                                        <Badge
+                                                        <KeywordBadge
                                                             key={`${unit.id}-kw-${index}`}
-                                                            bg={keyword.startsWith('custom:') ? 'info' : (unit.keywords && unit.keywords.includes(keyword) ? 'secondary' : 'success')}
+                                                            keyword={keyword}
+                                                            customKeywords={customKeywords}
+                                                            bg={keyword.startsWith('custom:') ? 'info' : (unit.keywords?.includes(keyword) ? 'secondary' : 'success')}
                                                             className="me-1 mb-1"
                                                         >
                                                             {getKeywordDisplay(keyword)}
                                                             {!unit.keywords?.includes(keyword) &&
                                                                 <span className="ms-1" title="From Upgrade">+</span>}
-                                                        </Badge>
+                                                        </KeywordBadge>
                                                     ))}
                                                 </div>
                                             ) : (

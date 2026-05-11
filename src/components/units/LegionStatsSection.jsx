@@ -48,6 +48,7 @@ const LegionStatsSection = ({formData, handleChange, handleCheckboxChange}) => {
                         />
                     </Form.Group>
                 </Col>
+
                 <Col md={3}>
                     <Form.Group>
                         <Form.Label>Speed</Form.Label>
@@ -58,6 +59,36 @@ const LegionStatsSection = ({formData, handleChange, handleCheckboxChange}) => {
                             onChange={handleChange}
                         />
                     </Form.Group>
+                </Col>
+            </Row>
+
+            <Row>
+                <Col md={12}>
+                    <Form.Label>
+                        Battle Map Footprint (tiles)
+                        <small className="text-muted ms-2">1 tile ≈ 27mm = ⅓ of a 76mm move tool</small>
+                    </Form.Label>
+                </Col>
+                <Col md={3}>
+                    <Form.Group className="mb-3">
+                        <Form.Label className="small">Length (front–back)</Form.Label>
+                        <Form.Control type="number" name="battleMapSizeX"
+                                      value={formData.battleMapSizeX} onChange={handleChange} min={1} max={18}/>
+                    </Form.Group>
+                </Col>
+                <Col md={3}>
+                    <Form.Group className="mb-3">
+                        <Form.Label className="small">Width (side-to-side)</Form.Label>
+                        <Form.Control type="number" name="battleMapSizeY"
+                                      value={formData.battleMapSizeY} onChange={handleChange} min={1} max={18}/>
+                    </Form.Group>
+                </Col>
+                <Col md={6} className="d-flex align-items-center">
+                    <small className="text-muted">
+                        ≈ {Math.round((formData.battleMapSizeX || 1) / 3 * 76)}mm
+                        × {Math.round((formData.battleMapSizeY || 1) / 3 * 76)}mm
+                        &nbsp;({formData.battleMapSizeX || 1}×{formData.battleMapSizeY || 1} tiles)
+                    </small>
                 </Col>
             </Row>
 
