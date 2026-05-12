@@ -1,19 +1,19 @@
-﻿import React, {useState, useEffect} from 'react';
-import {Card, Button, Badge, ButtonGroup, Alert} from 'react-bootstrap';
-import {doc, getDoc} from 'firebase/firestore';
-import {db} from '../../firebase/config';
-import {useAuth} from '../../contexts/AuthContext';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Card, Button, Badge, ButtonGroup, Alert } from 'react-bootstrap';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../firebase/config';
+import { useAuth } from '../../contexts/AuthContext';
 import PlayerSides from '../../enums/PlayerSides';
 import Keywords from '../../enums/Keywords';
 
-const DEPLOY_ZONE_WIDTH = 3;
+const DEPLOY_ZONE_WIDTH = 6;
 const LEGION_ACTIONS = ['Move', 'Attack', 'Aim', 'Dodge', 'Standby', 'Recover', 'Coordinate'];
 
 // ── Unit stat helpers ─────────────────────────────────────────────────────────
 // Use ?? (not ||) so numeric 0 is not discarded as falsy
 const getModelCount = unit => unit.currentModelCount ?? unit.minModelCount ?? 1;
-const getUnitSizeX = unit => unit.battleMapSizeX ?? 1;
-const getUnitSizeY = unit => unit.battleMapSizeY ?? 1;
+const getUnitSizeX  = unit => unit.battleMapSizeX  ?? 1;
+const getUnitSizeY  = unit => unit.battleMapSizeY  ?? 1;
 
 // Speed in move-tool units; wheel mode bumps it to at least 3
 const getUnitSpeed = (unit, wheelModeActive = false) => {
@@ -41,15 +41,16 @@ const buildUnitTiles = unit => {
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
-const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
-    const {currentUser} = useAuth();
-    const [selectedUnit, setSelectedUnit] = useState(null);   // { unit, side }
-    const [movingModelIdx, setMovingModelIdx] = useState(null);   // index into mapPositions
-    const [reachable, setReachable] = useState(new Set());
-    const [deployingUnit, setDeployingUnit] = useState(null);   // { unit, side }
-    const [tileSize, setTileSize] = useState(42);
+const BattleMap = ({ battle, onUnitUpdate, isDeploymentPhase = false }) => {
+    const { currentUser } = useAuth();
+    const [selectedUnit,    setSelectedUnit]    = useState(null);   // { unit, side }
+    const [movingModelIdx,  setMovingModelIdx]  = useState(null);   // index into mapPositions
+    const [reachable,       setReachable]       = useState(new Set());
+    const [deployingUnit,   setDeployingUnit]   = useState(null);   // { unit, side }
+    const [tileSize,        setTileSize]        = useState(36);
     const [wheelModeActive, setWheelModeActive] = useState(false);
-    const [unitCache, setUnitCache] = useState({});     // unitId → full unit doc
+    const [unitCache,       setUnitCache]       = useState({});     // unitId → full unit doc
+    const containerRef = useRef(null);
 
     // Fetch live unit documents to supplement stale battle snapshots.
     // The battle stores unit copies at creation time; speed/size/modelCount
@@ -57,7 +58,7 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
     useEffect(() => {
         if (!currentUser || !battle) return;
         const allUnits = [...(battle.blueUnits || []), ...(battle.redUnits || [])];
-        const toFetch = allUnits.filter(u => u.id && !unitCache[u.id]);
+        const toFetch  = allUnits.filter(u => u.id && !unitCache[u.id]);
         if (!toFetch.length) return;
 
         Promise.all(
@@ -69,9 +70,9 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
         ).then(results => {
             const entries = Object.fromEntries(results.filter(Boolean));
             if (Object.keys(entries).length)
-                setUnitCache(prev => ({...prev, ...entries}));
+                setUnitCache(prev => ({ ...prev, ...entries }));
         });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [battle.blueUnits, battle.redUnits, currentUser]);
 
     // Merge the live unit doc into the battle snapshot so stats are always current.
@@ -80,19 +81,44 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
         if (!live) return unit;
         return {
             ...unit,
-            speed: unit.speed ?? live.speed ?? 2,
+            speed:             unit.speed             ?? live.speed             ?? 2,
             currentModelCount: unit.currentModelCount ?? live.currentModelCount ?? live.minModelCount ?? 1,
-            minModelCount: unit.minModelCount ?? live.minModelCount ?? 1,
-            battleMapSizeX: unit.battleMapSizeX ?? live.battleMapSizeX ?? 1,
-            battleMapSizeY: unit.battleMapSizeY ?? live.battleMapSizeY ?? 1,
-            keywords: unit.keywords ?? live.keywords ?? [],
+            minModelCount:     unit.minModelCount     ?? live.minModelCount     ?? 1,
+            battleMapSizeX:    unit.battleMapSizeX    ?? live.battleMapSizeX    ?? 1,
+            battleMapSizeY:    unit.battleMapSizeY    ?? live.battleMapSizeY    ?? 1,
+            keywords:          unit.keywords          ?? live.keywords          ?? [],
         };
     };
 
     const mapW = battle.mapConfig?.widthTools
-        ? battle.mapConfig.widthTools * 3 : (battle.mapConfig?.width || 24);
+        ? battle.mapConfig.widthTools  * 3 : (battle.mapConfig?.width  || 24);
     const mapH = battle.mapConfig?.heightTools
         ? battle.mapConfig.heightTools * 3 : (battle.mapConfig?.height || 12);
+
+    // Auto-scale tile size to fill available width AND height.
+    // Uses getBoundingClientRect (fractional-accurate) and defers first calc
+    // to after layout has settled so we read the true rendered width.
+    useEffect(() => {
+        const calc = () => {
+            if (!containerRef.current) return;
+            const rect  = containerRef.current.getBoundingClientRect();
+            const availW = Math.floor(rect.width) - 4;
+            const availH = Math.max(200, window.innerHeight - 400);
+            const fromW  = Math.floor(availW / mapW);
+            const fromH  = Math.floor(availH / mapH);
+            setTileSize(Math.max(18, Math.min(64, Math.min(fromW, fromH))));
+        };
+        // Defer so the DOM has finished its first layout pass
+        const raf = requestAnimationFrame(calc);
+        const ro = new ResizeObserver(calc);
+        if (containerRef.current) ro.observe(containerRef.current);
+        window.addEventListener('resize', calc);
+        return () => {
+            cancelAnimationFrame(raf);
+            ro.disconnect();
+            window.removeEventListener('resize', calc);
+        };
+    }, [mapW, mapH]);
 
     // ── Occupied map ──────────────────────────────────────────────────────────
     // "x,y" → { unit, side, modelIdx, isAnchor, unitNumber }
@@ -101,12 +127,12 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
         const add = (units, side) =>
             units?.forEach((rawUnit, unitIdx) => {
                 const unit = enrichUnit(rawUnit);
-                buildUnitTiles(unit).forEach(({key, modelIdx, isAnchor}) => {
-                    map[key] = {unit, side, modelIdx, isAnchor, unitNumber: unitIdx + 1};
+                buildUnitTiles(unit).forEach(({ key, modelIdx, isAnchor }) => {
+                    map[key] = { unit, side, modelIdx, isAnchor, unitNumber: unitIdx + 1 };
                 });
             });
         add(battle.blueUnits, PlayerSides.BLUE);
-        add(battle.redUnits, PlayerSides.RED);
+        add(battle.redUnits,  PlayerSides.RED);
         return map;
     };
 
@@ -146,14 +172,30 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
     };
 
     // ── Movement ──────────────────────────────────────────────────────────────
+    // Minimum Manhattan distance between two same-size footprint rectangles.
+    // Measures gap between closest edges, so a large unit can move to positions
+    // reachable from any of its tiles, not just the top-left anchor.
+    const footprintDist = (px, py, nx, ny, sx, sy) => {
+        const gapX = Math.max(0, Math.abs(px - nx) - (sx - 1));
+        const gapY = Math.max(0, Math.abs(py - ny) - (sy - 1));
+        return gapX + gapY;
+    };
+
     // speed × 3 tiles because each tile = ⅓ of a move-1 tool
     const computeReachable = (unit, modelPos, occupied, useWheel = false) => {
         const spdTiles = getUnitSpeed(unit, useWheel) * 3;
+        const sx = getUnitSizeX(unit);
+        const sy = getUnitSizeY(unit);
         const tiles = new Set();
-        for (let dx = -spdTiles; dx <= spdTiles; dx++)
-            for (let dy = -(spdTiles - Math.abs(dx)); dy <= spdTiles - Math.abs(dx); dy++) {
-                const nx = modelPos.x + dx, ny = modelPos.y + dy;
-                if (singleFootprintFits(unit, nx, ny, occupied, unit.id))
+
+        // Search range: anchor can shift up to spdTiles + (footprintSize-1) in any direction
+        const rangeX = spdTiles + sx - 1;
+        const rangeY = spdTiles + sy - 1;
+
+        for (let nx = modelPos.x - rangeX; nx <= modelPos.x + rangeX; nx++)
+            for (let ny = modelPos.y - rangeY; ny <= modelPos.y + rangeY; ny++) {
+                if (footprintDist(modelPos.x, modelPos.y, nx, ny, sx, sy) <= spdTiles
+                    && singleFootprintFits(unit, nx, ny, occupied, unit.id))
                     tiles.add(`${nx},${ny}`);
             }
         tiles.delete(`${modelPos.x},${modelPos.y}`);
@@ -175,11 +217,8 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
     };
 
     const handleSelectUnit = (unit, side) => {
-        if (selectedUnit?.unit.id === unit.id) {
-            clearSelection();
-            return;
-        }
-        setSelectedUnit({unit: enrichUnit(unit), side});
+        if (selectedUnit?.unit.id === unit.id) { clearSelection(); return; }
+        setSelectedUnit({ unit: enrichUnit(unit), side });
         setMovingModelIdx(null);
         setReachable(new Set());
         setWheelModeActive(false);
@@ -188,26 +227,34 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
     const handleTileClick = (x, y) => {
         const occupied = buildOccupied();
 
-        // Deployment: place one model footprint at a time
+        // Deployment: place one model footprint at a time, stay active until all placed
         if (deployingUnit) {
-            const {unit, side} = deployingUnit;
+            const { unit, side } = deployingUnit;
             if (!singleFootprintFits(unit, x, y, occupied, unit.id)) return;
             if (!footprintInDeployZone(unit, x, side)) return;
-            const updated = [...(unit.mapPositions || []), {x, y}];
-            onUnitUpdate(side, unit.id, {mapPositions: updated});
-            if (updated.length >= getModelCount(unit)) setDeployingUnit(null);
+            const updated = [...(unit.mapPositions || []), { x, y }];
+            onUnitUpdate(side, unit.id, { mapPositions: updated });
+            if (updated.length >= getModelCount(unit)) {
+                setDeployingUnit(null);
+            } else {
+                // Keep selecting this unit — update local copy so next click appends correctly
+                setDeployingUnit(prev => ({
+                    ...prev,
+                    unit: { ...prev.unit, mapPositions: updated },
+                }));
+            }
             return;
         }
 
         // Movement: reposition the selected model
         if (selectedUnit && movingModelIdx !== null && reachable.has(`${x},${y}`)) {
-            const {unit, side} = selectedUnit;
+            const { unit, side } = selectedUnit;
             const newPositions = unit.mapPositions.map((pos, idx) =>
-                idx === movingModelIdx ? {x, y} : pos
+                idx === movingModelIdx ? { x, y } : pos
             );
-            const updates = {mapPositions: newPositions, hasMoved: true};
+            const updates = { mapPositions: newPositions, hasMoved: true };
             onUnitUpdate(side, unit.id, updates);
-            setSelectedUnit(prev => ({...prev, unit: {...prev.unit, ...updates}}));
+            setSelectedUnit(prev => ({ ...prev, unit: { ...prev.unit, ...updates } }));
             setMovingModelIdx(null);
             setReachable(new Set());
         }
@@ -230,31 +277,24 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
 
     const handleAction = action => {
         if (!selectedUnit) return;
-        const {unit, side} = selectedUnit;
+        const { unit, side } = selectedUnit;
         let updates = {};
-        if (action === 'Move') {
-            startMovingModel(0, unit);
-            return;
-        }
-        if (action === 'Aim') updates = {tokens: {...unit.tokens, aim: (unit.tokens?.aim || 0) + 1}};
-        if (action === 'Dodge') updates = {tokens: {...unit.tokens, dodge: (unit.tokens?.dodge || 0) + 1}};
-        if (action === 'Standby') updates = {tokens: {...unit.tokens, standby: (unit.tokens?.standby || 0) + 1}};
-        if (action === 'Recover') updates = {
-            tokens: {
-                ...unit.tokens, ion: 0,
-                suppression: Math.max(0, (unit.tokens?.suppression || 0) - 1)
-            }
-        };
-        if (action === 'Coordinate') updates = {tokens: {...unit.tokens, aim: (unit.tokens?.aim || 0) + 1}};
+        if (action === 'Move') { startMovingModel(0, unit); return; }
+        if (action === 'Aim')        updates = { tokens: { ...unit.tokens, aim:     (unit.tokens?.aim     || 0) + 1 } };
+        if (action === 'Dodge')      updates = { tokens: { ...unit.tokens, dodge:   (unit.tokens?.dodge   || 0) + 1 } };
+        if (action === 'Standby')    updates = { tokens: { ...unit.tokens, standby: (unit.tokens?.standby || 0) + 1 } };
+        if (action === 'Recover')    updates = { tokens: { ...unit.tokens, ion: 0,
+                                         suppression: Math.max(0, (unit.tokens?.suppression || 0) - 1) } };
+        if (action === 'Coordinate') updates = { tokens: { ...unit.tokens, aim: (unit.tokens?.aim || 0) + 1 } };
         if (Object.keys(updates).length) {
             onUnitUpdate(side, unit.id, updates);
-            setSelectedUnit(prev => ({...prev, unit: {...prev.unit, ...updates}}));
+            setSelectedUnit(prev => ({ ...prev, unit: { ...prev.unit, ...updates } }));
         }
     };
 
     const handleDeactivate = () => {
         if (!selectedUnit) return;
-        onUnitUpdate(selectedUnit.side, selectedUnit.unit.id, {hasActivated: true});
+        onUnitUpdate(selectedUnit.side, selectedUnit.unit.id, { hasActivated: true });
         clearSelection();
     };
 
@@ -272,18 +312,18 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
             && singleFootprintFits(deployingUnit.unit, x, y, occupied, deployingUnit.unit.id)
             && footprintInDeployZone(deployingUnit.unit, x, deployingUnit.side))
             return '#b3ffb3';
-        if (x < DEPLOY_ZONE_WIDTH) return '#d8eaf8';
+        if (x < DEPLOY_ZONE_WIDTH)         return '#d8eaf8';
         if (x >= mapW - DEPLOY_ZONE_WIDTH) return '#f8d8d8';
         return '#e6ede6';
     };
 
     // ── Token ─────────────────────────────────────────────────────────────────
     const getToken = occEntry => {
-        const {unit, side, modelIdx, isAnchor, unitNumber} = occEntry;
+        const { unit, side, modelIdx, isAnchor, unitNumber } = occEntry;
         const isSelectedUnit = selectedUnit?.unit.id === unit.id;
-        const isMovingModel = isSelectedUnit && modelIdx === movingModelIdx;
-        const factionColor = side === PlayerSides.BLUE ? '#0d6efd' : '#dc3545';
-        const subBg = side === PlayerSides.BLUE ? 'rgba(13,110,253,0.2)' : 'rgba(220,53,69,0.2)';
+        const isMovingModel  = isSelectedUnit && modelIdx === movingModelIdx;
+        const factionColor   = side === PlayerSides.BLUE ? '#0d6efd' : '#dc3545';
+        const subBg          = side === PlayerSides.BLUE ? 'rgba(13,110,253,0.2)' : 'rgba(220,53,69,0.2)';
 
         // Sub-tiles of a model's footprint: tinted fill + unit number only
         if (!isAnchor) {
@@ -300,54 +340,47 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
         }
 
         // Anchor tile: circular token with unit number + initials
-        const sz = Math.max(20, tileSize - 6);
+        const sz      = Math.max(20, tileSize - 6);
         const initials = unit.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-        const canMove = isSelectedUnit && movingModelIdx === null && !unit.hasActivated;
+        const canMove  = isSelectedUnit && movingModelIdx === null && !unit.hasActivated;
 
         return (
             <div
                 onClick={e => {
                     e.stopPropagation();
-                    if (canMove) {
-                        startMovingModel(modelIdx, unit);
-                        return;
-                    }
+                    if (canMove) { startMovingModel(modelIdx, unit); return; }
                     handleSelectUnit(unit, side);
                 }}
                 title={`${unit.name} — model ${modelIdx + 1}/${getModelCount(unit)}${canMove ? ' · Click to move' : ''}`}
                 style={{
                     width: sz, height: sz, borderRadius: '50%',
                     backgroundColor: factionColor,
-                    border: isMovingModel ? '3px solid #ffd700'
-                        : isSelectedUnit ? '2px solid #fff'
-                            : '2px solid rgba(0,0,0,.3)',
+                    border: isMovingModel  ? '3px solid #ffd700'
+                          : isSelectedUnit ? '2px solid #fff'
+                          : '2px solid rgba(0,0,0,.3)',
                     display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center',
                     color: '#fff', userSelect: 'none', position: 'relative', flexShrink: 0,
                     opacity: unit.hasActivated ? 0.4 : 1,
                     cursor: canMove ? 'crosshair' : 'pointer',
                 }}>
-                <span style={{fontSize: Math.max(10, sz * 0.38), fontWeight: 'bold', lineHeight: 1}}>
+                <span style={{ fontSize: Math.max(10, sz * 0.38), fontWeight: 'bold', lineHeight: 1 }}>
                     {unitNumber}
                 </span>
-                <span style={{fontSize: Math.max(7, sz * 0.24), opacity: 0.8, lineHeight: 1}}>
+                <span style={{ fontSize: Math.max(7, sz * 0.24), opacity: 0.8, lineHeight: 1 }}>
                     {initials}
                 </span>
                 {unit.tokens?.aim > 0 && (
-                    <span style={{
-                        position: 'absolute', top: -4, right: -4, width: 13, height: 13,
+                    <span style={{ position: 'absolute', top: -4, right: -4, width: 13, height: 13,
                         borderRadius: '50%', background: '#198754', fontSize: 8,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff'
-                    }}>
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
                         {unit.tokens.aim}
                     </span>
                 )}
                 {unit.tokens?.dodge > 0 && (
-                    <span style={{
-                        position: 'absolute', bottom: -4, right: -4, width: 13, height: 13,
+                    <span style={{ position: 'absolute', bottom: -4, right: -4, width: 13, height: 13,
                         borderRadius: '50%', background: '#0dcaf0', fontSize: 8,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000'
-                    }}>
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000' }}>
                         {unit.tokens.dodge}
                     </span>
                 )}
@@ -357,7 +390,8 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
 
     // ── Render ────────────────────────────────────────────────────────────────
     return (
-        <Card className="mb-3">
+        <div ref={containerRef} style={{ width: '100%' }}>
+        <Card className="mb-3" style={{ width: '100%' }}>
             <Card.Header className="d-flex justify-content-between align-items-center py-2">
                 <strong>Battle Map</strong>
                 <div className="d-flex align-items-center gap-3">
@@ -365,10 +399,8 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
                         {mapW}×{mapH} tiles · 1 tile ≈ 27mm · {Math.round(mapW / 3)}×{Math.round(mapH / 3)} move tools
                     </small>
                     <ButtonGroup size="sm">
-                        <Button variant="outline-secondary"
-                                onClick={() => setTileSize(t => Math.max(24, t - 4))}>−</Button>
-                        <Button variant="outline-secondary"
-                                onClick={() => setTileSize(t => Math.min(72, t + 4))}>+</Button>
+                        <Button variant="outline-secondary" onClick={() => setTileSize(t => Math.max(24, t - 4))}>−</Button>
+                        <Button variant="outline-secondary" onClick={() => setTileSize(t => Math.min(72, t + 4))}>+</Button>
                     </ButtonGroup>
                 </div>
             </Card.Header>
@@ -380,26 +412,26 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
                     <div className="d-flex gap-3 mb-2">
                         {[PlayerSides.BLUE, PlayerSides.RED].map(side => {
                             const undeployed = getUndeployed(side);
-                            const partial = getPartiallyDeployed(side);
-                            const variant = side === PlayerSides.BLUE ? 'primary' : 'danger';
+                            const partial    = getPartiallyDeployed(side);
+                            const variant    = side === PlayerSides.BLUE ? 'primary' : 'danger';
                             return (
-                                <div key={side} style={{flex: 1}}>
+                                <div key={side} style={{ flex: 1 }}>
                                     <small className={`fw-bold text-${variant}`}>
                                         {side === PlayerSides.BLUE ? 'Blue' : 'Red'} — select a unit, then click tiles
                                     </small>
                                     <div className="d-flex flex-wrap gap-1 mt-1">
                                         {[...partial, ...undeployed].map(u => {
                                             const placed = u.mapPositions?.length || 0;
-                                            const total = getModelCount(u);
+                                            const total  = getModelCount(u);
                                             const active = deployingUnit?.unit.id === u.id;
                                             return (
                                                 <Badge key={u.id}
-                                                       bg={active ? 'warning' : variant}
-                                                       text={active ? 'dark' : undefined}
-                                                       style={{cursor: 'pointer'}}
-                                                       onClick={() => setDeployingUnit(
-                                                           active ? null : {unit: enrichUnit(u), side}
-                                                       )}>
+                                                    bg={active ? 'warning' : variant}
+                                                    text={active ? 'dark' : undefined}
+                                                    style={{ cursor: 'pointer' }}
+                                                    onClick={() => setDeployingUnit(
+                                                        active ? null : { unit: enrichUnit(u), side }
+                                                    )}>
                                                     {u.name} ({placed}/{total})
                                                 </Badge>
                                             );
@@ -417,9 +449,9 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
                 {/* ── Deploying unit banner ── */}
                 {deployingUnit && (() => {
                     const placed = deployingUnit.unit.mapPositions?.length || 0;
-                    const total = getModelCount(deployingUnit.unit);
-                    const sx = getUnitSizeX(deployingUnit.unit);
-                    const sy = getUnitSizeY(deployingUnit.unit);
+                    const total  = getModelCount(deployingUnit.unit);
+                    const sx     = getUnitSizeX(deployingUnit.unit);
+                    const sy     = getUnitSizeY(deployingUnit.unit);
                     return (
                         <Alert variant="info" className="py-1 px-2 mb-2 small">
                             Placing <strong>{deployingUnit.unit.name}</strong> — model{' '}
@@ -427,7 +459,7 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
                             ({sx}×{sy} tiles each). Click a highlighted tile in the{' '}
                             <strong>{deployingUnit.side === PlayerSides.BLUE ? 'blue' : 'red'}</strong> zone.
                             <Button size="sm" variant="link" className="py-0 px-1"
-                                    onClick={() => setDeployingUnit(null)}>Cancel</Button>
+                                onClick={() => setDeployingUnit(null)}>Cancel</Button>
                         </Alert>
                     );
                 })()}
@@ -435,7 +467,7 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
                 {/* ── Moving model banner ── */}
                 {movingModelIdx !== null && selectedUnit && (() => {
                     const unit = selectedUnit.unit;
-                    const spd = getUnitSpeed(unit, wheelModeActive);
+                    const spd  = getUnitSpeed(unit, wheelModeActive);
                     return (
                         <Alert variant="primary" className="py-1 px-2 mb-2 small">
                             Moving model <strong>{movingModelIdx + 1}</strong> of{' '}
@@ -443,10 +475,7 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
                             Speed {spd} = <strong>{spd * 3} tiles</strong> range.
                             {wheelModeActive && <Badge bg="warning" text="dark" className="ms-2">Wheel Mode</Badge>}
                             <Button size="sm" variant="link" className="py-0 px-1"
-                                    onClick={() => {
-                                        setMovingModelIdx(null);
-                                        setReachable(new Set());
-                                    }}>
+                                onClick={() => { setMovingModelIdx(null); setReachable(new Set()); }}>
                                 Cancel
                             </Button>
                         </Alert>
@@ -454,27 +483,27 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
                 })()}
 
                 {/* ── Grid ── */}
-                <div style={{overflowX: 'auto', overflowY: 'auto', maxHeight: 560}}>
-                    <div style={{display: 'inline-flex', flexDirection: 'column'}}>
-                        {Array.from({length: mapH}, (_, y) => (
-                            <div key={y} style={{display: 'flex'}}>
-                                {Array.from({length: mapW}, (_, x) => {
-                                    const key = `${x},${y}`;
+                <div style={{ overflowY: 'auto', width: '100%' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        {Array.from({ length: mapH }, (_, y) => (
+                            <div key={y} style={{ display: 'flex' }}>
+                                {Array.from({ length: mapW }, (_, x) => {
+                                    const key      = `${x},${y}`;
                                     const occEntry = occupied[key];
                                     return (
                                         <div key={key}
-                                             style={{
-                                                 width: tileSize, height: tileSize, flexShrink: 0,
-                                                 border: '1px solid #bbb',
-                                                 backgroundColor: getTileBg(x, y, occEntry),
-                                                 cursor: 'pointer',
-                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                 padding: 0,
-                                             }}
-                                             onClick={() => occEntry
-                                                 ? handleSelectUnit(occEntry.unit, occEntry.side)
-                                                 : handleTileClick(x, y)
-                                             }>
+                                            style={{
+                                                width: tileSize, height: tileSize, flexShrink: 0,
+                                                border: '1px solid #bbb',
+                                                backgroundColor: getTileBg(x, y, occEntry),
+                                                cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                padding: 0,
+                                            }}
+                                            onClick={() => occEntry
+                                                ? handleSelectUnit(occEntry.unit, occEntry.side)
+                                                : handleTileClick(x, y)
+                                            }>
                                             {occEntry && getToken(occEntry)}
                                         </div>
                                     );
@@ -485,26 +514,26 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
                 </div>
 
                 {/* ── Legend ── */}
-                <div className="d-flex flex-wrap gap-2 mt-2" style={{fontSize: '0.72rem'}}>
-                    <span style={{background: '#d8eaf8', padding: '2px 6px', borderRadius: 3}}>Blue zone</span>
-                    <span style={{background: '#f8d8d8', padding: '2px 6px', borderRadius: 3}}>Red zone</span>
-                    <span style={{background: '#93c9ff', padding: '2px 6px', borderRadius: 3}}>Move range</span>
-                    <span style={{background: '#ffd700', padding: '2px 6px', borderRadius: 3}}>Moving model</span>
-                    <span style={{background: '#b8d4f0', padding: '2px 6px', borderRadius: 3}}>Selected unit</span>
+                <div className="d-flex flex-wrap gap-2 mt-2" style={{ fontSize: '0.72rem' }}>
+                    <span style={{ background: '#d8eaf8', padding: '2px 6px', borderRadius: 3 }}>Blue zone</span>
+                    <span style={{ background: '#f8d8d8', padding: '2px 6px', borderRadius: 3 }}>Red zone</span>
+                    <span style={{ background: '#93c9ff', padding: '2px 6px', borderRadius: 3 }}>Move range</span>
+                    <span style={{ background: '#ffd700', padding: '2px 6px', borderRadius: 3 }}>Moving model</span>
+                    <span style={{ background: '#b8d4f0', padding: '2px 6px', borderRadius: 3 }}>Selected unit</span>
                     <span className="text-muted">№ = unit index per side</span>
                 </div>
 
                 {/* ── Action panel ── */}
                 {selectedUnit && (() => {
-                    const {unit, side} = selectedUnit;
-                    const placed = unit.mapPositions?.length || 0;
-                    const modelCount = getModelCount(unit);
-                    const spd = getUnitSpeed(unit, wheelModeActive);
-                    const hasWheelMode = unit.keywords?.includes(Keywords.WHEEL_MODE);
+                    const { unit, side } = selectedUnit;
+                    const placed         = unit.mapPositions?.length || 0;
+                    const modelCount     = getModelCount(unit);
+                    const spd            = getUnitSpeed(unit, wheelModeActive);
+                    const hasWheelMode   = unit.keywords?.includes(Keywords.WHEEL_MODE);
 
                     return (
                         <div className="p-2 border rounded mt-2"
-                             style={{background: side === PlayerSides.BLUE ? '#f0f8ff' : '#fff0f0'}}>
+                            style={{ background: side === PlayerSides.BLUE ? '#f0f8ff' : '#fff0f0' }}>
 
                             <div className="d-flex justify-content-between align-items-start mb-2">
                                 <div>
@@ -518,7 +547,7 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
                                         {' · '}{unit.wounds || 1}W
                                         {' · '}Base {getUnitSizeX(unit)}×{getUnitSizeY(unit)} tiles
                                         {unit.hasMoved && (
-                                            <Badge bg="secondary" className="ms-2" style={{fontSize: '0.65rem'}}>
+                                            <Badge bg="secondary" className="ms-2" style={{ fontSize: '0.65rem' }}>
                                                 Moved
                                             </Badge>
                                         )}
@@ -526,22 +555,20 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
 
                                     {/* Token badges */}
                                     <div className="small mt-1 d-flex flex-wrap gap-1">
-                                        {unit.tokens?.aim > 0 && <Badge bg="success">Aim ×{unit.tokens.aim}</Badge>}
-                                        {unit.tokens?.dodge > 0 && <Badge bg="info">Dodge ×{unit.tokens.dodge}</Badge>}
-                                        {unit.tokens?.standby > 0 &&
-                                            <Badge bg="warning" text="dark">Standby ×{unit.tokens.standby}</Badge>}
-                                        {unit.tokens?.suppression > 0 &&
-                                            <Badge bg="danger">Suppressed ×{unit.tokens.suppression}</Badge>}
-                                        {unit.tokens?.ion > 0 && <Badge bg="secondary">Ion ×{unit.tokens.ion}</Badge>}
+                                        {unit.tokens?.aim         > 0 && <Badge bg="success">Aim ×{unit.tokens.aim}</Badge>}
+                                        {unit.tokens?.dodge       > 0 && <Badge bg="info">Dodge ×{unit.tokens.dodge}</Badge>}
+                                        {unit.tokens?.standby     > 0 && <Badge bg="warning" text="dark">Standby ×{unit.tokens.standby}</Badge>}
+                                        {unit.tokens?.suppression > 0 && <Badge bg="danger">Suppressed ×{unit.tokens.suppression}</Badge>}
+                                        {unit.tokens?.ion         > 0 && <Badge bg="secondary">Ion ×{unit.tokens.ion}</Badge>}
                                     </div>
 
                                     {/* Wheel Mode toggle */}
                                     {hasWheelMode && !unit.hasActivated && (
                                         <div className="mt-2">
                                             <Button size="sm"
-                                                    variant={wheelModeActive ? 'warning' : 'outline-warning'}
-                                                    style={{fontSize: '0.75rem'}}
-                                                    onClick={toggleWheelMode}>
+                                                variant={wheelModeActive ? 'warning' : 'outline-warning'}
+                                                style={{ fontSize: '0.75rem' }}
+                                                onClick={toggleWheelMode}>
                                                 ⚙ {wheelModeActive ? 'Wheel Mode ON — Spd 3' : 'Enter Wheel Mode'}
                                             </Button>
                                         </div>
@@ -553,8 +580,8 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
                                             <span className="text-muted">Move model:</span>
                                             {unit.mapPositions.map((_, idx) => (
                                                 <Button key={idx} size="sm" variant="outline-primary"
-                                                        className="py-0 px-1" style={{fontSize: '0.7rem'}}
-                                                        onClick={() => startMovingModel(idx, unit)}>
+                                                    className="py-0 px-1" style={{ fontSize: '0.7rem' }}
+                                                    onClick={() => startMovingModel(idx, unit)}>
                                                     M{idx + 1}
                                                 </Button>
                                             ))}
@@ -571,11 +598,11 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
                                     <div className="d-flex flex-wrap gap-1 mb-2">
                                         {LEGION_ACTIONS.map(action => (
                                             <Button key={action} size="sm"
-                                                    variant={action === 'Move' ? 'outline-primary'
-                                                        : action === 'Attack' ? 'outline-danger'
-                                                            : 'outline-secondary'}
-                                                    style={{fontSize: '0.75rem'}}
-                                                    onClick={() => handleAction(action)}>
+                                                variant={action === 'Move'   ? 'outline-primary'
+                                                       : action === 'Attack' ? 'outline-danger'
+                                                       : 'outline-secondary'}
+                                                style={{ fontSize: '0.75rem' }}
+                                                onClick={() => handleAction(action)}>
                                                 {action}
                                             </Button>
                                         ))}
@@ -592,6 +619,7 @@ const BattleMap = ({battle, onUnitUpdate, isDeploymentPhase = false}) => {
                 })()}
             </Card.Body>
         </Card>
+        </div>
     );
 };
 

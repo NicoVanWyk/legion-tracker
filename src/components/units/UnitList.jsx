@@ -323,21 +323,30 @@ const UnitList = () => {
                                                 </div>
                                             )}
                                             {!isAoS && (
-                                                <div className="mt-2 small d-flex align-items-center gap-2">
+                                                <div className="mt-2 small d-flex align-items-center flex-wrap gap-2">
                                                     <span><strong>Spd</strong> {unit.speed || 2}</span>
                                                     <span>
-                                                        <strong>| Def</strong>{' '}
-                                                        <span
-                                                            className={`fw-bold ${unit.defense === 'red' ? 'text-danger' : 'text-secondary'}`}>
+                                                        <strong>Def</strong>{' '}
+                                                        <span className={`fw-bold ${unit.defense === 'red' ? 'text-danger' : 'text-secondary'}`}>
                                                             {(unit.defense || 'white').charAt(0).toUpperCase()}
                                                         </span>
                                                     </span>
-                                                    <span><strong>| {unit.wounds || 1}W</strong></span>
-                                                    {(unit.battleMapSize || 1) > 1 && (
-                                                        <Badge bg="light" text="dark" style={{fontSize: '0.65rem'}}>
-                                                            {unit.battleMapSize}-tile base
+                                                    <span><strong>{unit.wounds || 1}W</strong></span>
+                                                    {unit.surgeAttack && (
+                                                        <Badge bg="warning" text="dark" style={{ fontSize: '0.65rem' }}>
+                                                            ⚡ Atk Surge
                                                         </Badge>
                                                     )}
+                                                    {unit.surgeDefense && (
+                                                        <Badge bg="info" style={{ fontSize: '0.65rem' }}>
+                                                            ⚡ Def Surge
+                                                        </Badge>
+                                                    )}
+                                                    {(unit.battleMapSizeX || 1) > 1 || (unit.battleMapSizeY || 1) > 1 ? (
+                                                        <Badge bg="light" text="dark" style={{ fontSize: '0.65rem' }}>
+                                                            {unit.battleMapSizeX || 1}×{unit.battleMapSizeY || 1} base
+                                                        </Badge>
+                                                    ) : null}
                                                 </div>
                                             )}
                                         </div>
