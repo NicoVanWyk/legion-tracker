@@ -258,7 +258,8 @@ const BattleTracker = ({ battleId }) => {
                 },
                 // Reset surge usage
                 surgeAttackUsed: false,
-                surgeDefenseUsed: false
+                surgeDefenseUsed: false,
+                hasMoved: false,
             }));
 
             updatedBattle.redUnits = battle.redUnits.map(unit => ({
@@ -278,7 +279,8 @@ const BattleTracker = ({ battleId }) => {
                 },
                 // Reset surge usage
                 surgeAttackUsed: false,
-                surgeDefenseUsed: false
+                surgeDefenseUsed: false,
+                hasMoved: false,
             }));
 
             // Reset command cards for the new round
