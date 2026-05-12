@@ -370,7 +370,7 @@ const ArmyDetail = ({armyId}) => {
                                     <Card className="h-100">
                                         <Card.Header className="d-flex justify-content-between">
                                             <strong>{unit.name}</strong>
-                                            <Badge bg="secondary">{unit.points} pts</Badge>
+                                            <Badge bg="secondary">{unit.points} pts base | {unit.totalPoints} pts total</Badge>
                                         </Card.Header>
                                         <Card.Body>
                                             <p className="text-muted small mb-2">
