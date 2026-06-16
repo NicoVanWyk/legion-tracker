@@ -88,9 +88,11 @@ const AoSSharedBattleTracker = () => {
         onSave: saveBattle
     };
 
-    return isMobile ?
-        <AoSMobileBattleTracker {...battleProps} /> :
-        <AoSBattleTracker {...battleProps} />;
+    // Both desktop and mobile trackers now accept battle + onSave as props,
+    // so SharedBattleTracker can inject the real-time Firestore data into either.
+    return isMobile
+        ? <AoSMobileBattleTracker {...battleProps} />
+        : <AoSBattleTracker {...battleProps} />;
 };
 
 export default AoSSharedBattleTracker;

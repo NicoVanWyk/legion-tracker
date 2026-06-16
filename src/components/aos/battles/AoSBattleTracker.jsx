@@ -4,6 +4,7 @@ import {useParams, useNavigate} from 'react-router-dom';
 import {doc, getDoc, updateDoc} from 'firebase/firestore';
 import {db} from '../../../firebase/config';
 import {useAuth} from '../../../contexts/AuthContext';
+import {useIsMobile} from '../../../hooks/useIsMobile';
 import AoSBattlePhases from '../../../enums/aos/AoSBattlePhases';
 import AoSBattleHeader from './AoSBattleHeader';
 import AoSPlayerPanel from './AoSPlayerPanel';
@@ -11,13 +12,16 @@ import AoSUnitTracker from './AoSUnitTracker';
 import AoSCommandPanel from './AoSCommandPanel';
 import AoSPhaseControls from './AoSPhaseControls';
 import AoSPhaseReference from './AoSPhaseReference';
+import AoSBattleMap from './AoSBattleMap';
 import AoSBattleInviteForm from './AoSBattleInviteForm';
+import AoSMobileBattleTracker from './AoSMobileBattleTracker';
 import LoadingSpinner from '../../layout/LoadingSpinner';
 
 const AoSBattleTracker = () => {
     const {battleId} = useParams();
     const {currentUser} = useAuth();
     const navigate = useNavigate();
+    const isMobile = useIsMobile();
     const [battle, setBattle] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -185,6 +189,11 @@ const AoSBattleTracker = () => {
     if (error) return <Alert variant="danger">{error}</Alert>;
     if (!battle) return <Alert variant="warning">Battle not found</Alert>;
 
+    // Delegate to the mobile layout on small screens
+    if (isMobile) {
+        return <AoSMobileBattleTracker battle={battle} onSave={saveBattle}/>;
+    }
+
     return (
         <Container fluid>
             <AoSBattleHeader
@@ -195,8 +204,8 @@ const AoSBattleTracker = () => {
             <Row className="mt-3">
                 <Col className="text-end">
                     {!battle.player2.userId && (
-                        <Button 
-                            variant="info" 
+                        <Button
+                            variant="info"
                             className="me-2"
                             onClick={() => setShowInviteModal(true)}
                         >
@@ -211,6 +220,7 @@ const AoSBattleTracker = () => {
 
             {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
 
+            {/* Player panels & unit trackers */}
             <Row className="mt-3">
                 <Col lg={6}>
                     <AoSPlayerPanel
@@ -222,7 +232,6 @@ const AoSBattleTracker = () => {
                         hasAuxiliary={battle.player1HasAuxiliary}
                         onVPChange={(change) => handleVPChange(1, change)}
                     />
-
                     <AoSUnitTracker
                         units={battle.player1Units}
                         playerNumber={1}
@@ -240,7 +249,6 @@ const AoSBattleTracker = () => {
                         hasAuxiliary={battle.player2HasAuxiliary}
                         onVPChange={(change) => handleVPChange(2, change)}
                     />
-
                     <AoSUnitTracker
                         units={battle.player2Units}
                         playerNumber={2}
@@ -249,6 +257,17 @@ const AoSBattleTracker = () => {
                 </Col>
             </Row>
 
+            {/* Battle map */}
+            <Row className="mt-3">
+                <Col>
+                    <AoSBattleMap
+                        battle={battle}
+                        onUnitUpdate={handleUnitUpdate}
+                    />
+                </Col>
+            </Row>
+
+            {/* Phase reference */}
             <Row className="mt-3">
                 <Col>
                     <AoSPhaseReference
@@ -259,6 +278,7 @@ const AoSBattleTracker = () => {
                 </Col>
             </Row>
 
+            {/* Command panel */}
             <Row className="mt-3">
                 <Col>
                     <AoSCommandPanel
@@ -268,7 +288,8 @@ const AoSBattleTracker = () => {
                 </Col>
             </Row>
 
-            <Row className="mt-3">
+            {/* Phase controls */}
+            <Row className="mt-3 mb-4">
                 <Col>
                     <AoSPhaseControls
                         currentPhase={battle.currentPhase}
@@ -278,6 +299,7 @@ const AoSBattleTracker = () => {
                 </Col>
             </Row>
 
+            {/* End battle modal */}
             <Modal show={showEndBattleModal} onHide={() => setShowEndBattleModal(false)}>
                 <Modal.Header closeButton>
                     <Modal.Title>End Battle</Modal.Title>
@@ -286,8 +308,9 @@ const AoSBattleTracker = () => {
                     <p>Are you sure you want to end this battle?</p>
                     <Form.Group>
                         <Form.Label>Winner (Optional)</Form.Label>
-                        <Form.Select value={selectedWinner || ''}
-                                     onChange={(e) => setSelectedWinner(e.target.value ? parseInt(e.target.value) : null)}>
+                        <Form.Select
+                            value={selectedWinner || ''}
+                            onChange={(e) => setSelectedWinner(e.target.value ? parseInt(e.target.value) : null)}>
                             <option value="">No Winner / Draw</option>
                             <option value="1">{battle.player1.name}</option>
                             <option value="2">{battle.player2.name}</option>
@@ -304,15 +327,12 @@ const AoSBattleTracker = () => {
                 </Modal.Footer>
             </Modal>
 
-            <AoSBattleInviteForm 
+            <AoSBattleInviteForm
                 show={showInviteModal}
                 onHide={() => setShowInviteModal(false)}
                 existingBattle={battle}
                 existingBattleId={battleId}
-                onInviteSent={() => {
-                    setShowInviteModal(false);
-                    // Optionally navigate to shared battle or show success message
-                }}
+                onInviteSent={() => setShowInviteModal(false)}
             />
         </Container>
     );

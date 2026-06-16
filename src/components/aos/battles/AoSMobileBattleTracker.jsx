@@ -1,60 +1,29 @@
-﻿import React, {useState, useEffect} from 'react';
+﻿import React, {useState} from 'react';
 import {Container, Card, Button, Tabs, Tab, Badge, Alert, Modal, Form} from 'react-bootstrap';
-import {useParams, useNavigate} from 'react-router-dom';
-import {doc, getDoc, updateDoc} from 'firebase/firestore';
-import {db} from '../../../firebase/config';
-import {useAuth} from '../../../contexts/AuthContext';
+import {useNavigate} from 'react-router-dom';
 import AoSBattlePhases from '../../../enums/aos/AoSBattlePhases';
 import AoSPlayerPanel from './AoSPlayerPanel';
 import AoSUnitTracker from './AoSUnitTracker';
 import AoSCommandPanel from './AoSCommandPanel';
 import AoSPhaseReference from './AoSPhaseReference';
-import LoadingSpinner from '../../layout/LoadingSpinner';
+import AoSBattleMap from './AoSBattleMap';
 
-const AoSMobileBattleTracker = () => {
-    const {battleId} = useParams();
-    const {currentUser} = useAuth();
+// Accepts battle + onSave as props so both AoSBattleTracker (desktop delegate)
+// and AoSSharedBattleTracker (multiplayer) can inject their own data & save logic.
+const AoSMobileBattleTracker = ({battle, onSave}) => {
     const navigate = useNavigate();
-    const [battle, setBattle] = useState(null);
-    const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState('p1');
     const [showEndBattleModal, setShowEndBattleModal] = useState(false);
     const [selectedWinner, setSelectedWinner] = useState(null);
 
-    useEffect(() => {
-        fetchBattle();
-    }, [battleId, currentUser]);
+    if (!battle) {
+        return <Alert variant="warning">Battle not found</Alert>;
+    }
 
-    const fetchBattle = async () => {
-        if (!currentUser || !battleId) return;
-
+    const saveBattle = async (updates) => {
         try {
-            const battleRef = doc(db, 'users', currentUser.uid, 'aosBattles', battleId);
-            const battleDoc = await getDoc(battleRef);
-
-            if (!battleDoc.exists()) {
-                setError('Battle not found');
-                return;
-            }
-
-            setBattle({id: battleDoc.id, ...battleDoc.data()});
-        } catch (err) {
-            console.error('Error fetching battle:', err);
-            setError('Failed to load battle');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const saveBattle = async (updatedBattle) => {
-        try {
-            const battleRef = doc(db, 'users', currentUser.uid, 'aosBattles', battleId);
-            await updateDoc(battleRef, {
-                ...updatedBattle,
-                lastUpdated: new Date()
-            });
-            setBattle({...battle, ...updatedBattle});
+            await onSave(updates);
         } catch (err) {
             console.error('Error saving battle:', err);
             setError('Failed to save changes');
@@ -67,6 +36,13 @@ const AoSMobileBattleTracker = () => {
         if (newPhase === AoSBattlePhases.END_OF_TURN) {
             updates.currentRound = battle.currentRound + 1;
             updates.currentPhase = AoSBattlePhases.PRIORITY;
+
+            const cpHistoryEntry = {
+                round: battle.currentRound,
+                player1: {start: battle.player1CommandPoints, end: battle.player1CommandPoints},
+                player2: {start: battle.player2CommandPoints, end: battle.player2CommandPoints}
+            };
+            updates.cpHistory = [...(battle.cpHistory || []), cpHistoryEntry];
         }
 
         if (newPhase === AoSBattlePhases.HERO) {
@@ -156,14 +132,17 @@ const AoSMobileBattleTracker = () => {
         }
     };
 
-    const nextPhase = AoSBattlePhases.getNextPhase(battle?.currentPhase);
-
-    if (loading) return <LoadingSpinner text="Loading battle..."/>;
-    if (error) return <Alert variant="danger">{error}</Alert>;
-    if (!battle) return <Alert variant="warning">Battle not found</Alert>;
+    const nextPhase = AoSBattlePhases.getNextPhase(battle.currentPhase);
 
     return (
         <Container fluid className="pb-5">
+            {error && (
+                <Alert variant="danger" dismissible onClose={() => setError('')}>
+                    {error}
+                </Alert>
+            )}
+
+            {/* Sticky header */}
             <Card className="mb-2 sticky-top" style={{top: 0, zIndex: 100}}>
                 <Card.Body className="p-2">
                     <div className="d-flex justify-content-between align-items-center">
@@ -177,16 +156,33 @@ const AoSMobileBattleTracker = () => {
                                 >
                                     {AoSBattlePhases.getDisplayName(battle.currentPhase).replace(' Phase', '')}
                                 </Badge>
+                                {battle.priorityPlayer && (
+                                    <Badge bg="success" className="ms-1">
+                                        Priority: {battle.priorityPlayer === 1
+                                            ? battle.player1.name
+                                            : battle.player2.name}
+                                    </Badge>
+                                )}
                             </small>
                         </div>
                         <div>
-                            {nextPhase && (
-                                <Button size="sm" variant="success" onClick={() => handlePhaseChange(nextPhase)}
-                                        className="me-2">
+                            {battle.currentPhase === AoSBattlePhases.PRIORITY ? (
+                                <Button size="sm" variant="primary" className="me-2"
+                                    onClick={() => {
+                                        // Trigger priority roll — handled in AoSBattleHeader on desktop;
+                                        // on mobile we just advance to Hero and let user set priority manually
+                                        handlePriorityRoll(battle.priorityPlayer || 1);
+                                    }}>
+                                    Roll Priority
+                                </Button>
+                            ) : nextPhase ? (
+                                <Button size="sm" variant="success" className="me-2"
+                                    onClick={() => handlePhaseChange(nextPhase)}>
                                     Next
                                 </Button>
-                            )}
-                            <Button size="sm" variant="warning" onClick={() => setShowEndBattleModal(true)}>
+                            ) : null}
+                            <Button size="sm" variant="warning"
+                                onClick={() => setShowEndBattleModal(true)}>
                                 End
                             </Button>
                         </div>
@@ -194,6 +190,7 @@ const AoSMobileBattleTracker = () => {
                 </Card.Body>
             </Card>
 
+            {/* Tabbed content */}
             <Tabs activeKey={activeTab} onSelect={setActiveTab} className="mb-2">
                 <Tab eventKey="p1" title={battle.player1.name}>
                     <AoSPlayerPanel
@@ -229,6 +226,13 @@ const AoSMobileBattleTracker = () => {
                     />
                 </Tab>
 
+                <Tab eventKey="map" title="Map">
+                    <AoSBattleMap
+                        battle={battle}
+                        onUnitUpdate={handleUnitUpdate}
+                    />
+                </Tab>
+
                 <Tab eventKey="reference" title="Reference">
                     <AoSPhaseReference
                         battle={battle}
@@ -242,6 +246,7 @@ const AoSMobileBattleTracker = () => {
                 </Tab>
             </Tabs>
 
+            {/* End battle modal */}
             <Modal show={showEndBattleModal} onHide={() => setShowEndBattleModal(false)}>
                 <Modal.Header closeButton>
                     <Modal.Title>End Battle</Modal.Title>
@@ -250,8 +255,9 @@ const AoSMobileBattleTracker = () => {
                     <p>Are you sure you want to end this battle?</p>
                     <Form.Group>
                         <Form.Label>Winner (Optional)</Form.Label>
-                        <Form.Select value={selectedWinner || ''}
-                                     onChange={(e) => setSelectedWinner(e.target.value ? parseInt(e.target.value) : null)}>
+                        <Form.Select
+                            value={selectedWinner || ''}
+                            onChange={(e) => setSelectedWinner(e.target.value ? parseInt(e.target.value) : null)}>
                             <option value="">No Winner / Draw</option>
                             <option value="1">{battle.player1.name}</option>
                             <option value="2">{battle.player2.name}</option>

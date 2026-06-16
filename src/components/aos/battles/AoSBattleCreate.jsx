@@ -8,6 +8,17 @@ import GameSystems from '../../../enums/GameSystems';
 import AoSBattlePhases from '../../../enums/aos/AoSBattlePhases';
 import AoSGrandStrategies from '../../../enums/aos/AoSGrandStrategies';
 
+// Standard AoS board sizes in inches (width × height).
+// Stored as mapConfig: { widthIn, heightIn } on the battle doc.
+// AoSBattleMap reads these and converts to zones (1 zone = 25mm).
+const MAP_SIZES = [
+    {label: 'Contest of Generals (44" × 30")',  widthIn: 44, heightIn: 30},
+    {label: 'Spearhead (22" × 30")',             widthIn: 22, heightIn: 30},
+    {label: 'Grand Tournament (60" × 44")',      widthIn: 60, heightIn: 44},
+    {label: 'Pitched Battle (44" × 60")',        widthIn: 44, heightIn: 60},
+    {label: 'Custom',                            widthIn: null, heightIn: null},
+];
+
 const AoSBattleCreate = () => {
     const {currentUser} = useAuth();
     const navigate = useNavigate();
@@ -23,7 +34,10 @@ const AoSBattleCreate = () => {
         player1Name: currentUser?.displayName || 'Player 1',
         player2Name: 'Player 2',
         player1GrandStrategy: '',
-        player2GrandStrategy: ''
+        player2GrandStrategy: '',
+        mapSizePreset: 0,       // index into MAP_SIZES
+        mapWidthIn: 44,
+        mapHeightIn: 30,
     });
 
     useEffect(() => {
@@ -48,6 +62,16 @@ const AoSBattleCreate = () => {
         }
     };
 
+    const handlePresetChange = (idx) => {
+        const preset = MAP_SIZES[idx];
+        setFormData(prev => ({
+            ...prev,
+            mapSizePreset: idx,
+            mapWidthIn:  preset.widthIn  ?? prev.mapWidthIn,
+            mapHeightIn: preset.heightIn ?? prev.mapHeightIn,
+        }));
+    };
+
     const loadArmyUnits = async (armyId) => {
         const armyRef = doc(db, 'users', currentUser.uid, 'armies', armyId);
         const armyDoc = await getDoc(armyRef);
@@ -66,13 +90,14 @@ const AoSBattleCreate = () => {
                 ability.description?.toLowerCase().includes('battle damaged')
             );
 
-            // Get wounds and model count from top-level fields
             const woundsPerModel = unitData.health || unitData.wounds || 0;
             const modelCount = unitData.minModelCount || unitData.modelCount || 1;
 
             return {
+                id: unitDoc.id,           // needed by AoSBattleMap's unitCache fetch
                 unitId: unitDoc.id,
                 name: unitData.name,
+                baseSize: unitData.baseSize || '32mm',   // copy at creation time too
                 startingModels: modelCount,
                 currentModels: modelCount,
                 isDefeated: false,
@@ -120,6 +145,11 @@ const AoSBattleCreate = () => {
                 gameSystem: GameSystems.AOS,
                 battlePointsLimit: formData.battlePointsLimit,
 
+                mapConfig: {
+                    widthIn:  formData.mapWidthIn,
+                    heightIn: formData.mapHeightIn,
+                },
+
                 player1: {
                     userId: currentUser.uid,
                     name: formData.player1Name,
@@ -155,15 +185,8 @@ const AoSBattleCreate = () => {
                 player1Units,
                 player2Units,
 
-                usedAbilitiesThisPhase: {
-                    player1: [],
-                    player2: []
-                },
-
-                usedOncePerBattle: {
-                    player1: [],
-                    player2: []
-                },
+                usedAbilitiesThisPhase: {player1: [], player2: []},
+                usedOncePerBattle:      {player1: [], player2: []},
 
                 roundHistory: [],
                 cpHistory: [],
@@ -188,6 +211,8 @@ const AoSBattleCreate = () => {
             setLoading(false);
         }
     };
+
+    const isCustom = MAP_SIZES[formData.mapSizePreset].widthIn === null;
 
     return (
         <Card>
@@ -219,9 +244,56 @@ const AoSBattleCreate = () => {
                         />
                         <Form.Text>
                             Starting CP: {calculateStartingCP(formData.battlePointsLimit)}
-                            {' '}(&lt;2000: 0 CP, 2000-2999: 1 CP, 3000+: 2 CP)
+                            {' '}(&lt;2000: 0 CP, 2000–2999: 1 CP, 3000+: 2 CP)
                         </Form.Text>
                     </Form.Group>
+
+                    {/* ── Map size ── */}
+                    <Form.Group className="mb-3">
+                        <Form.Label>Map Size</Form.Label>
+                        <Form.Select
+                            value={formData.mapSizePreset}
+                            onChange={(e) => handlePresetChange(parseInt(e.target.value))}
+                        >
+                            {MAP_SIZES.map((size, idx) => (
+                                <option key={idx} value={idx}>{size.label}</option>
+                            ))}
+                        </Form.Select>
+                    </Form.Group>
+
+                    {isCustom && (
+                        <Row className="mb-3">
+                            <Col>
+                                <Form.Group>
+                                    <Form.Label>Width (inches)</Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        min="12"
+                                        max="120"
+                                        value={formData.mapWidthIn}
+                                        onChange={(e) => setFormData({...formData, mapWidthIn: parseInt(e.target.value) || 44})}
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col>
+                                <Form.Group>
+                                    <Form.Label>Height (inches)</Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        min="12"
+                                        max="120"
+                                        value={formData.mapHeightIn}
+                                        onChange={(e) => setFormData({...formData, mapHeightIn: parseInt(e.target.value) || 30})}
+                                    />
+                                </Form.Group>
+                            </Col>
+                        </Row>
+                    )}
+
+                    <Form.Text className="d-block mb-3 text-muted">
+                        Map: {formData.mapWidthIn}" × {formData.mapHeightIn}"
+                        {' '}({Math.ceil(formData.mapWidthIn * 25.4 / 25)} × {Math.ceil(formData.mapHeightIn * 25.4 / 25)} zones at 25mm each)
+                    </Form.Text>
 
                     <Row>
                         <Col md={6}>

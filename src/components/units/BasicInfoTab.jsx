@@ -97,10 +97,7 @@ const BasicInfoTab = ({
                             <Form.Group>
                                 <Form.Label>Subfaction (Optional)</Form.Label>
                                 <div className="border rounded p-2" style={{maxHeight: '200px', overflowY: 'auto'}}>
-                                    {AoSFactionKeywords.getKeywordsByFaction(
-                                        formData.faction === 'stormcast_eternals' ? 'STORMCAST_ETERNALS' :
-                                            formData.faction === 'ossiarch_bonereapers' ? 'OSSIARCH_BONEREAPERS' : ''
-                                    )
+                                    {AoSFactionKeywords.getKeywordsByFaction(formData.faction)
                                         .filter(kw => AoSFactionKeywords.getType(kw) === 'SUB_FACTION')
                                         .map(kw => (
                                             <Form.Check
@@ -119,12 +116,9 @@ const BasicInfoTab = ({
                                             />
                                         ))
                                     }
-                                    {AoSFactionKeywords.getKeywordsByFaction(
-                                        formData.faction === 'stormcast_eternals' ? 'STORMCAST_ETERNALS' :
-                                            formData.faction === 'ossiarch_bonereapers' ? 'OSSIARCH_BONEREAPERS' : ''
-                                    ).filter(kw => AoSFactionKeywords.getType(kw) === 'SUB_FACTION').length === 0 && (
-                                        <div className="text-muted small">No subfactions available for this
-                                            faction</div>
+                                    {AoSFactionKeywords.getKeywordsByFaction(formData.faction)
+                                        .filter(kw => AoSFactionKeywords.getType(kw) === 'SUB_FACTION').length === 0 && (
+                                        <div className="text-muted small">No subfactions available for this faction</div>
                                     )}
                                 </div>
                                 <Form.Text className="text-muted">

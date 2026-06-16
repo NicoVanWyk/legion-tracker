@@ -1,9 +1,17 @@
 ﻿import React, {useState, useEffect} from 'react';
-import {Modal, Form, Button, Alert, ListGroup} from 'react-bootstrap';
+import {Modal, Form, Button, Alert, Row, Col} from 'react-bootstrap';
 import {collection, query, where, getDocs, addDoc, serverTimestamp} from 'firebase/firestore';
 import {db} from '../../../firebase/config';
 import {useAuth} from '../../../contexts/AuthContext';
 import GameSystems from '../../../enums/GameSystems';
+
+const MAP_SIZES = [
+    {label: 'Contest of Generals (44" × 30")',  widthIn: 44, heightIn: 30},
+    {label: 'Spearhead (22" × 30")',             widthIn: 22, heightIn: 30},
+    {label: 'Grand Tournament (60" × 44")',      widthIn: 60, heightIn: 44},
+    {label: 'Pitched Battle (44" × 60")',        widthIn: 44, heightIn: 60},
+    {label: 'Custom',                            widthIn: null, heightIn: null},
+];
 
 const AoSBattleInviteForm = ({show, onHide, onInviteSent, existingBattle = null, existingBattleId = null}) => {
     const [friends, setFriends] = useState([]);
@@ -15,6 +23,9 @@ const AoSBattleInviteForm = ({show, onHide, onInviteSent, existingBattle = null,
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [mapSizePreset, setMapSizePreset] = useState(0);
+    const [mapWidthIn, setMapWidthIn] = useState(44);
+    const [mapHeightIn, setMapHeightIn] = useState(30);
     const {currentUser} = useAuth();
 
     useEffect(() => {
@@ -22,6 +33,20 @@ const AoSBattleInviteForm = ({show, onHide, onInviteSent, existingBattle = null,
             fetchFriendsAndArmies();
         }
     }, [show, currentUser]);
+
+    // When inviting to an existing battle, inherit its mapConfig if present
+    useEffect(() => {
+        if (existingBattle?.mapConfig) {
+            setMapWidthIn(existingBattle.mapConfig.widthIn || 44);
+            setMapHeightIn(existingBattle.mapConfig.heightIn || 30);
+            // Try to match a preset
+            const idx = MAP_SIZES.findIndex(
+                s => s.widthIn === existingBattle.mapConfig.widthIn &&
+                     s.heightIn === existingBattle.mapConfig.heightIn
+            );
+            setMapSizePreset(idx >= 0 ? idx : MAP_SIZES.length - 1); // last = Custom
+        }
+    }, [existingBattle]);
 
     const fetchFriendsAndArmies = async () => {
         try {
@@ -43,6 +68,19 @@ const AoSBattleInviteForm = ({show, onHide, onInviteSent, existingBattle = null,
         }
     };
 
+    const handlePresetChange = (idx) => {
+        const preset = MAP_SIZES[idx];
+        setMapSizePreset(idx);
+        if (preset.widthIn !== null) {
+            setMapWidthIn(preset.widthIn);
+            setMapHeightIn(preset.heightIn);
+        }
+    };
+
+    const isCustom = MAP_SIZES[mapSizePreset].widthIn === null;
+
+    const mapConfig = {widthIn: mapWidthIn, heightIn: mapHeightIn};
+
     const sendInvitation = async () => {
         if (!selectedFriend) {
             setError('Please select a friend');
@@ -57,14 +95,14 @@ const AoSBattleInviteForm = ({show, onHide, onInviteSent, existingBattle = null,
         try {
             setLoading(true);
             let battleRef;
-            let battleData;
 
             if (existingBattle && existingBattleId) {
-                // Inviting to existing battle - convert to shared battle
-                battleData = {
+                // Inviting to existing battle — convert to shared battle
+                const battleData = {
                     name: existingBattle.name,
                     gameSystem: GameSystems.AOS,
                     battlePointsLimit: existingBattle.battlePointsLimit,
+                    mapConfig,
 
                     participants: {
                         [currentUser.uid]: {
@@ -82,6 +120,7 @@ const AoSBattleInviteForm = ({show, onHide, onInviteSent, existingBattle = null,
 
                     battleData: {
                         ...existingBattle,
+                        mapConfig,
                         isSharedBattle: true,
                         isActive: false
                     },
@@ -93,11 +132,12 @@ const AoSBattleInviteForm = ({show, onHide, onInviteSent, existingBattle = null,
 
                 battleRef = await addDoc(collection(db, 'aos-shared-battles'), battleData);
             } else {
-                // Creating new battle
-                battleData = {
+                // Creating new shared battle from scratch
+                const battleData = {
                     name: battleName || `${currentUser.displayName || 'Player 1'} vs ${friends.find(f => f.id === selectedFriend)?.username}`,
                     gameSystem: GameSystems.AOS,
                     battlePointsLimit: battlePoints,
+                    mapConfig,
 
                     participants: {
                         [currentUser.uid]: {
@@ -114,6 +154,7 @@ const AoSBattleInviteForm = ({show, onHide, onInviteSent, existingBattle = null,
                     }],
 
                     battleData: {
+                        mapConfig,
                         currentPhase: 'SETUP',
                         currentRound: 1,
                         isActive: false
@@ -197,6 +238,50 @@ const AoSBattleInviteForm = ({show, onHide, onInviteSent, existingBattle = null,
                         </Form.Group>
                     </>
                 )}
+
+                {/* Map size — shown for both new and existing battles */}
+                <Form.Group className="mb-3">
+                    <Form.Label>Map Size</Form.Label>
+                    <Form.Select
+                        value={mapSizePreset}
+                        onChange={(e) => handlePresetChange(parseInt(e.target.value))}
+                        disabled={!!existingBattle?.mapConfig} // locked if inherited
+                    >
+                        {MAP_SIZES.map((size, idx) => (
+                            <option key={idx} value={idx}>{size.label}</option>
+                        ))}
+                    </Form.Select>
+                </Form.Group>
+
+                {isCustom && (
+                    <Row className="mb-3">
+                        <Col>
+                            <Form.Group>
+                                <Form.Label>Width (inches)</Form.Label>
+                                <Form.Control
+                                    type="number" min="12" max="120"
+                                    value={mapWidthIn}
+                                    onChange={(e) => setMapWidthIn(parseInt(e.target.value) || 44)}
+                                />
+                            </Form.Group>
+                        </Col>
+                        <Col>
+                            <Form.Group>
+                                <Form.Label>Height (inches)</Form.Label>
+                                <Form.Control
+                                    type="number" min="12" max="120"
+                                    value={mapHeightIn}
+                                    onChange={(e) => setMapHeightIn(parseInt(e.target.value) || 30)}
+                                />
+                            </Form.Group>
+                        </Col>
+                    </Row>
+                )}
+
+                <Form.Text className="d-block mb-3 text-muted">
+                    Map: {mapWidthIn}" × {mapHeightIn}"
+                    {' '}({Math.ceil(mapWidthIn * 25.4 / 25)} × {Math.ceil(mapHeightIn * 25.4 / 25)} zones at 25mm each)
+                </Form.Text>
 
                 <Form.Group className="mb-3">
                     <Form.Label>Select Friend</Form.Label>

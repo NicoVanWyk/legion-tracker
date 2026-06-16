@@ -26,6 +26,19 @@ const AoSFactionKeywords = {
   NULL_MYRIAD: 'NULL_MYRIAD',
   CREMATORIANS: 'CREMATORIANS',
 
+  // Daughters Of Khaine
+  DAUGHTERS_OF_KHAINE: 'DAUGHTERS_OF_KHAINE',
+  MELUSAI: 'MELUSAI',
+  AELF: 'AELF',
+  CAULDRON_OF_BLOOD: 'CAULDRON_OF_BLOOD',
+
+  // Daughters Of Khaine
+  SKAVEN: 'SKAVEN',
+  MASTERCLAN: 'MASTERCLAN',
+  SKRYRE: 'SKRYRE',
+  VERMINUS: 'VERMINUS',
+  MOULDER: 'MOULDER',
+
   getDisplayName: (keyword) => {
     const names = {
       ORDER: 'Order',
@@ -48,14 +61,23 @@ const AoSFactionKeywords = {
       STALLIARCH_LORDS: 'Stalliarch Lords',
       IVORY_HOST: 'Ivory Host',
       NULL_MYRIAD: 'Null Myriad',
-      CREMATORIANS: 'Crematorians'
+      CREMATORIANS: 'Crematorians',
+      DAUGHTERS_OF_KHAINE: 'Daughters Of Khaine',
+      MELUSAI: 'Melusai',
+      AELF: 'Aelf',
+      CAULDRON_OF_BLOOD: 'Cauldron Of Blood',
+      SKAVEN: 'Skaven',
+      MASTERCLAN: 'Masterclan',
+      SKRYRE: 'Skryre',
+      VERMINUS: 'Verminus',
+      MOULDER: 'Moulder',
     };
     return names[keyword] || keyword.replace(/_/g, ' ');
   },
 
   getType: (keyword) => {
     const grandAlliances = ['ORDER', 'CHAOS', 'DEATH', 'DESTRUCTION'];
-    const factions = ['STORMCAST_ETERNALS', 'OSSIARCH_BONEREAPERS'];
+    const factions = ['STORMCAST_ETERNALS', 'OSSIARCH_BONEREAPERS', 'DAUGHTERS_OF_KHAINE', 'SKAVEN'];
 
     if (grandAlliances.includes(keyword)) return 'GRAND_ALLIANCE';
     if (factions.includes(keyword)) return 'FACTION';
@@ -76,16 +98,28 @@ const AoSFactionKeywords = {
   getKeywordsByFaction: (faction) => {
     const stormcast = [
       'ORDER', 'STORMCAST_ETERNALS', 'EXTREMIS_CHAMBER', 'RUINATION_CHAMBER',
-      'SACROSANCT_CHAMBER', 'THE_BLACKTALONS', 'WARRIOR_CHAMBER', "VANGUARD_CHAMBER",
-        "IDONETH_DEEPKIN"
+      'SACROSANCT_CHAMBER', 'THE_BLACKTALONS', 'WARRIOR_CHAMBER', 'VANGUARD_CHAMBER',
+      'IDONETH_DEEPKIN'
     ];
     const ossiarch = [
       'DEATH', 'OSSIARCH_BONEREAPERS', 'MORTISAN', 'MORTIS_PRAETORIANS', 'PETRIFEX_ELITE',
-      'STALLIARCH_LORDS', 'IVORY_HOST', 'NULL_MYRIAD', 'CREMATORIANS', "KAINANS_REAPERS",
+      'STALLIARCH_LORDS', 'IVORY_HOST', 'NULL_MYRIAD', 'CREMATORIANS', 'KAINANS_REAPERS',
+    ];
+    const daughtersOfKhaine = [
+      'ORDER', 'DAUGHTERS_OF_KHAINE', 'MELUSAI', 'AELF', 'CAULDRON_OF_BLOOD',
+    ];
+    const skaven = [
+      'CHAOS', 'SKAVEN', 'MASTERCLAN', 'SKRYRE', 'VERMINUS', 'MOULDER',
     ];
 
-    if (faction === 'STORMCAST_ETERNALS') return stormcast;
-    if (faction === 'OSSIARCH_BONEREAPERS') return ossiarch;
+    // AoSFactions values are lowercase (e.g. 'daughters_of_khaine') —
+    // normalise to uppercase so both formats match.
+    const key = String(faction).toUpperCase();
+
+    if (key === 'STORMCAST_ETERNALS') return stormcast;
+    if (key === 'OSSIARCH_BONEREAPERS') return ossiarch;
+    if (key === 'DAUGHTERS_OF_KHAINE') return daughtersOfKhaine;
+    if (key === 'SKAVEN') return skaven;
     return [];
   },
 
